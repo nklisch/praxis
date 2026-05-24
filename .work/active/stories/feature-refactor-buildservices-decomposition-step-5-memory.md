@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-5-memory
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -80,3 +80,11 @@ export function buildMemoryServices(
 
 Low — single-constructor extract with no side-effects at construction time.
 Rollback: revert the new file and restore the inline block in `buildServices()`.
+
+## Implementation notes
+
+- Used `PraxisDb` (from `@praxis/core/db`) instead of the raw `BetterSQLite3Database` type
+  specified in the story's target state — `MemoryServiceImpl` declares its `db` parameter as
+  `PraxisDb`, and all other service factories in the codebase use that alias consistently.
+- `services.ts` is not modified per the step spec; Step 10 will wire the call-site.
+- `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both green (520 tests passed).
