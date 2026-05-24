@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-7-indexers
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -104,3 +104,12 @@ Low — all six indexers are post-turn/session-end side effect runners; extracti
 their construction has no behavioural impact. The only subtle point is passing
 `conceptMapConfiguratorId` through to the workspace-services step.
 Rollback: revert the new file and restore the inline blocks in `buildServices()`.
+
+## Implementation notes
+
+- Created `packages/desktop/electron/main/services/build-indexer-services.ts` (148 lines).
+- Used `PraxisDb` (the project's canonical Drizzle db type alias) rather than the raw `BetterSQLite3Database` mentioned in the story brief — consistent with all other sibling factory files.
+- `readSessionCourseId` is factory-internal as specified; it closes over `db` and is passed as a callback to each indexer that needs it.
+- `IndexerServiceDeps` and `IndexerServices` interfaces are exported; the six indexer instances and `conceptMapSnapshotter` are not on the returned slice.
+- Construction order preserved exactly as in `buildServices()`: mastery/misconception → conceptMapConfiguratorId/conceptMapService → snapshotter/divergenceIndexer → affective → procedural → orchestrator.
+- `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both green (520 tests pass).
