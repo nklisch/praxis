@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction-step-2-facade-rewrite
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-ingestion-batch-extraction
 depends_on: [feature-refactor-use-ingestion-batch-extraction-step-1-extract-use-batch-ingestion]
@@ -133,6 +133,17 @@ batch refs, `_startBatch`, `confirmTier`, `skipCurrentFile`, `cancelBatch`,
 - `use-ingestion.ts` is ≤150 lines (excluding type block + helpers)
 - Public `UseIngestionResult` interface unchanged (verified by type test or grep)
 - Picker-close fix tests in `library-document-picker.test.tsx` still pass
+
+## Implementation notes
+
+- `use-ingestion.ts` line count: 404 → 230 (174 lines removed)
+- Batch refs (`tierDeferredRef`, `tierResultRef`, `cancelRequestedRef`, `batchCancelRef`) entirely removed from facade
+- `_startBatch`, `confirmTier`, `skipCurrentFile`, `cancelBatch` removed from facade; delegated to `batch.*`
+- `stateRef` + `useEffect` mirror added to provide stable `getState` getter to sub-hook
+- `startPickBatch` and `startBatchWithPaths` are thin wrappers calling `batch.resetRefs()` + `batch.startBatch()`
+- `confirmTier`, `skipCurrentFile`, `cancelBatch` re-exported directly from `batch` in return object
+- All 1706 UI tests pass (including `use-ingestion.test.tsx` × 11 and `library-document-picker.test.tsx` × 20)
+- `pnpm typecheck` clean across all packages
 
 ## Risk
 

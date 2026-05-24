@@ -1,6 +1,7 @@
 import type { DocumentScope } from "@praxis/core/types";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useBatchIngestion } from "./use-batch-ingestion.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -114,39 +115,12 @@ export function useIngestion(
   const client = usePraxisClient();
   const [state, setState] = useState<IngestionState>({ status: "idle" });
 
-  /**
-   * When a batch is running and the current file needs tier selection, this ref
-   * holds the deferred resolvers so confirmTier / the skip button can signal the
-   * batch loop to advance.
-   *
-   * resolve() → user confirmed; ingestion ran before resolution (or will run
-   *              after — the loop awaits this promise then reads batchResultRef)
-   * The skip outcome is written into batchResultRef before resolving.
-   */
-  const tierDeferredRef = useRef<{
-    resolve: () => void;
-    reject: (reason?: unknown) => void;
-    promise: Promise<void>;
-  } | null>(null);
-
-  /**
-   * When a tier-selection deferred resolves, the result to append to the batch.
-   * null means "run normal ingestion" (i.e., confirmTier was called).
-   */
-  const tierResultRef = useRef<BatchResult | null>(null);
-
-  /**
-   * Set to true by cancelBatch() so the batch loop knows to break after the
-   * current file.
-   */
-  const cancelRequestedRef = useRef(false);
-
-  /**
-   * Batch-level cancel: resolves to partial results collected so far.
-   */
-  const batchCancelRef = useRef<{
-    resolve: (partial: BatchResult[]) => void;
-  } | null>(null);
+  // Mirror state into a ref so the sub-hook's skipCurrentFile can read current
+  // state without a stale closure.
+  const stateRef = useRef<IngestionState>(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // ── Core ingestion runner ────────────────────────────────────────────────────
 
@@ -201,116 +175,15 @@ export function useIngestion(
     [client, onDone, opts?.scope],
   );
 
-  // ── confirmTier ──────────────────────────────────────────────────────────────
+  // ── Batch sub-hook delegation ────────────────────────────────────────────────
 
-  const confirmTier = useCallback(
-    async (filePath: string, filename: string, mimeType: string, preferIngestorId?: string) => {
-      const deferred = tierDeferredRef.current;
-      if (deferred) {
-        // Batch mode: run ingestion here then resolve the deferred so the loop
-        // can advance. We write the result into tierResultRef first so the loop
-        // picks it up after the await.
-        const file: PendingFile = { filePath, filename, mimeType };
-        const result = await ingestOneWithResult(file, preferIngestorId);
-        tierResultRef.current = result;
-        deferred.resolve();
-      }
-    },
-    [ingestOneWithResult],
-  );
+  const batch = useBatchIngestion(setState, ingestOneWithResult, () => stateRef.current);
 
-  // ── Batch loop (shared by startPickBatch and startBatchWithPaths) ────────────
-
-  /**
-   * Core batch runner: given a list of file paths, runs them through the
-   * tier-selection + ingestion pipeline. Callers are responsible for resetting
-   * refs and setting initial state before calling this.
-   */
-  const _startBatch = useCallback(
-    async (paths: string[]) => {
-      if (paths.length === 0) return;
-
-      const queue: PendingFile[] = paths.map((p) => {
-        const filename = p.split(/[\\/]/).pop() ?? p;
-        return { filePath: p, filename, mimeType: mimeTypeFromPath(p) };
-      });
-
-      const results: BatchResult[] = [];
-
-      // Set up a cancel escape hatch: a promise that resolves with partial
-      // results when cancelBatch() is called mid-loop.
-      let cancelResolve!: (partial: BatchResult[]) => void;
-      const cancelPromise = new Promise<BatchResult[]>((resolve) => {
-        cancelResolve = resolve;
-      });
-      batchCancelRef.current = { resolve: cancelResolve };
-
-      for (let i = 0; i < queue.length; i++) {
-        if (cancelRequestedRef.current) break;
-
-        const file = queue[i];
-        if (!file) continue;
-        const batch = { current: i + 1, total: queue.length };
-
-        if (file.mimeType === "application/pdf") {
-          // Show tier selection modal with batch context.
-          setState({
-            status: "tier_selection",
-            filePath: file.filePath,
-            filename: file.filename,
-            mimeType: file.mimeType,
-            batch,
-          });
-
-          // Create a deferred that confirmTier (or skip) will resolve.
-          tierResultRef.current = null;
-          const { promise, resolve, reject } = Promise.withResolvers<void>();
-          tierDeferredRef.current = { promise, resolve, reject };
-
-          // Race against cancel.
-          await Promise.race([promise, cancelPromise]);
-
-          // Clean up the deferred.
-          tierDeferredRef.current = null;
-
-          if (cancelRequestedRef.current) break;
-
-          const tierResult = tierResultRef.current;
-          if (tierResult !== null) {
-            // confirmTier or skip produced a result directly.
-            results.push(tierResult);
-            tierResultRef.current = null;
-            continue;
-          }
-
-          // Should not reach here in normal flow — treat as skip.
-          results.push({
-            filePath: file.filePath,
-            filename: file.filename,
-            outcome: { ok: false, message: "Tier selection cancelled" },
-          });
-        } else {
-          // Non-PDF: ingest immediately.
-          setState({ status: "ingesting", filename: file.filename, batch });
-          const result = await ingestOneWithResult(file);
-          results.push(result);
-        }
-      }
-
-      batchCancelRef.current = null;
-
-      // Transition to batch_summary with whatever results we have.
-      setState({ status: "batch_summary", results });
-    },
-    [ingestOneWithResult],
-  );
+  // ── Facade entry points ──────────────────────────────────────────────────────
 
   const startPickBatch = useCallback(
     async (mode: "files" | "folder") => {
-      cancelRequestedRef.current = false;
-      tierDeferredRef.current = null;
-      tierResultRef.current = null;
-
+      batch.resetRefs();
       setState({ status: "picking" });
       try {
         const paths = await client.ingest.pickPaths({ mode });
@@ -318,73 +191,26 @@ export function useIngestion(
           setState({ status: "idle" });
           return;
         }
-        await _startBatch(paths);
+        await batch.startBatch(paths);
       } catch (err) {
         setState({ status: "error", message: errString(err) });
       }
     },
-    [client, _startBatch],
+    [client, batch],
   );
 
-  /**
-   * Ingest a list of paths directly (bypassing the OS dialog). Paths come
-   * from Electron's File.path on drag-and-drop. No-op when paths is empty.
-   * Respects opts.scope for auto-attach, same as startPickBatch.
-   */
   const startBatchWithPaths = useCallback(
     async (paths: string[]) => {
       if (paths.length === 0) return;
-      cancelRequestedRef.current = false;
-      tierDeferredRef.current = null;
-      tierResultRef.current = null;
+      batch.resetRefs();
       try {
-        await _startBatch(paths);
+        await batch.startBatch(paths);
       } catch (err) {
         setState({ status: "error", message: errString(err) });
       }
     },
-    [_startBatch],
+    [batch],
   );
-
-  // ── skipCurrentFile ──────────────────────────────────────────────────────────
-
-  const skipCurrentFile = useCallback(() => {
-    const deferred = tierDeferredRef.current;
-    if (!deferred) return; // no-op outside a batch tier selection
-
-    // The current state holds the file's metadata; write a skip result so the
-    // batch loop records it and advances.
-    const currentState = state;
-    if (currentState.status === "tier_selection") {
-      tierResultRef.current = {
-        filePath: currentState.filePath,
-        filename: currentState.filename,
-        outcome: { ok: false, message: "Skipped by user" },
-      };
-    } else {
-      // Defensive: write a null so the loop treats it as "cancelled".
-      tierResultRef.current = null;
-    }
-    deferred.resolve();
-  }, [state]);
-
-  // ── cancelBatch ──────────────────────────────────────────────────────────────
-
-  const cancelBatch = useCallback(() => {
-    cancelRequestedRef.current = true;
-
-    // If a tier selection is in flight, resolve the deferred with a skip so the
-    // loop unblocks and can check the cancel flag.
-    const tierDeferred = tierDeferredRef.current;
-    if (tierDeferred) {
-      tierResultRef.current = null; // will be treated as "tier selection cancelled"
-      tierDeferred.resolve();
-    }
-
-    // Trigger the cancel escape hatch with whatever results were collected.
-    batchCancelRef.current?.resolve([]);
-    batchCancelRef.current = null;
-  }, []);
 
   // ── dismiss ──────────────────────────────────────────────────────────────────
 
@@ -396,9 +222,9 @@ export function useIngestion(
     state,
     startPickBatch,
     startBatchWithPaths,
-    confirmTier,
-    skipCurrentFile,
+    confirmTier: batch.confirmTier,
+    skipCurrentFile: batch.skipCurrentFile,
     dismiss,
-    cancelBatch,
+    cancelBatch: batch.cancelBatch,
   };
 }
