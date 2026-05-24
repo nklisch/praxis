@@ -56,4 +56,17 @@ Headline themes:
 
 ## Gate runs
 
-(populated during Phase 4)
+- **gate-security** (2026-05-23) — 3 Low findings, 0 Critical / 0 High /
+  0 Medium. Items parked to backlog (don't block readiness):
+  `gate-security-spawn-from-assignment-parent-validation`,
+  `gate-security-spawn-from-passage-offset-cap`,
+  `gate-security-session-list-limit-cap`. Positive verifications:
+  migration 0025 cascade scope correct (foreign_keys=ON;
+  `episodic_events` + `tabs` CASCADE; non-FK columns in SQL comment
+  enumerated); new `excludeModeIds` / `modeId` queries Drizzle-bound (no
+  SQL injection); all 9 bundled session/citation channels go through
+  `handleEnvelope` (Zod + redacted internal errors); mass-assignment of
+  internal `_persistImmediately` not reachable via IPC schema;
+  citation inverted-range fix has direct test coverage; vitest config
+  scope reduction surfaces no env / secret exposure; no `package.json`
+  / lockfile delta in bundle (zero supply-chain change).
