@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-2-fix-normalize-export
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -59,3 +59,9 @@ The barrel makes the `course-create/` subdirectory a proper module with an expli
 ## Risk + Rollback
 Risk: Low — import-path change only.
 Rollback: delete `index.ts`, restore the three direct imports in the service.
+
+## Implementation notes
+- Created `packages/core/src/services/course-create/index.ts` (3 lines) as the module barrel.
+- Re-exports: `normalizeConceptName` from `helpers.js`, `Issue` + `validateProposed` from `draft-validator.js`, `persistDraftTx` + `PersistDraftTxArgs` from `draft-persistence.js`.
+- Per the step 2 deviation, `course-create-service.ts` was NOT modified — step 7 will update its imports to use the barrel.
+- `pnpm typecheck` and `pnpm --filter @praxis/core test` pass (96 test files, 1164 tests).
