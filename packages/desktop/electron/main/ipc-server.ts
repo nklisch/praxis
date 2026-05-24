@@ -4,7 +4,12 @@ import { registerActivityHandlers } from "./activity-channel.js";
 import { registerArtifactsHandlers } from "./artifacts-channel.js";
 import { registerAssignmentsHandlers } from "./assignments-channel.js";
 import { registerAuthHandlers } from "./auth-channel.js";
-import { registerAuthorHandlers } from "./author-channel.js";
+import { registerAuthorConfiguratorHandlers } from "./author-configurator-channel.js";
+import { registerAuthorCourseHandlers } from "./author-course-channel.js";
+import { registerAuthorGateHandlers } from "./author-gate-channel.js";
+import { registerAuthorLessonHandlers } from "./author-lesson-channel.js";
+import { registerAuthorMemoryHandlers } from "./author-memory-channel.js";
+import { registerAuthorPromptHandlers } from "./author-prompt-channel.js";
 import { registerCitationsHandlers } from "./citations-channel.js";
 import { registerConceptMapsHandlers } from "./concept-maps-channel.js";
 import { registerConfigHandlers } from "./config-channel.js";
@@ -86,9 +91,14 @@ export function registerIpcHandlers(
 
   registerAssignmentsHandlers(services, log);
 
-  // ── Phase 11: Author ─────────────────────────────────────────────────────────
+  // ── Phase 11: Author (split into per-sub-domain modules) ─────────────────────
 
-  registerAuthorHandlers(services, log);
+  registerAuthorCourseHandlers(services, log);
+  registerAuthorLessonHandlers(services, log);
+  registerAuthorGateHandlers(services, log);
+  registerAuthorPromptHandlers(services, log);
+  registerAuthorMemoryHandlers(services, log);
+  registerAuthorConfiguratorHandlers(services, log);
 
   // ── Phase 12: Notes ──────────────────────────────────────────────────────────
 

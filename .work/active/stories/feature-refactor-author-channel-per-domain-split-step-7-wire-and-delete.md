@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-7-wire-and-delete
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on:
@@ -67,6 +67,15 @@ Then delete `packages/desktop/electron/main/author-channel.ts`.
 - All six new modules take `(services: Services, log: Logger)` — same signature as the original `registerAuthorHandlers`. The composition root call sites are therefore uniform (no `webContentsGetter` or `activeAbortControllers` needed — author channels are all invoke-only, no streaming).
 - Registration order among the six calls is arbitrary (no handler depends on another being registered first). Use the order above (course → lesson → gate → prompt → memory → configurator) for consistency with the logical grouping in the original file.
 - After deletion of `author-channel.ts`, verify no other file imports from it (`grep -r "author-channel" packages/`).
+
+## Post-implementation notes
+- `ipc-server.ts` import block: replaced single `registerAuthorHandlers` import from `./author-channel.js` with 6 named imports from the 6 new modules, in alphabetical order (configurator, course, gate, lesson, memory, prompt).
+- Call site replaced: `registerAuthorHandlers(services, log)` → 6 calls in course → lesson → gate → prompt → memory → configurator order.
+- `author-channel.ts` deleted via `git rm`.
+- Post-deletion grep: zero hits for `registerAuthorHandlers`, `author-channel.js`, or `author-channel.ts` in `packages/desktop`.
+- All 25 `praxis.author.*` channels verified present across the 6 new modules (each channel string appears exactly once per module's `handle()` + `handleEnvelope()`/`wrapEnvelope()` call pair).
+- `pnpm typecheck`: clean.
+- `pnpm --filter @praxis/desktop test`: 34 test files / 520 tests passed, including `author-channel-envelope.test.ts` (34 tests).
 
 ## Acceptance criteria
 - `pnpm typecheck && pnpm lint && pnpm test` all pass.
