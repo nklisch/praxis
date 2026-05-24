@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-8-workspace
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -101,3 +101,13 @@ The only subtle point is `app.getPath("userData")` for the sketch store, which r
 `app.whenReady()` to have resolved; this constraint is already guaranteed by the
 `buildServices()` call site and is unchanged.
 Rollback: revert the new file and restore the inline blocks in `buildServices()`.
+
+## Implementation notes
+
+- Created `packages/desktop/electron/main/services/build-workspace-services.ts` (165 lines).
+- Exported `WorkspaceServiceDeps` and `WorkspaceServices` interfaces + `buildWorkspaceServices()` factory.
+- `ingestorRegistry` included in this factory as specified; depends on `visionResolver` (from artifacts, step 6) and `embeddedImageStore` (from embeddings, step 4), both passed via deps.
+- `bootstrapEngineResolver` added to deps (needed by `NotesServiceImpl.engineResolver`).
+- `dataDir` and `sketchStore` remain local to the factory body — not exported.
+- Used `PraxisDb` / `SqliteDatabase` types from `@praxis/core/db` (matching the pattern established by `build-embeddings-services.ts`).
+- `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both green (34 files, 520 tests).
