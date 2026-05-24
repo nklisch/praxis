@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction-step-2-apply-signals-move
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-memory-service-bkt-extraction
 depends_on: []
@@ -118,3 +118,21 @@ conflict risk with step 1.
 
 `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass green (96 test
 files, 1164 tests).
+
+## Review
+
+**Verdict: done**
+
+Commit `6d95959`. New file `mastery-writes.ts` (100 lines) is the canonical BKT write path.
+
+- `applySignalsToConcept` signature matches the design spec exactly: `deps: Pick<{db: PraxisDb}, "db">`, `studentId`, `conceptId`, `signals`.
+- `MAX_EVIDENCE = 50` defined locally — acceptable per story guidance (duplicated scalar).
+- BKT fold loop, FIFO evidence truncation, milli-int encoding, and `onConflictDoUpdate` upsert all correct.
+- `effectivePKnown` stored as current `pKnown` at write time (decay applied at read) — comment preserved.
+- Per implementation note, duplicate cleanup (standalone removal from `mastery-indexer.ts`, import rewire, `services/index.ts` re-export) deferred to step 3 to avoid merge conflict risk — correct sequencing decision.
+- File is strictly additive; no logic change.
+- `pnpm typecheck && pnpm test` pass: 4773 tests green.
+
+`grep -r "applySignalsToConcept" packages/core/src/services/indexers/` verified in step-3 review — only the one-liner delegation survives after step 3 lands.
+
+No findings. Acceptance criteria met in full.
