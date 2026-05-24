@@ -1,7 +1,7 @@
 ---
 id: story-library-route-hygiene-pass
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup, perf, ui]
 parent: null
 depends_on: []
@@ -70,3 +70,22 @@ This adds no information not already visible from the JSX usage at
 ## Risk
 Low. Both fixes are confined to one file with clear semantics. The `useLibrary`
 refresh is already exercised by the existing post-ingestion path.
+
+## Implementation notes
+Both fixes applied to `packages/ui/src/routes/library.tsx` in a single pass:
+
+**Fix 1 (double-fetch)**: Removed the `useDocuments` import (line 15) and the
+`const { refresh: refreshDocuments } = useDocuments();` call (line 44).
+Updated the `useIngestion` callback from two awaits (`refreshDocuments()` +
+`refresh()`) down to one (`refresh()` only). `useLibrary`'s `refresh` already
+re-fires `client.documents.list()` via its `Promise.all` loader — confirmed by
+reading `packages/ui/src/hooks/use-library.ts:37–43`. 4 lines removed.
+
+**Fix 2 (comment)**: Deleted the 1-line orientation comment
+(`// handleUsePack and importing are used by PacksSection below.`). 1 line
+removed.
+
+**Verification**: `pnpm --filter @praxis/ui typecheck` clean; all 163 test
+files / 1703 tests pass. The pre-existing `@praxis/curriculum` typecheck
+failure (`draft-add-unit.ts` kind-field mismatch) is unrelated and was present
+before this change.

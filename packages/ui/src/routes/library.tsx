@@ -12,7 +12,6 @@ import { PacksSection } from "../components/library/packs-section.js";
 import { getModeMeta } from "../components/mode-meta.js";
 import { RecommendationRow } from "../components/recommendation-row.js";
 import { usePraxisClient } from "../context/client-context.js";
-import { useDocuments } from "../hooks/use-documents.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { useLibrary } from "../hooks/use-library.js";
 import { useRecommendations } from "../hooks/use-recommendations.js";
@@ -41,9 +40,7 @@ export function LibraryRoute() {
   const [importing, setImporting] = useState<string | null>(null);
 
   // Documents ingestion — refresh lib data after ingestion completes
-  const { refresh: refreshDocuments } = useDocuments();
   const ingestion = useIngestion(async () => {
-    await refreshDocuments();
     await refresh();
   });
 
@@ -81,8 +78,6 @@ export function LibraryRoute() {
     },
     [client, navigate],
   );
-
-  // handleUsePack and importing are used by PacksSection below.
 
   // ── Recommendation action dispatch ─────────────────────────────────────────
 
