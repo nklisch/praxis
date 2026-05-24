@@ -601,38 +601,56 @@ describe("ConfigureRoute", () => {
     unmountB();
   });
 
-  it("unmounting during pending active() does not setState (no React warning)", async () => {
-    // The `cancelled` flag in the useEffect cleanup guards every setSession/setSessionError
-    // call. If it's removed, React (≥18 dev mode) emits a console.error about state updates
-    // on an unmounted component. This test asserts the guard is present and effective.
-    const consoleError = vi.spyOn(console, "error");
-
+  it("unmounting during pending active() suppresses the subsequent start() call (cancelled guard)", async () => {
+    // Oracle: when active() resolves to null AFTER unmount, the cancelled guard
+    // must prevent the code from reaching client.session.start(). If the guard
+    // (`if (cancelled) return`) is removed from configure.tsx, active() resolves →
+    // sees null → falls through to start() → this assertion FAILS.
+    //
+    // This oracle is directly sensitive to the guard's presence: the truth value
+    // changes when `cancelled = true` is removed from the source.
+    //
+    // Sequencing: we must wait for active() to actually be called (i.e., the lock
+    // state resolved and isAccessible became true, triggering the useEffect) BEFORE
+    // unmounting. Only then is the async chain mid-flight when cancelled = true fires.
     let resolveActive!: (v: SessionHandle | null) => void;
     const lockClient = makeLockClient();
+    const activeMock = vi.fn().mockReturnValue(
+      new Promise<SessionHandle | null>((r) => { resolveActive = r; }),
+    );
+    const startMock = vi.fn().mockResolvedValue({
+      sessionId: brandId<"SessionId">("should-never-be-called"),
+      modeId: "configure",
+      startedAt: 0 as Timestamp,
+    } satisfies SessionHandle);
     const client = makeClient(lockClient, {
-      active: vi.fn().mockReturnValue(new Promise<SessionHandle | null>((r) => { resolveActive = r; })),
+      // Hold active() pending so unmount fires while the async chain is mid-flight.
+      active: activeMock,
+      start: startMock,
     });
 
     const { unmount } = renderRoute(client);
 
-    // Unmount while active() is still pending — the cancelled flag must suppress
-    // any subsequent setSession call.
+    // Wait until active() has been called — this confirms that isAccessible became
+    // true and the useEffect ran, putting the async chain in-flight with the pending
+    // Promise. Only at this point is there a live `cancelled` closure to test.
+    await waitFor(() => {
+      expect(activeMock).toHaveBeenCalledWith({ modeId: "configure" });
+    });
+
+    // Unmount while active() is still pending — cleanup runs `cancelled = true`.
     unmount();
 
-    // Now resolve active() after unmount — without the cancelled guard this would
-    // call setSession on an unmounted component.
-    resolveActive({
-      sessionId: brandId<"SessionId">("x"),
-      modeId: "configure",
-      startedAt: 0 as Timestamp,
-    } satisfies SessionHandle);
+    // Resolve active() with null AFTER unmount. Without the cancelled guard the
+    // async chain continues: sees null → calls start(). With the guard it returns
+    // early and start() is never called.
+    resolveActive(null);
 
-    // Let microtasks and any pending timers flush.
+    // Drain microtasks so the promise chain has a chance to run to completion.
     await new Promise<void>((r) => setTimeout(r, 0));
 
-    expect(consoleError).not.toHaveBeenCalledWith(expect.stringMatching(/unmounted/i));
-
-    consoleError.mockRestore();
+    // start() must NOT have been called — the cancelled guard suppressed it.
+    expect(startMock).not.toHaveBeenCalled();
   });
 
   it("cross-tab independence: Prompt dirty does NOT light dots on Course, Gates, or Memory", async () => {

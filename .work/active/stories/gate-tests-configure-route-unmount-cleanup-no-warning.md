@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-route-unmount-cleanup-no-warning
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -86,3 +86,37 @@ verifying the rendered component stays in its loading state after unmount+resolv
 a spy on `client.session.start` is only called once (not again on re-resolve). Alternatively, verify
 the component does not re-render (query the DOM for session-dependent content that would appear only
 if setState fired). The oracle must fail when `cancelled = true` is removed from the source.
+
+## Re-implementation notes (bounce #1)
+
+### Chosen oracle: mock-call-count on `client.session.start`
+
+The new test is titled `"unmounting during pending active() suppresses the subsequent start() call (cancelled guard)"`.
+
+**Oracle shape:** assert `expect(startMock).not.toHaveBeenCalled()` after unmount + resolve of the pending `active()` promise.
+
+**Regression-detection logic:**
+
+The `useEffect` in `configure.tsx` has this structure:
+
+```
+const existing = await client.session.active(...)
+if (cancelled) return;          // ← the guard under test
+if (existing) { setSession(existing); return; }
+const fresh = await client.session.start(...)  // ← must NOT be reached post-unmount
+if (!cancelled) setSession(fresh);
+```
+
+Sequence in the test:
+1. Mount → lock state resolves → `isAccessible` becomes true → effect runs → `active()` called but held pending.
+2. Wait (via `waitFor`) until `activeMock` has been called — confirms the async chain is in-flight.
+3. `unmount()` → cleanup closure sets `cancelled = true`.
+4. `resolveActive(null)` → `await active(...)` resumes; `existing` is `null`.
+5. **With guard**: `if (cancelled) return` → early return → `start()` never called → assertion passes.
+6. **Without guard**: falls through → `start()` called → `expect(startMock).not.toHaveBeenCalled()` FAILS.
+
+**Why the first re-implementation had the same flaw:** the original test unmounted immediately without waiting for `active()` to be called. Because `useLock` returns `loading: true` until its `isSet`/`isUnlocked` promises resolve, `isAccessible` is still `false` at the moment of unmount — the `useEffect` never fires and `active()` is never invoked. Thus `start()` was never called regardless of the guard, giving a vacuous oracle.
+
+The fix is the `waitFor(() => expect(activeMock).toHaveBeenCalled())` step before `unmount()`, which ensures the lock state has resolved and the async chain is genuinely in-flight before the cancellation fires.
+
+**Regression validation (gold standard performed):** guard temporarily removed from `configure.tsx`, tests run — the new test failed with `expected "spy" to not be called at all, but actually been called 1 times`. Guard restored — all 21 tests pass.
