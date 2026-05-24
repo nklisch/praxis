@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-editorial-ui-primitives-library-routeheader
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -44,3 +44,6 @@ site (e.g. `packages/ui/src/routes/courses.tsx:53` or
 `packages/ui/src/routes/concept-maps-list.tsx:65`). Keep the
 `courses.tsx` example below, but update its line number from `:28` to
 the current line in `courses.tsx`.
+
+## Implementation notes
+Replaced the stale `library.tsx:97` example (and the outdated `courses.tsx:28` citation) with the live `<RouteHeader>` call at `packages/ui/src/routes/courses.tsx:53`, which uses `route-meta.ts`-sourced props and an `actions` slot — a representative real-world usage. `library.tsx` no longer renders `<RouteHeader>` (Workbench layout), so it was dropped entirely from the doc.

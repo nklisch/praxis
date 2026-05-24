@@ -32,21 +32,20 @@ export interface RouteHeaderProps {
 Usage:
 
 ```tsx
-// packages/ui/src/routes/library.tsx:97
+// packages/ui/src/routes/courses.tsx:53
 <RouteHeader
-  ornament="⁂"
-  kicker="LIBRARY"
-  title="your library"
-  deck="what you have to work with"
-/>
-
-// packages/ui/src/routes/courses.tsx:28
-<RouteHeader
-  ornament="¶"
-  kicker="COURSES"
-  title="courses"
-  deck="what you're learning"
-  actions={<button onClick={handleNewCourse}>+ New course</button>}
+  ornament={meta.ornament}
+  kicker={meta.kicker}
+  title={meta.title}
+  deck={meta.deck}
+  actions={
+    <>
+      <ResumeDraftPicker onResume={handleResumeDraft} />
+      <button type="button" className={styles.newCourseBtn} onClick={handleNewCourse}>
+        + New course
+      </button>
+    </>
+  }
 />
 ```
 
