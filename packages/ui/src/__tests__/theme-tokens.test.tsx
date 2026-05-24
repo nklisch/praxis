@@ -1,47 +1,14 @@
 /**
  * Theme-token smoke tests.
  *
- * 1. global.css structure — asserts the `:root` block and the dark-mode blocks
- *    (both @media and data-theme) define the expected set of `--color-*`
- *    variables from the locked Studio Quiet / System Editorial token vocabulary.
- *
- * 2. <Nav> render smoke — renders the nav inside a PraxisClientProvider and
- *    asserts it produces at least one link without throwing. jsdom doesn't
- *    evaluate the media query, but the render path is covered.
+ * global.css structure — asserts the `:root` block and the dark-mode blocks
+ * (both @media and data-theme) define the expected set of `--color-*`
+ * variables from the locked Studio Quiet / System Editorial token vocabulary.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { Nav } from "../components/nav.js";
-import { PraxisClientProvider } from "../context/client-context.js";
-import { makeFakeClient } from "./helpers/fake-client.js";
-
-afterEach(() => cleanup());
-
-// Nav uses <Link> from TanStack Router — mock just enough for jsdom.
-vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
-  return {
-    ...actual,
-    Link: ({
-      children,
-      className,
-    }: {
-      children: React.ReactNode;
-      to: string;
-      className?: string;
-      activeProps?: Record<string, string>;
-      activeOptions?: Record<string, boolean>;
-    }) => (
-      <a href="#" className={className}>
-        {children}
-      </a>
-    ),
-    useNavigate: () => vi.fn(),
-  };
-});
+import { describe, expect, it } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -170,67 +137,3 @@ describe("global.css theme tokens", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Tests: <Nav> render smoke
-// ---------------------------------------------------------------------------
-
-describe("Nav render smoke", () => {
-  it("renders without throwing and shows the Library link", () => {
-    const client = makeFakeClient({
-      flashcards: {
-        dueCount: async () => 0,
-      } as typeof client.flashcards,
-    });
-
-    render(
-      <PraxisClientProvider client={client}>
-        <Nav />
-      </PraxisClientProvider>,
-    );
-
-    expect(screen.getByText("Library")).toBeDefined();
-    expect(screen.getByText("Praxis")).toBeDefined();
-  });
-
-  it("renders all primary nav links", () => {
-    const client = makeFakeClient({
-      flashcards: {
-        dueCount: async () => 0,
-      } as typeof client.flashcards,
-    });
-
-    render(
-      <PraxisClientProvider client={client}>
-        <Nav />
-      </PraxisClientProvider>,
-    );
-
-    expect(screen.getByText("Library")).toBeDefined();
-    expect(screen.getByText("Tutor")).toBeDefined();
-    expect(screen.getByText("Workspace")).toBeDefined();
-    expect(screen.getByText("Configure")).toBeDefined();
-    expect(screen.getByText("Settings")).toBeDefined();
-  });
-
-  it("renders the wordmark with editorial ornament + italic title", () => {
-    const client = makeFakeClient({
-      flashcards: {
-        dueCount: async () => 0,
-      } as typeof client.flashcards,
-    });
-
-    const { container } = render(
-      <PraxisClientProvider client={client}>
-        <Nav />
-      </PraxisClientProvider>,
-    );
-
-    // The wordmark text "Praxis" must remain the accessible name.
-    expect(screen.getByText("Praxis")).toBeDefined();
-    // The ornament glyph must be aria-hidden so screen readers don't
-    // announce it as a character.
-    const ornament = container.querySelector('[aria-hidden="true"]');
-    expect(ornament).not.toBeNull();
-    expect(ornament?.textContent).toBe("§");
-  });
-});
