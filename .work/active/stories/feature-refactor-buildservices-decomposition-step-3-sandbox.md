@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-3-sandbox
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -99,3 +99,9 @@ Rollback: revert the new file and restore the four inline lines in `buildService
 - Omitted the unused `gradeMathTool` import that appeared in the story's target-state snippet — `gradeMathTool` is not constructed here; only the four sandbox-related values are returned.
 - Retained the QuickJS comment from `services.ts` for context.
 - `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both pass (520 tests, 34 files).
+
+## Review
+
+**Verdict: done.**
+
+Commit `d2e06e2`. New file `build-sandbox-services.ts` (27 lines) matches the target-state spec — `SandboxServices` interface, `buildSandboxServices()` factory (no args, correct). The unused `gradeMathTool` import from the story's snippet was correctly omitted. QuickJS comment from services.ts retained for context. `services.ts` not touched; wiring correctly deferred to Step 10. No blockers.

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-2-secrets
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -88,3 +88,9 @@ Rollback: revert the new file and restore the two lines in `buildServices()`.
 - `services.ts` not modified — wiring deferred to step 10 per the workflow.
 - `pnpm typecheck` green (all packages, including desktop Electron tsconfig).
 - `pnpm --filter @praxis/desktop test` green: 34 files, 520 tests.
+
+## Review
+
+**Verdict: done.**
+
+Commit `615b14f`. New file `build-secret-services.ts` (22 lines) matches the target-state spec exactly — `SecretServices` interface, `buildSecretServices(log: MainLogger)` factory. Added JSDoc documenting the `app.whenReady()` constraint, which is a useful addition not required by the spec. `services.ts` not touched; wiring correctly deferred to Step 10. No blockers.

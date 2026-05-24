@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-1-infra
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -96,3 +96,9 @@ workflow instructions.
 
 Verified: `pnpm typecheck` clean (all 10 packages pass), `pnpm --filter @praxis/desktop test`
 520/520 tests pass. The new file typechecks correctly even though it is not yet imported.
+
+## Review
+
+**Verdict: done.**
+
+Commit `6d4a2fe`. New file `build-infra-services.ts` (32 lines) matches the target-state spec exactly — `InfraServices` interface, `buildInfraServices(log: MainLogger)` factory, all three constructors and their original inline comments preserved. `services.ts` not touched; wiring correctly deferred to Step 10. No blockers.
