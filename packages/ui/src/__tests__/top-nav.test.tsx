@@ -3,8 +3,8 @@
  *
  * Verifies:
  * - Wordmark renders as italic "Praxis".
- * - All five surface links render with their labels.
- * - All five glyph ornaments render.
+ * - All six surface links render with their labels.
+ * - All six glyph ornaments render.
  * - Active link receives the linkActive CSS class via activeProps.
  * - nav element has accessible aria-label.
  * - themeSlot content renders inside the running head.
@@ -69,16 +69,17 @@ describe("TopNav", () => {
     expect(screen.getByRole("navigation", { name: /main navigation/i })).toBeDefined();
   });
 
-  it("renders all five surface link labels", () => {
+  it("renders all six surface link labels", () => {
     render(<TopNav />);
     expect(screen.getByRole("link", { name: /Library/i })).toBeDefined();
     expect(screen.getByRole("link", { name: /Workspace/i })).toBeDefined();
     expect(screen.getByRole("link", { name: /Concept maps/i })).toBeDefined();
     expect(screen.getByRole("link", { name: /Progress/i })).toBeDefined();
     expect(screen.getByRole("link", { name: /Configure/i })).toBeDefined();
+    expect(screen.getByRole("link", { name: /Settings/i })).toBeDefined();
   });
 
-  it("renders all five typographic glyph ornaments", () => {
+  it("renders all six typographic glyph ornaments", () => {
     render(<TopNav />);
     // Glyphs are aria-hidden — use DOM query rather than getByText for a11y purity.
     const glyphs = document.querySelectorAll("[aria-hidden=true]");
@@ -88,6 +89,7 @@ describe("TopNav", () => {
     expect(glyphTexts).toContain("‡"); // Concept maps
     expect(glyphTexts).toContain("‖"); // Progress
     expect(glyphTexts).toContain("⁂"); // Configure
+    expect(glyphTexts).toContain("·"); // Settings
   });
 
   it("Library link points to /", () => {
@@ -106,6 +108,26 @@ describe("TopNav", () => {
     render(<TopNav />);
     const link = screen.getByRole("link", { name: /Configure/i }) as HTMLAnchorElement;
     expect(link.getAttribute("href")).toBe("/configure");
+  });
+
+  it("Settings link points to /settings", () => {
+    render(<TopNav />);
+    const link = screen.getByRole("link", { name: /Settings/i }) as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("/settings");
+  });
+
+  it("Settings link receives the linkActive CSS class when /settings is active", () => {
+    setActivePath("/settings");
+    render(<TopNav />);
+    const settingsLink = screen.getByRole("link", { name: /Settings/i });
+    expect(settingsLink.className).toMatch(/linkActive/);
+  });
+
+  it("Settings link does not receive the linkActive CSS class when another path is active", () => {
+    setActivePath("/configure");
+    render(<TopNav />);
+    const settingsLink = screen.getByRole("link", { name: /Settings/i });
+    expect(settingsLink.className).not.toMatch(/linkActive/);
   });
 
   it("active link receives the linkActive CSS class via activeProps", () => {

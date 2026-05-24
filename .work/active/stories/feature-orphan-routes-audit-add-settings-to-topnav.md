@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit-add-settings-to-topnav
 kind: story
-stage: implementing
+stage: review
 tags: [ui, navigation]
 parent: feature-orphan-routes-audit
 depends_on: []
@@ -38,3 +38,10 @@ Use a typographic glyph consistent with the running-head style (e.g. `·` — al
 - Active state (underline) lights up when the path is `/settings`.
 - `top-nav.test.tsx` covers the new link (render + active state).
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+- Added a sixth `<Link to="/settings">` in `top-nav.tsx` after the Configure link, using the `·` glyph (matching the ornament defined in `route-meta.ts` for the settings route).
+- Updated the JSDoc comment in `top-nav.tsx` to reflect six surface links.
+- Extended `top-nav.test.tsx` with 4 new tests: Settings link label renders, glyph `·` renders, href is `/settings`, active/inactive CSS class states work correctly.
+- Pre-existing failure in `configure-route.test.tsx` ("known limitation — both may call start") is unrelated and was already failing before this change.
+- All 15 `top-nav.test.tsx` tests pass; `pnpm typecheck` clean.

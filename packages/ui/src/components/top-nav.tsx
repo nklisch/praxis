@@ -4,15 +4,16 @@ import styles from "./top-nav.module.css";
 
 /**
  * App-shell running head — top horizontal nav per the locked "Index" design
- * (option-3.html). Renders: wordmark · five surface links · tabs slot ·
+ * (option-3.html). Renders: wordmark · six surface links · tabs slot ·
  * theme slot (at the far right edge).
  *
- * Five surface links and their typographic glyphs:
+ * Six surface links and their typographic glyphs:
  *   § Library     → /
  *   ¶ Workspace   → /workspace
  *   ‡ Concept maps→ /concept-maps
  *   ‖ Progress    → /progress
  *   ⁂ Configure   → /configure
+ *   · Settings    → /settings
  *
  * Active state: accent hairline-underline on the active link.
  *
@@ -87,6 +88,17 @@ export function TopNav({ tabsSlot, themeSlot }: TopNavProps) {
             ⁂
           </span>
           Configure
+        </Link>
+        <Link
+          to="/settings"
+          activeOptions={{ exact: false }}
+          className={styles.link}
+          activeProps={{ className: `${styles.link} ${styles.linkActive}` }}
+        >
+          <span className={styles.glyph} aria-hidden="true">
+            ·
+          </span>
+          Settings
         </Link>
       </nav>
       {/* Tabs slot — TabStrip (Story 4) mounts here */}
