@@ -1,14 +1,14 @@
 ---
 id: gate-cruft-library-handle-use-pack-pack-name-unused
 kind: story
-stage: review
+stage: done
 tags: [cleanup, ui]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: cruft
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # `_packName` parameter in `handleUsePack` is unused — interface forces a value the consumer doesn't want
@@ -58,3 +58,15 @@ Changes applied:
 - `packages/ui/src/__tests__/packs-section.test.tsx`: updated helper type and assertion to match new signature.
 
 All 1709 `@praxis/ui` tests pass; `pnpm typecheck` clean.
+
+## Review
+
+**Verdict: approved → done**
+
+Implementation is clean. Option B (narrow interface) was the correct call — `library.tsx` is the sole consumer of `PacksSection`, so the blast radius is zero. All three files are consistently updated:
+
+- `packs-section.tsx`: prop type narrowed to `(packId: string) => void`; call site drops `pack.name`.
+- `library.tsx`: `handleUsePack` parameter list trimmed; no `_packName` remnant.
+- `packs-section.test.tsx`: helper type and assertion updated to match; test description updated to "with packId only".
+
+No `_packName` or two-argument form found anywhere in `packages/ui/src/`. No blockers or nits.
