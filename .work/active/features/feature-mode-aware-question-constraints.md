@@ -50,3 +50,31 @@ This feature is a hard `depends_on` for `feature-question-panel-rework` (sibling
 - `docs/ARCHITECTURE.md` § `@praxis/curriculum`, `@praxis/tools` — the two packages this feature touches.
 - `.claude/rules/patterns.md` § `mode-prompt-fragment-composition` — the existing pattern this feature extends. Fragment composition by id+position; this feature adds one new fragment that interpolates per-mode constraint values.
 - Epic body § "Agent contract — markup conventions + parser strategy" — full mapping of what the unified prompt fragment teaches (the agent-side surface this feature owns).
+
+## Design decisions
+
+*(captured 2026-05-24 via `feature-design --only-questions`. These lock in directional choices so the full design pass inherits them.)*
+
+- **Enforcement: hard reject with descriptive error**. Over-cap calls fail via Zod validation; the failure returns a `tool_result` whose error message is written for the agent to learn from ("Choice text too long for teach mode — keep choices to ~10 words; longer reasoning belongs in the preceding tutor turn"). Same model as every other Zod-validated tool in the project. Most reliable: the agent CAN'T accidentally overshoot. No silent soft-warn path; no dev-reports double-track (the rejection IS the signal).
+
+- **Tool scope: shared schema with per-tool override**. `@praxis/curriculum` mode definitions carry ONE `questionConstraints?: { promptMaxWords, choiceMaxWords, choiceCount, multiSelectCap }` shape. Each question-emitting tool (`ask_student_question`, the quick-check variant, the drafter's question tool, any future ones) reads this shape by default. A tool can override specific caps in its own Zod schema where there's a tool-specific reason — e.g., a long-form drafter authoring tool that legitimately needs looser choice caps for review questions. Single source of truth at the mode layer; tool-specific exceptions handled at the tool layer.
+
+- **Per-mode default values: locked now, but in a single-file constant for easy tuning**. Adopt the proposed table as authoritative starting values:
+
+  | Mode | Prompt max | Choice max | Count | Multi cap |
+  |---|---|---|---|---|
+  | teach (quick-check) | 30 words | 10 words | 4 | 4 |
+  | homework / quiz / exam | 60 words | 25 words | 5 | 6 |
+  | course-create / configure | 50 words | 15 words | 5 | 6 |
+  | study-skills | 40 words | 12 words | 4 | 4 |
+
+  Values live in a single constant in `@praxis/curriculum` (e.g., `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE` in a single file) so future tuning is a one-file developer edit, not a per-mode-file hunt. NOT user-configurable via UI — these are agent-behavior dials, not student settings. If production usage surfaces friction, the constant gets updated in a follow-up release.
+
+- **Prompt fragment shape: one unified question-tool fragment with all guidance**. A single fragment composed into every mode's system prompt. Interpolates the per-mode caps inline + carries ALL the cross-cutting markup conventions from the epic's agent-contract section: LaTeX math wrapping (from sibling `feature-math-rendering`), citation tool usage, definition markup via `[[def:term]]`, callout admonitions, concept refs via `concept:slug`, figures via `::: figure :::` directive. Agent reads ONE coherent "how to write questions and educational content" reference each turn. Maintenance: one fragment file, one source of truth — sibling features contribute their content via PRs to that same file rather than fragmenting into separate per-concern fragments.
+
+## Cross-feature coordination
+
+The shared mode-config + the unified prompt fragment mean this feature touches surfaces that sibling features ALSO want to touch:
+
+- `@praxis/curriculum` mode shape: this feature adds `questionConstraints?`; `feature-content-renderer-pipeline` adds `renderToggles?`. Both extensions are additive; coordinate file changes at design-pass time.
+- Unified prompt fragment: this feature creates it; `feature-math-rendering` contributes the LaTeX section; `feature-content-renderer-pipeline` contributes the markup convention sections. Design-pass coordination via shared fragment file.
