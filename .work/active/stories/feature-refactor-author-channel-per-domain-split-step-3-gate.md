@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-3-gate
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -69,3 +69,11 @@ export function registerAuthorGateHandlers(services: Services, log: Logger): voi
 
 ## Rollback
 `git revert` the commit for this step; the four handlers remain in `author-channel.ts`.
+
+## Implementation notes
+- Created `packages/desktop/electron/main/author-gate-channel.ts` (119 lines).
+- All four gate handlers (`createGate`, `updateGate`, `deleteGate`, `overrideGate`) copied verbatim from `author-channel.ts` lines 179–274.
+- `requireUnlocked()` is local and not exported, matching the pattern from `author-course-channel.ts`.
+- `z.unknown()` for `guards` and `successCriteria` in `createGate` preserved as-is (trust boundary).
+- `author-channel.ts` and `ipc-server.ts` left untouched — Step 7 handles wiring and deletion.
+- `pnpm typecheck` passed (all packages clean). `pnpm --filter @praxis/desktop test` passed (34 files, 520 tests).
