@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-5-compose
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on:
@@ -178,6 +178,18 @@ wc -l packages/ui/src/hooks/use-streamed-send.ts
 - No inline state-machine code remains in `useStreamedSend` (all delegated to sub-hooks).
 - The public `UseStreamedSendResult` type is byte-identical to today.
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+- **File size**: 725 → 336 lines (54% reduction)
+- **`useStreamedSend()` body**: ~534 → 153 lines (function start line 183, file end 336)
+- **`finally` block nesting depth**: 4-5 → 2 (try/catch at depth 1, finally at depth 2, single `if (next !== null)` guard at depth 3 for queue flush)
+- **Sub-hook API adjustments**:
+  - `useStreamedBubbles`: changed `nextBubbleId()` prefix from `msg-` to `bubble-` to prevent id collisions with `nextId()` in use-streamed-send.ts (both were using module-level counters starting at 0 with the same prefix, causing the first user message and first assistant bubble to share `msg-1` — this caused `setContent` to update the user message's content with assistant text in tests). This was a latent bug in step 2's implementation, fixed during composition.
+  - `useStreamedBubbles`: unused import removed by `biome check --write`.
+  - All other sub-hook APIs consumed as-is with no changes.
+- **Inline state machines removed**: `pendingQueue`, `pendingQueueRef`, `userCancelledRef`, `iteratorRef`, `cancel`, `cancelPending` (queue); `activeBubbleContent`, `currentAssistantId`, `lastAssistantId`, `openAssistantBubble()`, `closeAssistantBubble()` (bubbles); `pendingByCallId`, `interstitialFirstSeenAt`, `pendingSettleTimers`, all renderable arrays, `MIN_INTERSTITIAL_VISIBLE_MS`, `settleNow` closure (interstitial); `currentReasoningId`, `closeReasoningBlock()` (reasoning).
+- **Test result**: 1711/1711 passed; `pnpm typecheck` and `pnpm lint` (our files) clean.
 
 ## Risk + Rollback
 

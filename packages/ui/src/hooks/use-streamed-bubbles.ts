@@ -68,7 +68,7 @@ interface BubbleRef {
 
 let bubbleCounter = 0;
 function nextBubbleId(): string {
-  return `msg-${++bubbleCounter}`;
+  return `bubble-${++bubbleCounter}`;
 }
 
 /**
@@ -120,9 +120,7 @@ export function useStreamedBubbles(
     if (id === null) return;
     bubbleRef.current.currentId = null;
     setItems((prev) =>
-      prev.map((it) =>
-        it.kind === "message" && it.id === id ? { ...it, streaming: false } : it,
-      ),
+      prev.map((it) => (it.kind === "message" && it.id === id ? { ...it, streaming: false } : it)),
     );
   };
 
