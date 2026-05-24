@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-mapper-state-naming
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -66,3 +66,17 @@ Parallel-naming approach applied:
 - `packages/engines/src/__tests__/claude-code-events.test.ts` — 2 sites (import, 3 factory call sites via `replace_all`)
 
 Verification: `pnpm --filter @praxis/engines typecheck` passes clean; 19 tests pass.
+
+## Review
+
+**Verdict: done** — 2026-05-23
+
+Naming-only refactor. All acceptance criteria met:
+
+- Old names (`ClaudeCodeEventState`, `createEventState`, `MapState`, `newMapState`) fully removed — zero grep matches across `packages/engines/src/`.
+- New names present at all 15 expected sites: `ClaudeCodeMapperState` (3 in events.ts, 2 in adapter.ts, 4 in test) and `CodexMapperState` / `createCodexMapperState` (4 in events.ts, 2 in adapter.ts).
+- `CodexMapperState` correctly promoted from unexported `interface MapState` to `export interface CodexMapperState` — consistent with the Claude Code side.
+- No behavioral change: state shapes, field names, and factory return values are identical to pre-rename.
+- Implementation notes accurate; the decision to keep two per-adapter types (shapes are genuinely different) is correct.
+
+No blockers, important findings, or nits.
