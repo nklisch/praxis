@@ -10,6 +10,7 @@ import type {
   VisionCapability,
 } from "@praxis/core/types";
 import { engineError, serializeError } from "@praxis/core/types";
+import { SignalThreader } from "../common/signal-threader.js";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
@@ -49,16 +50,14 @@ export class ClaudeCodeEngine implements Engine {
       throw new Error(`claude.auth.required: ${status.error ?? "claude CLI is not signed in"}`);
     }
 
-    // `currentSignal` is set at the start of each `send()` turn and cleared in
-    // the finally. The bridge's MCP handler reads it via this getter so every
-    // tool-call dispatch receives the live per-turn signal even though the handler
-    // was registered once at open() time.
-    let currentSignal: AbortSignal | undefined;
-    const getSignal = (): AbortSignal | undefined => currentSignal;
+    // Threads the per-turn AbortSignal through to the bridge's MCP tool
+    // handlers. The handler is registered once at open() time; the threader
+    // lets send() swap in the live signal for each turn without re-registering.
+    const threader = new SignalThreader();
 
     const bridge: ToolBridgeHandle | null =
       openOpts.tools.list().length > 0
-        ? await startToolBridge({ registry: openOpts.tools, getSignal })
+        ? await startToolBridge({ registry: openOpts.tools, getSignal: threader.getSignal })
         : null;
 
     let realSessionId: string | undefined;
@@ -151,12 +150,7 @@ export class ClaudeCodeEngine implements Engine {
       seedPreface,
       serverName: bridge?.serverName ?? "praxis",
       log: this.opts.deps.log,
-      // Setter for the per-turn signal. The session writes the current turn's
-      // signal here at the start of send() and clears it in finally; the bridge's
-      // MCP handler reads it via getSignal() so dispatch always carries the live value.
-      setCurrentSignal: (s) => {
-        currentSignal = s;
-      },
+      threader,
     });
   }
 
@@ -187,13 +181,8 @@ interface ClaudeCodeSessionInit {
   seedPreface: string;
   serverName: string;
   log: EngineDeps["log"];
-  /**
-   * Setter for the per-turn AbortSignal. The session writes the current signal
-   * at the start of `send()` (set) and clears it in the finally (undefined).
-   * The bridge's MCP handler reads it via the paired `getSignal` getter so every
-   * tool-call dispatch carries the live value for the current turn.
-   */
-  setCurrentSignal: (signal: AbortSignal | undefined) => void;
+  /** Threads the per-turn AbortSignal to the bridge's tool-call handlers. */
+  threader: SignalThreader;
 }
 
 class ClaudeCodeEngineSession implements EngineSession {
@@ -203,7 +192,7 @@ class ClaudeCodeEngineSession implements EngineSession {
   private readonly bridge: ToolBridgeHandle | null;
   private readonly serverName: string;
   private readonly log: EngineDeps["log"];
-  private readonly setCurrentSignal: (signal: AbortSignal | undefined) => void;
+  private readonly threader: SignalThreader;
   private seedPreface: string;
   private closed = false;
   // Per-session (not per-send) state for callId translation. The MCP bridge
@@ -221,7 +210,7 @@ class ClaudeCodeEngineSession implements EngineSession {
     this.serverName = init.serverName;
     this.log = init.log;
     this.seedPreface = init.seedPreface;
-    this.setCurrentSignal = init.setCurrentSignal;
+    this.threader = init.threader;
   }
 
   /** Returns the real CLI session id once the init event fires; falls back to placeholder. */
@@ -241,7 +230,7 @@ class ClaudeCodeEngineSession implements EngineSession {
     // Publish the per-turn signal so the MCP bridge's tool-call handlers can
     // thread it into registry.dispatch. Cleared in finally so no stale signal
     // leaks into subsequent turns.
-    this.setCurrentSignal(signal);
+    this.threader.enter(signal);
 
     const turn = this.conv.send(message);
 
@@ -280,7 +269,7 @@ class ClaudeCodeEngineSession implements EngineSession {
       signal?.removeEventListener("abort", onAbort);
       // Clear the per-turn signal so a stale aborted signal doesn't bleed into
       // the next turn (e.g. if the session is reused after an abort).
-      this.setCurrentSignal(undefined);
+      this.threader.exit();
     }
   }
 

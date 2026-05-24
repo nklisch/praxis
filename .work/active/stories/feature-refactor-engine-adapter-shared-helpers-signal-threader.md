@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-signal-threader
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -48,3 +48,17 @@ Each adapter holds one `SignalThreader` per session; `send()` becomes
 - Both adapters use `SignalThreader` instead of inline mutable refs
 - Signal propagation to tool dispatch is preserved (existing adapter tests cover this)
 - No change to engine contract or external behavior
+
+## Implementation notes
+
+**Helper file**: `packages/engines/src/common/signal-threader.ts` — new `common/` directory created.
+
+**API chosen**: `enter(signal) / exit()` (not `with(signal, fn)`). Since both adapters' `send()` methods are `async function*` generators, the body cannot be wrapped in a `Promise<T>` callback cleanly. The `enter`/`exit` pair maps directly onto the existing `try/finally` structure each adapter already had.
+
+**Both adapters updated**:
+- `packages/engines/src/claude-code/adapter.ts`: removed `let currentSignal` + `getSignal` closure from `open()`, replaced `setCurrentSignal` callback with `SignalThreader` instance. Session class: replaced `setCurrentSignal` field with `threader: SignalThreader`, updated constructor, updated `send()` to call `threader.enter/exit`.
+- `packages/engines/src/codex/adapter.ts`: same pattern applied identically.
+
+**Signal propagation verified**: `threader.getSignal` is passed directly to `startToolBridge({ getSignal: threader.getSignal })` — the bridge's MCP handler still reads the live per-turn signal through the same getter interface as before.
+
+**Verification**: `pnpm typecheck` — all packages clean. Engine adapter tests (30 tests across claude-code.test.ts + codex.test.ts) all pass. Full suite: 4743 tests pass.
