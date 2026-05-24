@@ -1,7 +1,7 @@
 ---
 id: story-refactor-episodic-to-messages-extract-helpers
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -51,6 +51,20 @@ main function.
 ## Risk: Low–Medium
 Pure-function extraction in a tested code path; the test suite for this hook is
 substantial enough to catch regressions.
+
+## Review
+
+**Verdict: approved / done**
+
+Reviewed 2026-05-23. Clean extraction — all 10 helpers are at module scope, each takes `state: ReplayState` as its first parameter, and every helper owns a single discrete concern. Notable call-outs:
+
+- `closeReasoningBlock` is a genuine DRY win: three identical backward-scan loops collapsed into one.
+- `applyModelMessage` correctly calls `closeReasoningBlock` even though the old inline code had a separate loop; the loop was there before, just duplicated.
+- `settleToolEntry` and `pushToolCallItem` are well-sized — neither too thin nor over-grown.
+- `harvestToolResult` carries inline type assertions (necessary given the untyped `ToolResultValue` union) but the comments are clear.
+- No unexpected state capture; every helper works purely through the `state` parameter.
+
+17/17 episodic-to-messages tests pass unchanged. `episodicToItems` is 118 lines (from 332). No findings.
 
 ## Implementation notes
 
