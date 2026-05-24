@@ -1,7 +1,7 @@
 ---
 id: feature-progress-top-nav
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: null
 depends_on: []
@@ -393,3 +393,25 @@ function CourseChapter({ rollup }: { rollup: CourseProgressRollup }): JSX.Elemen
   has no `studentMastery` rows; the route should render an empty
   `stuckConcepts` list cleanly (no error). Validated by the empty-
   data test.
+
+## Children complete (orchestrator, 2026-05-23)
+
+All 2 child stories landed and advanced to `stage: review`:
+
+- `feature-progress-top-nav-service` — `ProgressService.rollup` ships
+  the per-course aggregator; new IPC `praxis.progress.rollup`;
+  `ProgressClient`; 19 unit tests covering empty / single-course /
+  multi-course / stuck-concept selection / recent-events ordering.
+  Commit `33861bc`.
+- `feature-progress-top-nav-route` — `/progress` Course-by-Course
+  Review surface implemented; consumes the cross-feature `<CoverageBar>`
+  for per-course mastery; 18 UI tests covering all sub-component
+  states and the relative-timestamp formatter. Commit `5caa451`.
+
+Integration verification: `pnpm typecheck` clean; 4750 tests passing.
+
+Cross-feature dep on `feature-concept-maps-top-nav-coverage-bar` (now at
+review) resolved cleanly — the progress route imports `<CoverageBar>`
+directly from `packages/ui/src/components/coverage-bar.tsx`.
+
+Feature advancing `implementing → review` for final pass.

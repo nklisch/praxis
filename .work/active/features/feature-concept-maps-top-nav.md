@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: null
 depends_on: []
@@ -346,3 +346,25 @@ sets `?course=<id>`; "All" clears the param.
   canonical concepts; coverage might trend toward 100% trivially. Not
   a design issue — the bar reflects reality. If users complain, revisit
   what "linked" means for pack-derived maps.
+
+## Children complete (orchestrator, 2026-05-23)
+
+All 3 child stories landed and advanced to `stage: review`:
+
+- `feature-concept-maps-top-nav-list-extension` — `ConceptMapService.list`
+  now accepts optional `courseId` + `sort` mode; summary includes
+  `linkedNodeCount` / `totalNodeCount`. Commit `85ba46d`.
+- `feature-concept-maps-top-nav-coverage-bar` — `<CoverageBar>`
+  primitive shipped at `packages/ui/src/components/coverage-bar.tsx`;
+  `course-detail.tsx` adopted it. 11 unit tests. Commit `f37bbd5`.
+- `feature-concept-maps-top-nav-route` — `/concept-maps` Swiss Grid
+  Catalog implemented; URL contract `?course=<id>&sort=<mode>` via
+  `validateSearch`; 20 UI tests. Commit `a8cbb1a`.
+
+Integration verification: `pnpm typecheck` clean; 4750 tests passing.
+
+Mid-wave fixes: brand-type casts in progress-service tests + conditional
+sort spread in concept-maps IPC handler (commit `3dcbacc`) — addressed
+typecheck breaks at the seams between parallel agents.
+
+Feature advancing `implementing → review` for final pass.
