@@ -1,7 +1,7 @@
 ---
 id: feature-question-panel-rework
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui, ux]
 parent: epic-chat-interaction-ux-overhaul
 depends_on: [feature-mode-aware-question-constraints]
@@ -67,3 +67,116 @@ The "choice required" / no-skip framing is removed — cancel-to-clarify replace
   - `.inline-question-set` + `__head` (+ `__label` / `__progress`) + `__body`
   - `.thread-chip` + `__glyph` / `__verb` / `__answer` / `__when` / `__expand` + `--dismissed` variant
 - Shared interactive feel demo: `.mockups/flows/async-chat-interactions/02-question-submit.html` — exercises both single + multi-select with live submit/dismiss + tutor follow-up
+
+## Architectural choice
+
+Extend the existing `<StructuredQuestionCard>` + `<QuickCheckCard>` components rather than rewrite. The locked design decisions translate to four bounded surfaces:
+
+1. **Dismiss-on-submit** — flip the existing greyed-out wait into an immediate optimistic dismissal, replacing the card with a collapsed `<ThreadChip>` summary. Tutor's follow-up arrives asynchronously after the round-trip and renders below the chip. This is the bug-fix story (`story-fix-user-question-no-dismiss-on-submit`) and is the simplest of the three.
+
+2. **Paged display** — wrap N in-flight questions in a `<InlineQuestionSet>` chassis with a tab strip head + single-question body. Composes against the project's existing `.tabs` / `.tab` primitives with new `--done` / `--active` / `--unanswered` status modifiers. Active question renders as `.inline-question--bare` (no chassis chrome, since the set provides it). Story: `story-questions-tabbed-display`.
+
+3. **Free-form answer field + cancel-to-clarify** — always-visible free-form text input below the structured choices on every question, plus a secondary "clarify in chat" cancel button right of Submit. Single Submit handler prefers free-form text when populated, else picks the structured selection. The cancel path emits a structured `tool_result` signaling "user wants to discuss in chat" so the agent doesn't think the question was answered. Story: `story-question-free-answer-and-cancel-path`.
+
+4. **Tool-description hardening** — `ask_student_question` schema description explicitly forbids "tell me in chat" as a structured choice (the cancel control owns that path now). Implementation detail of story 3.
+
+All four ride on the unified `.inline-question` chassis (already mocked at `components.css` § `.inline-question` family). The chassis supports both single-select (`.inline-question__indicator--radio`) and multi-select (`.inline-question__indicator--check` + `.badge.badge--info` "select all that apply" kicker) in one shape — the indicator class + kicker badge are the only differences.
+
+Rejected alternatives:
+- **New question-card primitive** — duplicates the existing structured-question-card surface; existing component already handles the full lifecycle, just needs new behaviors.
+- **Modal-style overlay for paged questions** — explicitly forbidden by the "chat round-trips never gate user input" principle. Chat must remain visible alongside questions.
+- **Segmented "Choose / Write" toggle** — explicitly rejected per design decision; free-form field is always visible, no toggle.
+
+## Implementation Units (per existing child stories)
+
+### Unit 1: `story-fix-user-question-no-dismiss-on-submit`
+**Files**: `packages/ui/src/components/structured-question-card.tsx`, `quick-check-card.tsx`, sibling CSS modules
+**Story**: `story-fix-user-question-no-dismiss-on-submit` (pre-existing)
+
+Bug fix: on Submit, dismiss the card immediately and render a `<ThreadChip>` summary in its place. Optimistic transition — don't wait for the tool_result round-trip. Tutor's next message arrives asynchronously below the chip.
+
+**Implementation notes**:
+- New `<ThreadChip>` component at `packages/ui/src/components/thread-chip.tsx` per the locked design (`.thread-chip` family in `components.css`). Includes the `↳ you answered — "<answer>" · <time>` shape, click-to-expand back to full card.
+- Card render path: on Submit, fire the tool_result IPC (fire-and-forget), set local state to "dismissed" → render `<ThreadChip>` instead.
+- For multi-select: chip verb reads "you selected N" and joins answers with " + " (or shows "N answers" when long).
+- For cancel-to-clarify path: use `.thread-chip--dismissed` variant ("you asked to discuss in chat" verb).
+- No backend changes — the tool_result envelope is unchanged.
+
+**Acceptance criteria**:
+- [ ] Submit dismisses card immediately, no greyed-out wait
+- [ ] `<ThreadChip>` renders in card's place with correct verb (single / multi / dismissed)
+- [ ] Click on chip expands back to read-only card view
+- [ ] Tests cover: submit dismisses; chip renders correct verb per case
+
+---
+
+### Unit 2: `story-questions-tabbed-display`
+**Files**: `packages/ui/src/components/inline-question-set.tsx` (NEW), `quick-check-card.tsx` (modify multi-question rendering)
+**Story**: `story-questions-tabbed-display` (pre-existing)
+
+Render N in-flight questions as a single `<InlineQuestionSet>` chassis instead of N stacked `<QuickCheckCard>` instances. Tab strip head + single-question body. Free navigation via click.
+
+**Implementation notes**:
+- New `<InlineQuestionSet>` component at `packages/ui/src/components/inline-question-set.tsx`:
+  - Props: `questions: StructuredQuestion[]`, `answers: Map<questionId, answer>`, `currentIndex: number`, `onTabClick(index)`, `onAnswer(questionId, answer)`, `onSubmit(answers)`
+  - Renders `.inline-question-set` chassis with `__head` (tab strip) + `__body` (active question as `.inline-question--bare`)
+  - Tab states from local `answers` map: answered → `--done`, current → `--active`, else → `--unanswered`
+- Composes against existing `.tabs` / `.tab` primitives + new `--done` / `--active` / `--unanswered` modifiers (CSS only — add to `tabs.module.css` or sibling)
+- Multi-question detection: when N > 1 inline-question tool calls are pending in the same turn, render via the set chassis instead of one card each
+- Tests: 4 questions render as set; tab click navigates; answered tabs show done state; mixed single/multi questions render correct indicators
+
+**Acceptance criteria**:
+- [ ] `<InlineQuestionSet>` chassis renders tab strip + single-question body
+- [ ] N questions display in set chassis, not stacked
+- [ ] Tab clicks navigate between questions
+- [ ] Tab status reflects answer state (done / active / unanswered)
+- [ ] Mixed single + multi questions render correctly in the same set
+- [ ] Tests cover navigation + state transitions
+
+---
+
+### Unit 3: `story-question-free-answer-and-cancel-path`
+**Files**: `packages/ui/src/components/structured-question-card.tsx`, `quick-check-card.tsx`, `packages/tools/src/dialog/ask-student-question.ts` (description tweak)
+**Story**: `story-question-free-answer-and-cancel-path` (pre-existing)
+
+Add an always-visible free-form text input below the choices, plus a secondary "clarify in chat" button right of Submit. Cancel path signals the agent to resume conversational mode.
+
+**Implementation notes**:
+- Each question renders `.inline-question__free-form` (label + textarea) below `.inline-question__choices`
+- Submit handler prefers free-form text when populated; else picks structured selection
+- "clarify in chat" button: secondary text button, emits a `tool_result` with `{ clarified: true, message: "user requested chat clarification" }` (precise shape to be coordinated with the existing tool's output schema)
+- `ask_student_question` Zod schema description in `packages/tools/src/dialog/ask-student-question.ts` updated to explicitly forbid "tell me in chat" / "explain in chat" / "ask in chat" as choice text — add `.refine` if necessary to validate against a reject-list
+- Tests: free-form submit takes precedence; clarify-in-chat emits correct envelope; reject-list refine rejects forbidden choice text
+
+**Acceptance criteria**:
+- [ ] Free-form textarea always visible below choices
+- [ ] Submit prefers free-form text when populated, else picks selection
+- [ ] "clarify in chat" button emits structured cancel envelope
+- [ ] `ask_student_question` schema rejects "tell me in chat" / variants as choice text
+- [ ] Tests cover all three paths + the schema rejection
+
+---
+
+## Implementation Order
+
+1. **`story-fix-user-question-no-dismiss-on-submit`** (deps: `[]`) — smallest, bug-fix; can ship first
+2. **`story-questions-tabbed-display`** (deps: `[]`) — independent UI chassis work
+3. **`story-question-free-answer-and-cancel-path`** (deps: `[]`) — schema + UI changes
+
+The three stories are independent — none blocks the others. They can run in parallel.
+
+**Cross-feature coordination**:
+- Story 3's `ask_student_question` schema edit overlaps with `feature-mode-aware-question-constraints`'s schema work (the constraints feature adds validation; this story adds description rules). Coordinate via shared file inspection at implementation time — both stories edit the same Zod schema definition.
+- Story 1's `<ThreadChip>` component should reference the `.thread-chip` class in `components.css` (already mocked) when promoting to production.
+
+## Risks
+
+- **Concurrent ask_student_question schema edits**: stories 3 here + step-5 of `feature-mode-aware-question-constraints` both edit the same file. Mitigation: schedule them sequentially (let the constraints work land first since it has more substantive changes), then the description edit slots in cleanly.
+
+- **`<InlineQuestionSet>` adoption ordering**: existing `QuickCheckCard` dispatch logic needs to detect N>1 pending questions in the same turn — that requires turn-level coordination state. Mitigation: pass the set context down from `ChatTabBody` (which owns the items list) rather than trying to coordinate at the card level.
+
+- **Tutor-side compatibility**: the optimistic-dismiss pattern means the card disappears before the tutor's `tool_result` arrives. If the tutor's follow-up message references "the question I just asked" (which the student can no longer see in full), reading flow may be confusing. Mitigation: `<ThreadChip>` keeps the question context visible; click-to-expand restores full card if needed.
+
+- **Multi-select indicator name will change** once `feature-refactor-shared-choice-indicators` lands (production CSS will use `.choice-indicator--radio` / `--check`). This feature should be aware of that rename and adopt the new primitive in the same PR (or follow-up). Mitigation: when implementing, check whether the choice-indicator refactor has shipped — if yes, use the new primitive; if no, use the old class names and queue a small follow-up.
+
+- **Free-form input + answer precedence**: submit logic "prefer free-form when populated" could surprise a user who typed in free-form then clicked a structured choice. Mitigation: visual cue (e.g., free-form textarea border highlights when text is present, structured choices grey slightly to communicate "free-form will win"). Add to UX polish during implementation.
