@@ -22,12 +22,49 @@ import type { SubAgentRegistry } from "./subagent.js";
 import type { SymPyService } from "./sympy-service.js";
 import type { VisionService } from "./vision.js";
 
+// ── Dev-reports writer ────────────────────────────────────────────────────────
+// Defined here (not in @praxis/tools) to avoid a @praxis/core → @praxis/tools
+// cyclic dependency. The tools package re-exports this interface and the concrete
+// `createDevReportsWriter` factory; this is the canonical declaration.
+
+/** A single structured report emitted by the `dev.report_issue` tool. */
+export interface DevReport {
+  kind:
+    | "confusing-tool"
+    | "contradictory-prompt"
+    | "missing-tool"
+    | "broken-result"
+    | "cant-execute"
+    | "other";
+  summary: string;
+  severity?: "low" | "med" | "high";
+  /** Name of the tool being criticised, if applicable. */
+  toolRef?: string;
+  /** Prompt-fragment id being criticised, if applicable. */
+  fragmentRef?: string;
+  /** Long-form Markdown body. */
+  details?: string;
+  sessionId: string;
+  modeId: string;
+  /** ISO 8601 timestamp string. */
+  timestamp: string;
+}
+
+/**
+ * Writer interface consumed by the `dev.report_issue` handler.
+ * Implementations live in `@praxis/tools/dev` (`createDevReportsWriter`).
+ */
+export interface DevReportsWriter {
+  writeReport(report: DevReport): Promise<{ filePath: string }>;
+}
+
 export type EffectKind =
   | "memory.write"
   | "artifact.mutate"
   | "gate.evaluate"
   | "external.network"
   | "external.code-exec"
+  | "filesystem"
   | "none";
 
 export interface ToolDefinition<I extends z.ZodType, O extends z.ZodType> {
@@ -104,6 +141,13 @@ export interface ToolContext {
    * pattern for details.
    */
   parentSessionId?: SessionId;
+  /**
+   * dev-mode-agent-feedback-tool: the modeId of the session's active mode.
+   * Populated by EngineSessionManager.openActive in step-2 of that feature.
+   * Tools that embed mode context in their outputs (e.g. dev.report_issue)
+   * read this; fall back to "unknown" when absent.
+   */
+  modeId?: string;
   services: ToolServices;
   log: Logger;
 }
@@ -181,4 +225,10 @@ export interface ToolServices {
    * Optional so existing tool stubs and tests don't need to wire it.
    */
   quickCheck?: QuickCheckService;
+  /**
+   * dev-mode-agent-feedback-tool: writer for `dev.report_issue` reports.
+   * Wired only when `PRAXIS_DEV === "true"` (gated at services-build time in
+   * step-2 of that feature). Handlers guard with `if (!writer) throw ...`.
+   */
+  devReportsWriter?: DevReportsWriter;
 }

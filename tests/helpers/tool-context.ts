@@ -46,6 +46,11 @@ export interface MakeToolContextOptions {
    * draft_init and list_library_documents operate on the correct session scope.
    */
   parentSessionId?: ToolContext["parentSessionId"];
+  /**
+   * dev-mode-agent-feedback-tool: the modeId of the session's active mode.
+   * Used by dev.report_issue to embed mode context in reports.
+   */
+  modeId?: ToolContext["modeId"];
 }
 
 export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext {
@@ -65,6 +70,7 @@ export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext 
     ...(opts.courseDocumentIds !== undefined && { courseDocumentIds: opts.courseDocumentIds }),
     ...(opts.draftId !== undefined && { draftId: opts.draftId }),
     ...(opts.parentSessionId !== undefined && { parentSessionId: opts.parentSessionId }),
+    ...(opts.modeId !== undefined && { modeId: opts.modeId }),
     log:
       opts.log ??
       (() => {

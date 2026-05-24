@@ -157,6 +157,13 @@
       "import": "./dist/labels/index.js",
       "node": "./dist/labels/index.js",
       "default": "./dist/labels/index.js"
+    },
+    "./dev": {
+      "praxis-source": "./src/dev/index.ts",
+      "types": "./dist/dev/index.d.ts",
+      "import": "./dist/dev/index.js",
+      "node": "./dist/dev/index.js",
+      "default": "./dist/dev/index.js"
     }
   },
   "scripts": {
