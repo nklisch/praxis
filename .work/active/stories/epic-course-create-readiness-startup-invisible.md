@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-startup-invisible
 kind: story
-stage: review
+stage: done
 tags: [ui, bug, sessions]
 parent: epic-course-create-readiness
 depends_on: []
@@ -73,3 +73,38 @@ session opens.
   forwarding tests updated to assert `consumeInitialMessage` (not `session.send`).
 - `packages/ui/src/__tests__/course-create-tab-body-layout.test.tsx` — `useTabs` mock added.
 - `packages/ui/src/__tests__/course-detail-route.test.tsx` — `useTabs` mock added.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve with comments
+
+Root cause identified correctly (two bugs: tabs.open bypassed TabsProvider
+state; fire-and-forget send consumed events before the tab body subscribed).
+Fix is clean: `openTab` is now a required arg (forcing callers to pass the
+hook callback) and `consumeInitialMessage` provides one-shot pre-seed pickup
+on tab body mount. All callers updated consistently. JSDoc explicitly warns
+not to pass `client.tabs.open` directly — load-bearing doc.
+
+**Blockers**: none
+
+**Important**: 1
+- Missing end-to-end render assertion. Story brief asked for "a focused
+  test that opens a course-create session and asserts the chat tab body
+  renders the first engine event." The added tests cover the helper
+  unit-level (openSessionInTab order, openTab call, consumeInitialMessage
+  semantics) and the route-level (with mocked useTabs), but not the full
+  integration where ChatTabBody/AuthoringChatPane mounts and renders an
+  engine event for a fresh course-create session.
+  → Filed: `idea-course-create-startup-e2e-render-test` (backlog)
+
+**Nits**:
+- Module-level `pendingInitialMessages` could leak entries if a tab body
+  never mounts (navigation aborts, user closes tab pre-mount). Bounded per
+  active session creation; acceptable for renderer-process lifetime, but
+  worth a sweep if leak symptoms ever appear.
+- `lib/open-session-in-tab.ts` now carries mutable module state
+  (pendingInitialMessages). A dedicated `lib/pending-initial-messages.ts`
+  would clarify the boundary — non-urgent.
+
+**Notes**: Story-brief acceptance criterion (#3) partially met — unit-level
+covered, integration-level filed as backlog idea. The fix is sound and ships.
