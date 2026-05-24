@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav-list-extension
 kind: story
-stage: review
+stage: done
 tags: [core, content, ipc]
 parent: feature-concept-maps-top-nav
 depends_on: []
@@ -149,3 +149,25 @@ works for "all maps, default sort").
 ### Verification
 
 `pnpm test`: 4693 passed, 0 failed. No new typecheck or lint errors in changed files.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Clean backend extension. Optional `courseId` + `sort` mode added without
+breaking existing callers (default `sort=recent` matches today's
+behavior). Coverage enrichment reuses the existing `extractFromTldrawScene`
+helper — no parser duplication. Sort logic includes the zeros-last
+edge case for `coverage` mode. 8 new tests cover all paths including
+the optimistic-update path in `concept-maps-list.tsx` (good catch by
+the agent on a UI consumer).
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Mid-wave fix needed: the IPC handler passed `sort: opts.sort` unconditionally
+  (sending `undefined` when the schema marks it optional). Resolved at
+  integration verification (commit `3dcbacc`) by conditional spread.
+- Coverage computation parses `drawingJson` for every row — fine at
+  expected scale; if it ever becomes a hot path, cache the counts in
+  DB columns on map write.

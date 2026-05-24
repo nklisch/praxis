@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav-coverage-bar
 kind: story
-stage: review
+stage: done
 tags: [ui, design-system]
 parent: feature-concept-maps-top-nav
 depends_on: []
@@ -126,3 +126,18 @@ field names — the parallel agents will land both in the same wave.
 - Adopting CoverageBar in `feature-progress-top-nav` (that's the
   progress feature's job; this story just ships the primitive and
   adopts it in course-detail.tsx).
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Tight, well-scoped primitive. Generic `percent: number` API enables
+reuse by `feature-progress-top-nav` without coupling. 11 unit tests
+cover all prop shapes including clamp behavior. The
+`--dur-2 → --dur-quick` token swap was a clean correction during
+implementation — the parent design's token reference was slightly off
+and the agent picked the right project-actual token.
+
+**Blockers**: none
+**Important**: none
+**Nits**: none

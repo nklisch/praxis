@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav-route
 kind: story
-stage: review
+stage: done
 tags: [ui, content]
 parent: feature-concept-maps-top-nav
 depends_on: [feature-concept-maps-top-nav-list-extension, feature-concept-maps-top-nav-coverage-bar]
@@ -159,3 +159,21 @@ within TanStack Router's strict search-type system.
 
 ### Verification
 `pnpm typecheck && pnpm lint && pnpm test` — all green (4750 tests pass, 23 slow tests skipped).
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Faithful Option 2 mock translation. 20 tests cover the default load,
+filter/sort interactions, URL param round-trip, both empty states,
+and card navigation. The `(navigate as any)` cast for search-param
+typing mirrors the established pattern in `course-create.tsx` — local
+inconsistency that's the route system's, not this story's.
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- TanStack Router's strict search-typing forced the `as any` escape in
+  navigate calls — same workaround as the unified-landing source-picker
+  story used. Worth a future refactor to use the strongly-typed
+  navigate API but out of scope here.

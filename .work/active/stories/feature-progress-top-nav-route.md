@@ -1,7 +1,7 @@
 ---
 id: feature-progress-top-nav-route
 kind: story
-stage: review
+stage: done
 tags: [ui, content]
 parent: feature-progress-top-nav
 depends_on: [feature-progress-top-nav-service, feature-concept-maps-top-nav-coverage-bar]
@@ -158,3 +158,20 @@ function CourseChapter({ rollup }: { rollup: CourseProgressRollup }): JSX.Elemen
 - Concept-level drill-down (post-v1 enhancement).
 - Multi-student selector (single-student v1 per VISION.md).
 - Time-on-task / engagement metrics (not in the locked Option 1 mock).
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Faithful Option 1 mock translation. Sub-components (`YouAreHere`,
+`StuckOn`, `Recently`) co-located in the route file — appropriate
+since they're tightly bound to the chapter shape and unlikely to be
+reused. 18 tests cover all sub-component states (full/partial/empty)
+and the relative-timestamp formatter. CoverageBar cross-feature dep
+resolved cleanly — direct import from
+`packages/ui/src/components/coverage-bar.tsx`. Roman numeral indexing
+is a small polish touch that matches the editorial typography elsewhere.
+
+**Blockers**: none
+**Important**: none
+**Nits**: none

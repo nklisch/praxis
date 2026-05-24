@@ -1,7 +1,7 @@
 ---
 id: feature-progress-top-nav-service
 kind: story
-stage: review
+stage: done
 tags: [core, content, ipc]
 parent: feature-progress-top-nav
 depends_on: []
@@ -200,3 +200,28 @@ Add to `PraxisClient` type as `progress: ProgressClient`.
 - `collectStuckConcepts` / `collectRecentEvents` are synchronous (all DB queries, no async) but wrapped in `Promise.resolve` for the `Promise.all` fan-out pattern
 - `isNotNull` from drizzle-orm used for filtering submitted assignments
 - Pre-existing typecheck failures in `@praxis/desktop` (`concept-maps-channel.ts`, `course-detail.tsx`) are from another in-flight story and are unrelated to this implementation
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Faithful mirror of `RecommendationService` pattern. 19 tests cover all
+edge cases: empty courses, null snapshot, mastery computation, stuck-
+concept threshold + bottom-3 ordering, recent-events cross-kind sorting,
+multi-course isolation, currentLesson 1-based indexing, activeGate
+field mapping. The `Gate` / `GateView.summaryText` discovery was the
+right call — graceful adaptation to existing type shapes rather than
+schema changes.
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Brand-type casts in test fixtures (`SubjectId`, `StrategyId`,
+  `GateState`) were missed during initial implementation and required
+  integration-pass fix (commit `3dcbacc`). Pattern for future tests:
+  always cast literal strings through `brandId<T>(...)` when the field
+  is a branded type.
+- `collectStuckConcepts` / `collectRecentEvents` are wrapped in
+  `Promise.resolve` for the `Promise.all` shape even though they're
+  synchronous. Minor — matches the parallel-collector idiom from
+  RecommendationService.
