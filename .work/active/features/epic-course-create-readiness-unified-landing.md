@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing
 kind: feature
-stage: review
+stage: done
 tags: [ui, ingestion, bootstrap, configure, course-authoring]
 parent: epic-course-create-readiness
 depends_on: [epic-course-create-readiness-startup-invisible]
@@ -423,3 +423,27 @@ uses `"math.algebra-1"` as a synthetic id; production wiring is
 parameterized).
 
 Feature advancing `implementing → review` for final pass.
+
+## Review (2026-05-23, feature-level)
+
+**Verdict**: Approve
+
+All 4 child stories approved at `stage: done`. Capability completeness
+check: `/course-create` is now the single canonical landing for cold-start
+course-authoring entries — onboarding cards, "New course", "Use this
+pack" all land there with appropriate pre-selection via `?pack=<id>`.
+Resume paths stay direct (no re-source-pick mid-flight). Pack picker is
+embedded as a tab option alongside Upload and Paste. /packs is folded
+into Library as a section, with redirect for backward compat. Stepper
+reads `Material · Create · Confirm · Open`.
+
+**Foundation-doc alignment**: no `docs/` assertions invalidated. The
+phase-16 doc rename was deferred per rolling-foundation convention.
+
+**Breaking changes**: `/packs` URL behavior changed (now redirects to
+/library). Zero inbound links to update. External bookmarks survive via
+redirect.
+
+**Notes**: Feature has a parent (epic-course-create-readiness, still at
+implementing). Leaving in active/ until the epic's review fires —
+orchestrator's Phase 9 check will trigger that next.
