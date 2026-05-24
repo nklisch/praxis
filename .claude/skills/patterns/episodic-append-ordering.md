@@ -9,7 +9,7 @@ Episodic is the immutable source of truth for the entire conversation. If the pr
 ## Examples
 
 ### Example 1: `SessionServiceImpl.send` — the canonical ordering
-**File**: `packages/core/src/services/session-service.ts:166`
+**File**: `packages/core/src/services/session-service.ts:177`
 ```typescript
 async *send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent> {
   // ...guard checks...

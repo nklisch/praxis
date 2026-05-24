@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-episodic-append-ordering-line-followup
 kind: story
-stage: implementing
+stage: done
 tags: [docs]
 parent: null
 depends_on: []
@@ -32,3 +32,8 @@ updated `:125` → `:166`, but the subsequent refactor landed after that fix.
 ## Required edit
 Change `.claude/skills/patterns/episodic-append-ordering.md` line 12 citation from
 `:166` to `:177`.
+
+## Implementation notes
+Inline 1-line citation update: `:166` → `:177` on line 12 of
+`.claude/skills/patterns/episodic-append-ordering.md`. Verified `async *send(` is at
+line 177 of `packages/core/src/services/session-service.ts` post-SessionPromoter extract.

@@ -1,7 +1,7 @@
 ---
 id: review-async-generator-event-stream-line-restale
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -33,3 +33,8 @@ to:
 `packages/core/src/services/session-service.ts:177`
 
 Verify with `grep -n "async \*send" packages/core/src/services/session-service.ts` before committing.
+
+## Implementation notes
+Inline 1-line citation update: `:166` → `:177` on line 15 of
+`.claude/skills/patterns/async-generator-event-stream.md`. Verified via
+`grep -n "async \*send" packages/core/src/services/session-service.ts` returns 177.
