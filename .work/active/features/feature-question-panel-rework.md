@@ -4,7 +4,7 @@ kind: feature
 stage: drafting
 tags: [ui, ux]
 parent: epic-chat-interaction-ux-overhaul
-depends_on: []
+depends_on: [feature-mode-aware-question-constraints]
 release_binding: null
 gate_origin: null
 created: 2026-05-24
@@ -22,6 +22,10 @@ The structured-question / quick-check card surface has three coupled problems: i
 3. **`story-question-free-answer-and-cancel-path`** — free-form answer field on each structured question (when no option fits); explicit `clarify in chat` cancel control as a first-class dismiss path that signals the agent to resume normal conversation; tool description / system prompt updates that explicitly forbid the agent from adding "tell me in chat" as a structured choice option (the path is now handled by the cancel control).
 
 The three are independent — none depends on the others — but they share the same component surface (`StructuredQuestionCard` / `QuickCheckCard` in `packages/ui/src/components/`). Feature-design will likely keep them in close sequence so the design isn't done three times. The bug-fix story can be worked first or last; it doesn't block.
+
+## Cross-epic dependency
+
+Declared `depends_on: [feature-mode-aware-question-constraints]` (sibling epic `epic-educational-content-rendering`). The question chassis design pass needs the per-mode question-tool schema caps locked in before it can finalize layout, paging chrome, and selected-state typography against realistic content limits. Soft adjacency with `feature-content-renderer-pipeline` and `feature-math-rendering` (same sibling epic) — those provide the renderer infrastructure for math + content-type treatments inside question prompts and choices, but the chassis can ship without them and improve as content rendering catches up. See `epic-educational-content-rendering` body for the agent contract that spans both epics.
 
 ## Source ideas absorbed
 - `idea-user-question-no-dismiss-on-submit` (bug) → child story

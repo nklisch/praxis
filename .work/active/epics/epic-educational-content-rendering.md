@@ -1,7 +1,7 @@
 ---
 id: epic-educational-content-rendering
 kind: epic
-stage: drafting
+stage: implementing
 tags: [content, rendering, design-system, cross-cutting]
 parent: null
 depends_on: []
@@ -36,17 +36,27 @@ The work was sourced from a mockup-review session on 2026-05-24 that surfaced fo
 - `.work/backlog/idea-inline-question-density-layout-and-schema-caps.md` — primary source, four sections covering layout bug (now fixed inline), density visual design (folds into `feature-question-panel-rework` design decisions), dynamic per-mode schema caps (child feature here), math rendering (child feature here)
 - `.work/backlog/idea-align-assignment-items-to-inline-question-indicators.md` — folded in per Strategic decisions; child feature here
 
-## Anticipated child features
+## Decomposition
 
-*(decomposition sketched here as a planning aid; actual child files spawned by `/agile-workflow:epic-design`)*
+Split by capability and architectural seam: one foundation feature owns the renderer pipeline + non-math content-type primitives; math layers on top of that pipeline as a sibling feature (KaTeX is genuinely different in complexity and bundle weight, deserves its own feature); the cross-package mode-aware question-tool constraints work runs independently as an agent-side concern not a rendering concern; and the choice-indicator refactor runs alongside as a focused visual-alignment refactor with no rendering dependencies. Four children, no critical-path stalls — autopilot can run two waves (pipeline + constraints + refactor in parallel; math joins after pipeline).
 
-1. **`feature-math-rendering-pipeline`** — wire LaTeX-wrapped math through KaTeX in the `@praxis/ui` chat-text renderer (compose against existing Phase 13 integration, don't duplicate it). Add the bare-unicode-glyph auto-detect secondary pass for unwrapped math characters. Surfaces affected: chat-body text, inline question prompts, inline question choices, course material rendering, flashcard fronts/backs, tutor-rendered notes. Add the `.math-glyph` class to components.css and the math font-fallback chain. Agent prompt fragment teaches LaTeX wrapping (paired with per-mode caps from feature 2). **Render-on-settle** per Strategic decisions.
+### Child features
 
-2. **`feature-mode-aware-question-constraints`** — cross-package work: `@praxis/curriculum` mode definition shape gets `questionConstraints?: { promptMaxWords, choiceMaxWords, choiceCount, multiSelectCap }`. Per-mode defaults proposed (refine at feature-design): teach=30w/10w/4/4, homework-quiz-exam=60w/25w/5/6, course-create-configure=50w/15w/5/6, study-skills=40w/12w/4/4. `@praxis/tools` `ask_student_question` handler reads active mode from `ToolContext`, validates against the resolved caps, returns descriptive errors that teach the constraint. System prompt fragment interpolates the per-mode caps + math-wrapping instruction (one fragment, two pieces of guidance — both delivered to the agent for whichever mode it's in). Mode prompt fragment composition pattern already exists.
+- `feature-content-renderer-pipeline` — foundation: 3-stage chat-text renderer (markdown parse with Praxis extensions → tool-result splice → post-render passes) in `@praxis/ui`, plus promotion of all non-math educational-content typography primitives from `content-types.html` to `components.css` (callouts, citations, passages, definitions, concept refs, glossary, figures, procedural steps, units, numerical, code, file paths). Depends on: `[]`
+- `feature-math-rendering` — LaTeX-wrapped math via KaTeX extension to all chat-bearing surfaces + bare-unicode-glyph auto-detect post-pass + math-section of the agent prompt fragment. Render-on-settle per Strategic decisions. Depends on: `[feature-content-renderer-pipeline]`
+- `feature-mode-aware-question-constraints` — cross-package: `@praxis/curriculum` mode shape gets `questionConstraints?`; `@praxis/tools` `ask_student_question` validates per resolved caps with descriptive errors; mode prompt fragment interpolates per-mode caps + math-wrapping instruction (unified question-tool fragment). Depends on: `[]`
+- `feature-refactor-shared-choice-indicators` — `[refactor]`-tagged. Extract shared `.choice-indicator--radio` / `--check` primitive that both `.inline-question__choice` and `.assignment-item-card__options` compose against; add `--multi-select` mode to assignment-item-card; rewrite production tab-body components. Depends on: `[]`
 
-3. **`feature-educational-content-typography`** — promote the proposed treatments in `.mockups/design-system/content-types.html` to `components.css`: callouts (`--theorem` / `--lemma` / `--hint` / `--warning`), citations (`.citation-chip` + `.passage`), definitions (`.definition` first-introduction + `.concept-ref` + `.glossary`), figures (`.figure` + caption/body/verdict), procedural step lists (`.procedure`), numerical (`.units` with small-caps unit + `.num` tabular figures), file paths (`.file-path`), code (`.code-inline` + `.code-block` with syntax-token tints). Wire the chat-text renderer to apply these treatments based on agent markup (markdown extensions for `> [!hint]` etc., or explicit class names the agent writes). Agent prompt fragment teaches when to use each register.
+### Cross-epic dependencies
 
-4. **`feature-refactor-shared-choice-indicators`** — `[refactor]`-tagged. Extract `.inline-question__indicator--radio` / `--check` to a more universal name (e.g. `.choice-indicator--radio` / `--check`) that BOTH `.inline-question__choice` AND `.assignment-item-card__options` compose against. Add `--multi-select` mode to `.assignment-item-card`. Production component rewrites in `packages/ui/src/components/{quiz,homework,exam}-tab-body.tsx` to use the shared primitives + the new selected-state visuals. Match resolved-state typography across surfaces (`.thread-chip` for chat-inline; `.assignment-item-card__answered-mark` for graded — different correctness semantics, same visual language).
+- `feature-question-panel-rework` (sibling epic `epic-chat-interaction-ux-overhaul`) gets `depends_on: [feature-mode-aware-question-constraints]` added. The question chassis design pass needs the per-mode caps locked in before it can finalize layout, paging chrome, and selected-state typography against realistic content limits.
+- Soft adjacencies (no hard `depends_on`): `feature-question-panel-rework` benefits from `feature-content-renderer-pipeline` and `feature-math-rendering` for in-chassis content rendering, but the chassis can ship without them and iterate. `feature-refactor-shared-choice-indicators` has soft coordination with `feature-question-panel-rework` (both touch the `.inline-question` family); coordination at design-pass time, not a blocker.
+
+### Decomposition risks
+
+- **`feature-content-renderer-pipeline` sizing risk**. Pipeline framework + 10+ component primitives + 5+ markdown extensions is a lot of surface for one feature. Feature-design Phase 7 may need to spawn 4-6 child stories rather than implementing as a single unit. Watch for the bundling getting unwieldy; if so, consider splitting into `pipeline-framework` (just the 3-stage processor + extension framework) vs `typography-primitives` (the component CSS + per-primitive renderer mapping) as two sequential features.
+- **`feature-mode-aware-question-constraints` cross-package coordination**. The change to `@praxis/curriculum` mode shape ripples to every existing mode definition; need backfill defaults so unmodified modes don't break. Feature-design should explicitly catalog every existing mode and the migration plan.
+- **`feature-refactor-shared-choice-indicators` production test coverage**. The tab-body assignment items have existing tests against the current indicator markup. Refactor needs to update the test selectors. If test coverage is thin in `quiz-tab-body.tsx` / `homework-tab-body.tsx`, refactor may surface gaps — feature-design should run a quick coverage scan and decide whether to add tests as part of the refactor or split it out.
 
 ## What stays out of scope
 
