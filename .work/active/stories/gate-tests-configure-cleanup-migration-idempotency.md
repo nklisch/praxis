@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-cleanup-migration-idempotency
 kind: story
-stage: review
+stage: done
 tags: [testing, db]
 parent: null
 depends_on: []
@@ -42,6 +42,20 @@ it("0025 deletes configure sessions and is idempotent on re-run", async () => {
 
 ## Test location (suggested)
 `tests/db/configure-cleanup-migration.test.ts` (new) using `useTempDb`
+
+## Review
+
+**Verdict: approved / done** — 2026-05-23
+
+All four tests are substantive. Each would fail if migration 0025 SQL were absent or incorrect:
+- Test 1: directly asserts configure row deleted, teach row survives.
+- Test 2: exercises the `episodic_events` FK ON DELETE CASCADE path end-to-end.
+- Test 3: documents the post-0026 tabs orphan contract accurately — with FK dropped, re-executing the DELETE does not cascade tabs; the comment explains why and this is the correct post-migration behavior.
+- Test 4: true idempotency check — two consecutive runs, second is a no-op with no throw.
+
+The inlined `MIGRATION_0025_SQL` constant matches the actual migration file verbatim. The comment "Kept inline so a future edit to the file must consciously re-check this test" is a good durability note.
+
+No blockers. No important findings. Nit: the story body claims 160 lines but the file is 189 lines — minor off-by-one in the gate, not a code issue.
 
 ## Implementation notes
 
