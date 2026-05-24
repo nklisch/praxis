@@ -12,7 +12,7 @@
 import { assignments, courses } from "@praxis/artifacts/schema";
 import { conceptGraphs } from "@praxis/curriculum/schema";
 import { openDb } from "@praxis/core/db";
-import { SessionServiceImpl, SessionPromotionRegistryImpl } from "@praxis/core/services";
+import { SessionServiceImpl, SessionPromotionRegistryImpl, getOrCreateDefaultStudentId } from "@praxis/core/services";
 import type { ServiceDeps } from "@praxis/core/services";
 import type {
   AssignmentId,
@@ -252,25 +252,23 @@ describe("empty-session-cleanup e2e", () => {
   it("spawnFromAssignment persists the row immediately (no registry entry)", async () => {
     const { svc, registry } = makeService(db);
 
+    // Resolve the default studentId first so the parent session and the
+    // service's runtime-resolved student match (spawnFromAssignment now
+    // verifies parent.studentId === current student).
+    const studentId = getOrCreateDefaultStudentId(db);
+
     // Seed a parent session (must be in sessions table).
     const parentId = uuidv7();
     db.insert(sessions)
       .values({
         id: parentId,
-        studentId: "student-test",
+        studentId,
         modeId: "teach",
         engineId: "fake-engine",
         startedAt: new Date(),
       })
       .run();
     const parentSessionId = brandId<"SessionId">(parentId);
-
-    // Need a real studentId for seedCourseAndAssignment.
-    const studentId = db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, parentId))
-      .get()?.studentId ?? "student-test";
 
     const { assignmentId } = seedCourseAndAssignment(db, studentId);
 
