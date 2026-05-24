@@ -1,14 +1,14 @@
 ---
 id: story-relax-composer-contract-to-match-production
 kind: story
-stage: review
+stage: done
 tags: [design-system, cleanup]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-20
-updated: 2026-05-20
+updated: 2026-05-23
 ---
 
 # Relax composer contract to match production structure
@@ -140,3 +140,29 @@ Update all `composer.module.css` consumers in
   `pnpm --filter @praxis/ui test` all 1628 tests pass, lint on touched
   files shows only pre-existing offenders unrelated to this change
   (net -4 useButtonType errors in `components.html`).
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Clean BEM rename across .composer module + matching contract relaxation in
+showcase CSS/HTML. The deviation from the brief (verbs ship as sibling
+widget, not child of .composer) was discovered during implementation and
+documented in notes — implementer made the right call dropping verbs from
+the .composer contract. The .composer-verbs / .chip divergence flagged in
+notes is filed as `idea-composer-verbs-contract-divergence` for a follow-up.
+
+No tests added is correct — pure rename pass; existing composer.test.tsx
+and composer-verbs.test.tsx (22 tests combined) exercise rendered DOM not
+class names, so they continue to validate behavior.
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Mixed access: `styles.composer` (camel-looking but is now the BEM root)
+  alongside `styles["composer__sketch-container--open"]` (bracket access
+  for kebab modifiers). Consistent within the constraints of BEM-in-CSS-
+  modules — no fix needed, just worth noting that BEM and CSS modules
+  have this minor friction.
+
+**Notes**: Story has no parent — archive after review.
