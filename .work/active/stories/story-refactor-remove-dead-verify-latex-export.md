@@ -1,7 +1,7 @@
 ---
 id: story-refactor-remove-dead-verify-latex-export
 kind: story
-stage: review
+stage: done
 tags: [refactor, cleanup]
 parent: null
 depends_on: []
@@ -56,3 +56,8 @@ re-export line away.
 
 ## Implementation notes
 Chose option 1 (conservative): removed the `verifyLatex` re-export lines from `packages/tools/src/index.ts` (line 2) and `packages/tools/src/math/index.ts` (line 2) — one line each. The implementation (`latex-verify.ts`) and its test file remain intact; the test imports from the sibling `./latex-verify.js` directly and continues to pass. `pnpm typecheck` and the latex-verify test suite (4 tests) are green.
+
+## Review
+**Verdict: done** (2026-05-23)
+
+Diff reviewed at commit `61a9a67`. Exactly two lines removed — one per index file — matching option 1 as designed. Grep confirms zero production consumers of `verifyLatex` outside the definition and test file. Test file imports directly from `../latex-verify.js`, not through any index, so it is completely unaffected. No blockers, no important findings, no nits. Clean removal of dead public surface area.
