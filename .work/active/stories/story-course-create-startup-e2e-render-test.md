@@ -1,7 +1,7 @@
 ---
 id: story-course-create-startup-e2e-render-test
 kind: story
-stage: review
+stage: done
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -45,6 +45,20 @@ useTabs).
 - Test drives "Start Praxis →" and asserts the chat tab body mounts and
   renders at least one engine event from the fake client's `session.send`
   stream
+
+## Review
+
+**Verdict: done** (reviewed 2026-05-23)
+
+All acceptance criteria met:
+
+- `pnpm test` green: 4769 passing / 23 skipped (gated) / 0 failing across 447 files.
+- The integration test mounts `<CourseCreateRoute>` inside a real `<TabsProvider>` — `useTabs` is not mocked; the router hooks (`useNavigate`, `useSearch`, `useParams`) are the only mocked surface.
+- `TabBodyShell` is a clean, correctly-motivated helper that mirrors how `<ChatRoute>` renders tab bodies from `openTabs` without pulling in ChatRoute's full dep surface (tldraw, DocumentList, useMatches, etc.).
+- Regression coverage is sound: if `openSessionInTab` called `client.tabs.open` directly instead of `useTabs().openTab`, `TabsProvider` state would never update, `TabBodyShell` would render nothing, and assertions 4–6 (tab body text, engine event in DOM, `session.send` call) would all fail.
+- Secondary test (empty context → `session.send` not called) complements the primary test cleanly.
+
+**Follow-up nit**: `TabBodyShell` is a local test helper scoped to this file. If future integration tests for other modes (quiz, homework, exam) need the same pattern, it would be worth extracting to `__tests__/helpers/tab-body-shell.tsx` as a parameterized helper. Not blocking — file as a backlog nit if needed.
 
 ## Implementation notes
 
