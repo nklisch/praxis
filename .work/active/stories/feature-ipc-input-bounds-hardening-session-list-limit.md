@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-input-bounds-hardening-session-list-limit
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-ipc-input-bounds-hardening
 depends_on: []
@@ -47,3 +47,17 @@ values amplify cost.
 - No tests needed updating — all existing test values are well within bounds (`limit: 10`, `limit: 20`, single-element `excludeModeIds` arrays).
 - Only production caller (`use-library.ts`) uses `limit: 10` — unaffected.
 - Typecheck and all 519 desktop tests pass.
+
+## Review
+
+**Verdict: done** — no blockers.
+
+Checks performed (2026-05-23):
+
+- `limit: z.number().int().positive().max(1000).optional()` — matches story spec.
+- `excludeModeIds: z.array(z.string()).max(32).optional()` — matches story spec.
+- Rationale comment present above schema: `// Bounds: limit ≤ 1000 (avoid full-table IPC dump); excludeModeIds ≤ 32 (bound NOT IN clause).`
+- Only production caller: `packages/ui/src/hooks/use-library.ts:41` uses `limit: 10` — unaffected.
+- No test changes required; existing test values are within bounds per implementation notes.
+
+No findings.
