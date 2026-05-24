@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-4-extract-chunked-queries
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -61,3 +61,14 @@ async listUnits(draftId: string) {
 ## Risk + Rollback
 Risk: Low — pure read functions.
 Rollback: inline the functions back; tests catch regressions.
+
+## Implementation notes
+Created `packages/core/src/services/course-create/draft-queries.ts` (149 lines) with four pure projection functions:
+- `listUnitsQuery(proposed: ProposedCourse): UnitListEntry[]`
+- `listLessonsInUnitQuery(proposed: ProposedCourse, draftUnitId: string): LessonsInUnit | null`
+- `getLessonDetailQuery(proposed: ProposedCourse, draftLessonId: string): LessonDetail | null`
+- `listDanglingRefsQuery(proposed: ProposedCourse): DanglingRefsReport`
+
+All imports are type-only from `../../types/index.js`. No mutations, no store access, no async.
+`course-create-service.ts` is untouched per instruction — Step 7 handles wiring.
+`pnpm typecheck` and all 1164 core tests pass.
