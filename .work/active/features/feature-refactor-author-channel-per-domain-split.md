@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -180,3 +180,17 @@ All 7 child stories advanced to `done` in this autopilot run:
 **Final state**: `author-channel.ts` gone. 25 `praxis.author.*` channels served by 6 per-domain modules following the `per-domain-channel-module` pattern. 520 desktop tests pass; full workspace 4769 tests pass; typecheck clean.
 
 **No deviations** from the design — actual handler count was 25 (design corrected the brief's 27 during Phase 1). All other steps executed as planned.
+
+## Review
+
+**Verdict: done**
+
+Reviewed 2026-05-24.
+
+Checks:
+- All 7 child stories at `stage: done` (steps 1–7).
+- `author-channel.ts` deleted — file does not exist.
+- 6 new per-domain modules present: `author-course-channel.ts`, `author-lesson-channel.ts`, `author-gate-channel.ts`, `author-prompt-channel.ts`, `author-memory-channel.ts`, `author-configurator-channel.ts`.
+- Desktop test suite: 34 files / 520 tests — all pass.
+
+Implementation matches the design exactly. No deviations, no blockers.
