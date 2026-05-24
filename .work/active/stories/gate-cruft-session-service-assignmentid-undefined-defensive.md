@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-session-service-assignmentid-undefined-defensive
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -51,3 +51,13 @@ code paths in the same file (e.g. `start()` lines 288-290 for
 ## Removal
 Collapse each pair to a single `!== null` check (matching the existing
 `courseId` style at line 288). Three call sites.
+
+## Implementation notes
+
+Three call sites collapsed in `packages/core/src/services/session-service.ts`:
+
+1. **Line 266-269** (now 266-268) — `sessionRow.assignmentId !== null && sessionRow.assignmentId !== undefined` in `send()` / `acquire()` call → collapsed to `sessionRow.assignmentId !== null`.
+2. **Line 441-444** (now 440-442) — `row.assignmentId !== null && row.assignmentId !== undefined` in `get()` return → collapsed to `row.assignmentId !== null`.
+3. **Lines 501-508** (now 499-504) — both `row.courseId !== null && row.courseId !== undefined` and `row.assignmentId !== null && row.assignmentId !== undefined` in `list()` return → each collapsed to `!== null`.
+
+TypeScript narrowed correctly in all three cases (no new errors). All 1159 tests pass.

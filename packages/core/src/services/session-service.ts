@@ -263,10 +263,9 @@ export class SessionServiceImpl implements SessionService {
       mode,
       studentId,
       ...(sessionRow.courseId !== null && { courseId: brandId<"CourseId">(sessionRow.courseId) }),
-      ...(sessionRow.assignmentId !== null &&
-        sessionRow.assignmentId !== undefined && {
-          assignmentId: brandId<"AssignmentId">(sessionRow.assignmentId),
-        }),
+      ...(sessionRow.assignmentId !== null && {
+        assignmentId: brandId<"AssignmentId">(sessionRow.assignmentId),
+      }),
     });
 
     recordUserMessage({
@@ -438,10 +437,9 @@ export class SessionServiceImpl implements SessionService {
       modeId: row.modeId,
       startedAt: row.startedAt.getTime() as Timestamp,
       ...(row.courseId !== null && { courseId: brandId<"CourseId">(row.courseId) }),
-      ...(row.assignmentId !== null &&
-        row.assignmentId !== undefined && {
-          assignmentId: brandId<"AssignmentId">(row.assignmentId),
-        }),
+      ...(row.assignmentId !== null && {
+        assignmentId: brandId<"AssignmentId">(row.assignmentId),
+      }),
     };
   }
 
@@ -498,14 +496,12 @@ export class SessionServiceImpl implements SessionService {
         modeId: row.modeId,
         startedAt: row.startedAt.getTime() as Timestamp,
         endedAt: row.endedAt ? (row.endedAt.getTime() as Timestamp) : null,
-        ...(row.courseId !== null &&
-          row.courseId !== undefined && {
-            courseId: brandId<"CourseId">(row.courseId),
-          }),
-        ...(row.assignmentId !== null &&
-          row.assignmentId !== undefined && {
-            assignmentId: brandId<"AssignmentId">(row.assignmentId),
-          }),
+        ...(row.courseId !== null && {
+          courseId: brandId<"CourseId">(row.courseId),
+        }),
+        ...(row.assignmentId !== null && {
+          assignmentId: brandId<"AssignmentId">(row.assignmentId),
+        }),
         ...(firstUserMessage !== undefined && { firstUserMessage }),
       };
     });
