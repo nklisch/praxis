@@ -59,20 +59,21 @@ const handleStartSession = useCallback(async () => {
 }, [client, navigate, course, openTab]);
 ```
 
-### Example 3: Library "Continue" CTA
+### Example 3: Library recommendation action dispatch
 
-**File**: `packages/ui/src/routes/library.tsx:48-55` (second call site at `:67-74`)
+**File**: `packages/ui/src/routes/library.tsx:116-125`
 
 ```tsx
-const handleOpenInTab = async (c: CourseSummary) => {
+case "resume_draft": {
+  // Re-open the course-create session that produced this draft
   await openSessionInTab({
     client,
     navigate,
-    startOpts: { modeId: "teach", courseId: c.courseId as CourseId },
-    courseTitle: c.title,
     openTab,
+    startOpts: { modeId: "course-create" },
   });
-};
+  break;
+}
 ```
 
 ### Example 4: Opening a tab from within the NewTabPicker modal

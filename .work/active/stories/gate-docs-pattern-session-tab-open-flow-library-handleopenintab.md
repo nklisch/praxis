@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-session-tab-open-flow-library-handleopenintab
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -41,3 +41,11 @@ the `resume_draft` case at `library.tsx:123-128`
 (`openSessionInTab({ client, navigate, openTab, startOpts: { modeId: "course-create" } })`)
 or pick a different consumer that still matches the canonical
 "click → start → openTab → navigate" chain.
+
+## Implementation notes
+
+Replaced stale Example 3 in `.claude/skills/patterns/session-tab-open-flow.md` (which cited
+`library.tsx:48-55` and a `handleOpenInTab` function that no longer exists) with the current
+`resume_draft` case from `handleRecAction` at `packages/ui/src/routes/library.tsx:116-125`.
+The new example shows `openSessionInTab({ client, navigate, openTab, startOpts: { modeId: "course-create" } })`
+inside a switch-case, which is the live pattern. `pnpm typecheck` passes.
