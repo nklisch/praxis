@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-4-prompt
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -92,3 +92,14 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the ten handlers and shared schemas remain in `author-channel.ts`.
+
+## Implementation notes
+- Created `packages/desktop/electron/main/author-prompt-channel.ts` (163 lines).
+- All 10 handlers copied verbatim from `author-channel.ts` lines 289–421.
+- `modeIdSchema` and `previewPromptSchema` moved into the new module (module-private, not exported).
+- `requireUnlocked()` defined as a local function (not exported), identical to the original.
+- Imports: `Logger` (type-only), `z`, `wrapEnvelope` (needed for `getGlobalPrompt`), `createIpcHelpers`, `handleEnvelope`, `Services` (type-only).
+- No branded types needed — prompt handlers work with plain strings.
+- `pnpm typecheck` passes (all 10 packages clean).
+- `pnpm --filter @praxis/desktop test`: 34 test files, 520 tests, all passed.
+- `author-channel.ts` and `ipc-server.ts` left untouched (Step 7 handles wiring + deletion).
