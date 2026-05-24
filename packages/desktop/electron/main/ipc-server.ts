@@ -18,6 +18,7 @@ import { registerLockHandlers } from "./lock-channel.js";
 import { registerMemoryHandlers } from "./memory-channel.js";
 import { registerNotesHandlers } from "./notes-channel.js";
 import { registerPacksHandlers } from "./packs-channel.js";
+import { registerProgressHandlers } from "./progress-channel.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import { registerRecommendationsHandlers } from "./recommendations-channel.js";
 import type { Services } from "./services.js";
@@ -136,6 +137,10 @@ export function registerIpcHandlers(
   // ── Workbench recommendation engine ──────────────────────────────────────────
 
   registerRecommendationsHandlers(services, log);
+
+  // ── Per-course progress aggregator ────────────────────────────────────────────
+
+  registerProgressHandlers(services, log);
 
   // ── Claude auth ──────────────────────────────────────────────────────────────
 

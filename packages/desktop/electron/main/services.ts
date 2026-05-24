@@ -32,6 +32,7 @@ import {
   MisconceptionIndexer,
   NotesServiceImpl,
   ProceduralIndexer,
+  ProgressServiceImpl,
   PromptCustomizationServiceImpl,
   QuickCheckServiceImpl,
   RecommendationServiceImpl,
@@ -172,6 +173,8 @@ export interface Services {
   pedagogyPack: PedagogyPackServiceImpl;
   /** Workbench recommendation engine — priority-ordered "what's next" queue. */
   recommendations: RecommendationServiceImpl;
+  /** Per-course progress aggregator for the /progress route. */
+  progress: ProgressServiceImpl;
   /** Catalogue search + FTS5 filters across notes and flashcards. */
   library: LibraryServiceImpl;
   /** In-memory registry of not-yet-persisted (unpromoted) sessions. */
@@ -511,6 +514,15 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     draftStore,
   });
 
+  // Per-course progress aggregator — rolls up mastery, lesson position,
+  // active gate, stuck concepts, and recent events for the /progress route.
+  // Constructed after artifactsService (its CourseStateReader implementation).
+  const progressService = new ProgressServiceImpl({
+    db,
+    log,
+    courseStateReader: artifactsService,
+  });
+
   // Session promotion registry — in-memory map of sessions opened but not yet
   // persisted. Constructed before SessionServiceImpl; its engineSessionManager
   // thunk resolves via a ref-cell written after sessionService is live.
@@ -694,6 +706,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     subAgent: subAgentRegistry,
     quickCheck: quickCheckService, // ← Phase 17
     recommendations: recommendationsService,
+    progress: progressService,
     library: libraryService,
     sessionPromotion: sessionPromotionRegistry,
     sessionSweep: sessionSweepIndexer,

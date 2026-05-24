@@ -14,6 +14,7 @@ import type { DocumentsClient, IngestionClient } from "./ingestion.js";
 import type { LibraryClientApi } from "./library-service.js";
 import type { LockClient } from "./lock-service.js";
 import type { NotesClient } from "./notes.js";
+import type { ProgressClientApi } from "./progress.js";
 import type { QuickCheckClientApi } from "./quick-check.js";
 import type { RecommendationsClientApi } from "./recommendation.js";
 import type { SessionService } from "./session-client.js";
@@ -73,4 +74,6 @@ export interface PraxisClient {
   citations: CitationsClientApi;
   /** Catalogue search + saved filters across notes and flashcards. */
   library: LibraryClientApi;
+  /** Per-course progress aggregator for the /progress route. */
+  progress: ProgressClientApi;
 }

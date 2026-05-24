@@ -17,6 +17,7 @@ import { LockClientImpl } from "./services/lock-client.js";
 import { MemoryClient } from "./services/memory-client.js";
 import { NotesClient } from "./services/notes-client.js";
 import { PacksClientImpl } from "./services/packs-client.js";
+import { ProgressClient } from "./services/progress-client.js";
 import { QuickCheckClient } from "./services/quick-check-client.js";
 import { RecommendationsClient } from "./services/recommendations-client.js";
 import { SessionClient } from "./services/session-client.js";
@@ -60,5 +61,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     recommendations: new RecommendationsClient(transport),
     citations: new CitationsClient(transport),
     library: new LibraryClient(transport),
+    progress: new ProgressClient(transport),
   };
 }

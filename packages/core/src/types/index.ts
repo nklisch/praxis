@@ -48,6 +48,8 @@ export * from "./notes.js";
 // Per-service type files split from tool.ts (public surface unchanged).
 export type * from "./pack-import-service.js";
 export type * from "./pedagogy.js";
+// Progress aggregator — per-course rollup for the /progress route.
+export type { CourseProgressRollup, ProgressClientApi, ProgressService } from "./progress.js";
 export type * from "./prompt-attribution.js";
 // Phase 17: QuickCheck types — human-in-the-loop dispatch + client API.
 export type {

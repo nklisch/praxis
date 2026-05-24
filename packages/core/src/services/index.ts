@@ -111,6 +111,9 @@ export type { DecayInput } from "./memory/decay.js";
 export { applyDecay, applyDecayAt } from "./memory/decay.js";
 export type { MemoryServiceDeps } from "./memory/memory-service.js";
 export { MemoryServiceImpl } from "./memory/memory-service.js";
+// Per-course progress aggregator
+export type { ProgressServiceDeps } from "./progress-service.js";
+export { ProgressServiceImpl, STUCK_MASTERY_THRESHOLD } from "./progress-service.js";
 // Phase 17: QuickCheck service
 export { QuickCheckServiceImpl } from "./quick-check-service.js";
 // Workbench recommendation engine

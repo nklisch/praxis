@@ -25,6 +25,7 @@ import type {
   NotesService,
   PackImportService,
   PedagogyPackService,
+  ProgressService,
   QuickCheckService,
   RecommendationService,
   SecretStorage,
@@ -154,6 +155,11 @@ export interface ServiceDeps {
    * priority-ordered list for the front door.
    */
   recommendations?: RecommendationService;
+  /**
+   * Per-course progress aggregator — rolls up mastery, lesson position,
+   * active gate, stuck concepts, and recent events for the /progress route.
+   */
+  progress?: ProgressService;
   /**
    * At-rest secret storage. Reads decrypt; writes encrypt. The Electron
    * adapter (`ElectronSafeStorageAdapter`) is wired in `@praxis/desktop`.

@@ -1,7 +1,7 @@
 ---
 id: feature-progress-top-nav-service
 kind: story
-stage: implementing
+stage: review
 tags: [core, content, ipc]
 parent: feature-progress-top-nav
 depends_on: []
@@ -161,3 +161,42 @@ Add to `PraxisClient` type as `progress: ProgressClient`.
 - /progress route UI (separate story).
 - Caching (none in v1; see parent feature decision).
 - Multi-student support (single-student per VISION.md).
+
+## Implementation notes
+
+### Service files
+- **Type contract**: `packages/core/src/types/progress.ts` — `CourseProgressRollup`, `ProgressService`, `ProgressClientApi`
+- **Service impl**: `packages/core/src/services/progress-service.ts` — `ProgressServiceImpl`, `STUCK_MASTERY_THRESHOLD`
+- **Test**: `packages/core/src/services/__tests__/progress-service.test.ts` — 19 tests, all passing
+
+### IPC wiring
+- **IPC channel**: `packages/desktop/electron/main/progress-channel.ts` — `registerProgressHandlers`, channel `praxis.progress.rollup`
+- **ipc-server.ts**: Wired via `registerProgressHandlers(services, log)` after recommendation handlers
+- **services.ts**: `Services` interface has `progress: ProgressServiceImpl`; `buildServices` constructs `ProgressServiceImpl` with `courseStateReader: artifactsService`
+
+### Client
+- **Client**: `packages/client/src/services/progress-client.ts` — `ProgressClient`
+- **client.ts**: Added `progress: new ProgressClient(transport)` to `createPraxisClient`
+- **PraxisClient**: `progress: ProgressClientApi` added to interface
+
+### ServiceDeps
+- `packages/core/src/services/types.ts` — `progress?: ProgressService` added to `ServiceDeps`
+- `packages/core/src/types/index.ts` — exports `CourseProgressRollup`, `ProgressClientApi`, `ProgressService`
+- `packages/core/src/services/index.ts` — exports `ProgressServiceImpl`, `STUCK_MASTERY_THRESHOLD`
+
+### Test coverage (19 tests)
+- Empty courses → empty array
+- Single course with null snapshot → all fields null/zero/empty
+- Single course with full data → all fields populated (lesson, mastery, events)
+- Mastery percent: mean `effectivePKnown` computation; 0 when no concepts
+- Stuck concepts: threshold filter, bottom-3 ordering, empty-concepts edge case
+- Recent events: cross-kind ordering newest-first, cap at 3, correct kind labels, excludes unsubmitted
+- Multi-course: one rollup per course, no cross-course event leakage
+- currentLesson: 1-based index and total count from snapshot
+- activeGate: all fields from GateView; null when no active gate
+
+### Design discovery
+- `Gate` has no `title` field; used `GateView.summaryText` as the gate title in the rollup
+- `collectStuckConcepts` / `collectRecentEvents` are synchronous (all DB queries, no async) but wrapped in `Promise.resolve` for the `Promise.all` fan-out pattern
+- `isNotNull` from drizzle-orm used for filtering submitted assignments
+- Pre-existing typecheck failures in `@praxis/desktop` (`concept-maps-channel.ts`, `course-detail.tsx`) are from another in-flight story and are unrelated to this implementation
