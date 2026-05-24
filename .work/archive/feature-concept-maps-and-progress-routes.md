@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-and-progress-routes
 kind: feature
-stage: drafting
+stage: done
 tags: [ui, content]
 parent: null
 depends_on: []
@@ -128,3 +128,18 @@ top-nav surface and /progress top-nav surface, picked separately.
 - Filter/sort URL params on /concept-maps for bookmarkability.
 - Empty-state handling for both surfaces (no courses yet, no maps yet,
   no progress data yet).
+
+## Closure (feature-design, 2026-05-23, autopilot)
+
+Superseded by split per the locked `--only-questions` decision. Spawned
+two child features carrying the decisions and mockups forward:
+
+- `feature-concept-maps-top-nav` (drafting) — `/concept-maps` cross-course
+  Swiss Grid Catalog surface
+- `feature-progress-top-nav` (drafting) — `/progress` Course-by-Course
+  Review surface
+
+Both new features inherit the locked mockup paths and the design decisions
+captured here (data model extensions, canonical CoverageBar). Archiving
+this aggregator as no-longer-the-unit-of-work; further design happens on
+the two children.
