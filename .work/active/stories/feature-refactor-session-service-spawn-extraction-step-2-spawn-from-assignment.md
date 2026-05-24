@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-2-spawn-from-assignment
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: [feature-refactor-session-service-spawn-extraction-step-1-spawner-skeleton]
@@ -87,3 +87,12 @@ Imports moved from `session-service.ts` to `session-spawner.ts`:
 
 ## Rollback
 Revert `session-spawner.ts` additions; restore original body in `session-service.ts`.
+
+## Implementation notes
+
+- Moved `spawnFromAssignment` body verbatim (~55 lines) from `SessionServiceImpl` into `SessionSpawner.spawnFromAssignment`. `this.start(...)` became `this.deps.startSession(...)`.
+- Added imports to `session-spawner.ts`: `assignments` from `@praxis/artifacts/schema`, `sessions` from `@praxis/memory/schema`, `eq` from `drizzle-orm`, `brandId` from `../../types/index.js`, `getOrCreateDefaultStudentId` from `../student.js`.
+- Removed `assignments` from the `@praxis/artifacts/schema` import in `session-service.ts` — no longer used there. `sessions` import remains (used by `notifySession`, `send`, `end`, etc.).
+- `SessionServiceImpl.spawnFromAssignment` is now a one-line delegate: `return this.spawner.spawnFromAssignment(input);`.
+- Parent-validation logic (check parent row exists + belongs to student) preserved verbatim.
+- All 96 core test files (1164 tests) passed, including `session-service.notify.test.ts` and the e2e `empty-session-cleanup-e2e.test.ts`.

@@ -13,6 +13,9 @@
  * SessionServiceImpl — mirrors session-promoter.ts exactly).
  */
 
+import { assignments } from "@praxis/artifacts/schema";
+import { sessions } from "@praxis/memory/schema";
+import { eq } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type {
   AssignmentId,
@@ -23,6 +26,8 @@ import type {
   SessionHandle,
   SessionId,
 } from "../../types/index.js";
+import { brandId } from "../../types/index.js";
+import { getOrCreateDefaultStudentId } from "../student.js";
 
 /** Maximum passage length injected into the opening message. */
 const MAX_PASSAGE_LENGTH = 100_000;
@@ -52,7 +57,67 @@ export interface SessionSpawnerDeps {
 export class SessionSpawner {
   constructor(private readonly deps: SessionSpawnerDeps) {}
 
-  // methods added in steps 2–4
+  /**
+   * Phase 16: open a new child session bound to an assignment, deriving the
+   * mode from the assignment's kind. The child session's `parentSessionId` is
+   * set to `parentSessionId` so the tab UI can link back to the tutor tab.
+   */
+  async spawnFromAssignment(input: {
+    assignmentId: AssignmentId;
+    parentSessionId: SessionId;
+  }): Promise<SessionHandle> {
+    // Resolve the current student (single-user; server-side only).
+    const studentId = getOrCreateDefaultStudentId(this.deps.db);
+
+    // Validate parent session exists and belongs to this student.
+    const parentRow = this.deps.db
+      .select({ id: sessions.id, studentId: sessions.studentId })
+      .from(sessions)
+      .where(eq(sessions.id, input.parentSessionId))
+      .get();
+    if (!parentRow) {
+      throw new Error(`Parent session not found: ${input.parentSessionId}`);
+    }
+    if (parentRow.studentId !== studentId) {
+      throw new Error(`Parent session belongs to a different student`);
+    }
+
+    const assignmentRow = this.deps.db
+      .select()
+      .from(assignments)
+      .where(eq(assignments.id, input.assignmentId))
+      .get();
+    if (!assignmentRow) {
+      throw new Error(`Assignment not found: ${input.assignmentId}`);
+    }
+
+    // Derive mode from assignment kind.
+    const modeId = assignmentRow.kind; // "quiz" | "homework" | "exam" map 1:1 to mode ids
+
+    // Start the session using the existing start() path (handles lock checks, engine open, etc.)
+    // _persistImmediately: true — parent-linked sessions have meaning before any student turn;
+    // skipping the registry avoids accidentally dropping them on tab-close.
+    const handle = await this.deps.startSession({
+      modeId,
+      assignmentId: input.assignmentId,
+      courseId: brandId<"CourseId">(assignmentRow.courseId),
+      _persistImmediately: true,
+    });
+
+    // Update the session row to set parentSessionId.
+    this.deps.db
+      .update(sessions)
+      .set({ parentSessionId: input.parentSessionId })
+      .where(eq(sessions.id, handle.sessionId))
+      .run();
+
+    return {
+      ...handle,
+      parentSessionId: input.parentSessionId,
+    };
+  }
+
+  // spawnFromNote and spawnFromPassage added in steps 3–4
 }
 
 // Export MAX_PASSAGE_LENGTH so spawnFromPassage (step 4) can reference the

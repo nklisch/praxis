@@ -1,4 +1,4 @@
-import { assignments, documentChunks, documents, notes } from "@praxis/artifacts/schema";
+import { documentChunks, documents, notes } from "@praxis/artifacts/schema";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { and, asc, desc, eq, isNull, notInArray } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -611,55 +611,7 @@ export class SessionServiceImpl implements SessionService {
     assignmentId: AssignmentId;
     parentSessionId: SessionId;
   }): Promise<SessionHandle> {
-    // Resolve the current student (single-user; server-side only).
-    const studentId = getOrCreateDefaultStudentId(this.deps.db);
-
-    // Validate parent session exists and belongs to this student.
-    const parentRow = this.deps.db
-      .select({ id: sessions.id, studentId: sessions.studentId })
-      .from(sessions)
-      .where(eq(sessions.id, input.parentSessionId))
-      .get();
-    if (!parentRow) {
-      throw new Error(`Parent session not found: ${input.parentSessionId}`);
-    }
-    if (parentRow.studentId !== studentId) {
-      throw new Error(`Parent session belongs to a different student`);
-    }
-
-    const assignmentRow = this.deps.db
-      .select()
-      .from(assignments)
-      .where(eq(assignments.id, input.assignmentId))
-      .get();
-    if (!assignmentRow) {
-      throw new Error(`Assignment not found: ${input.assignmentId}`);
-    }
-
-    // Derive mode from assignment kind.
-    const modeId = assignmentRow.kind; // "quiz" | "homework" | "exam" map 1:1 to mode ids
-
-    // Start the session using the existing start() path (handles lock checks, engine open, etc.)
-    // _persistImmediately: true — parent-linked sessions have meaning before any student turn;
-    // skipping the registry avoids accidentally dropping them on tab-close.
-    const handle = await this.start({
-      modeId,
-      assignmentId: input.assignmentId,
-      courseId: brandId<"CourseId">(assignmentRow.courseId),
-      _persistImmediately: true,
-    });
-
-    // Update the session row to set parentSessionId.
-    this.deps.db
-      .update(sessions)
-      .set({ parentSessionId: input.parentSessionId })
-      .where(eq(sessions.id, handle.sessionId))
-      .run();
-
-    return {
-      ...handle,
-      parentSessionId: input.parentSessionId,
-    };
+    return this.spawner.spawnFromAssignment(input);
   }
 
   /**
