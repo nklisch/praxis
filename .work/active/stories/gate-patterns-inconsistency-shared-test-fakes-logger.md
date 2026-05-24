@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-shared-test-fakes-logger
 kind: story
-stage: review
+stage: done
 tags: [refactor, testing]
 parent: null
 depends_on: []
@@ -43,6 +43,16 @@ shape as the inline copies (it returns a `Logger` with spied `info` /
 ~37 test files in `packages/desktop/electron/main/__tests__/`. Pure
 mechanical replace; no test behavior change. Suitable for one
 focused PR.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Sweep is complete — `grep -rn "function makeFakeLogger\|const makeFakeLogger"` returns empty across all 34 desktop `__tests__` files. 467 `makeSpyLogger` call-sites confirm the shared factory is now universal. The two non-mechanical fixes (removing the `self(): ReturnType<typeof makeFakeLogger>` brace in `streaming-channel-error-redaction.test.ts` and the `as ReturnType<typeof makeFakeLogger>` casts in `subagent-channel.test.ts`) are clean and correct — no residual references to the deleted local type. `pnpm --filter @praxis/desktop test` reports 520 tests passed across 34 files with no failures.
 
 ## Implementation notes
 
