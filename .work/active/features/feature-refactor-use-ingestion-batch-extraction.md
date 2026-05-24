@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -133,3 +133,12 @@ Step 1 (extract sub-hook)  →  Step 2 (facade rewrite)
 ```
 
 Sequential — Step 2 imports from Step 1's new file. No parallelism possible.
+
+## Implementation summary
+
+Both child stories complete (stage: done).
+
+- **Step 1** (`f17cd9d`): New `packages/ui/src/hooks/use-batch-ingestion.ts` (253 lines). Extracts all four batch refs, `startBatch`, `confirmTier`, `skipCurrentFile`, `cancelBatch`, `resetRefs` into `useBatchIngestion`. Types remain in `use-ingestion.ts`. Additive-only — no consumer impact.
+- **Step 2** (`f8e8953`): `use-ingestion.ts` rewritten as a thin facade. Line count 404 → 230 (174 lines removed). Four batch refs, `_startBatch`, `confirmTier`, `skipCurrentFile`, `cancelBatch` replaced by `const batch = useBatchIngestion(...)` delegation. Public `UseIngestionResult` API unchanged. `stateRef` + `useEffect` mirror provides stale-closure-free `getState` getter to sub-hook.
+- Picker-close fix (call-sites hoisting `useIngestion` to parent components) preserved — untouched by this refactor.
+- All 163 UI test files / 1706 tests pass; `pnpm typecheck` clean across all packages.
