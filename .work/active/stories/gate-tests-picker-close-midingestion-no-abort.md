@@ -1,7 +1,7 @@
 ---
 id: gate-tests-picker-close-midingestion-no-abort
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, ui]
 parent: null
 depends_on: []

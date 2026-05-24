@@ -1,7 +1,7 @@
 ---
 id: gate-tests-rework-cancelbatch-weak-oracle
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, refactor]
 parent: null
 depends_on: []

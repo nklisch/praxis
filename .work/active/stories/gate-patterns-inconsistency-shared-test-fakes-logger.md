@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-shared-test-fakes-logger
 kind: story
-stage: drafting
+stage: implementing
 tags: [refactor, testing]
 parent: null
 depends_on: []

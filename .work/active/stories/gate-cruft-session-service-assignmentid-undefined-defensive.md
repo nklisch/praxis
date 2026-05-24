@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-session-service-assignmentid-undefined-defensive
 kind: story
-stage: drafting
+stage: implementing
 tags: [cleanup]
 parent: null
 depends_on: []

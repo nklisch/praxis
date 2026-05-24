@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-editorial-ui-primitives-library-routeheader
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

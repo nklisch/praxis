@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-route-race-on-simultaneous-mount
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, ui]
 parent: null
 depends_on: []

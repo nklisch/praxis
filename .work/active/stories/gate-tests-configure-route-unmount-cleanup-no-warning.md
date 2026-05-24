@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-route-unmount-cleanup-no-warning
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, ui]
 parent: null
 depends_on: []

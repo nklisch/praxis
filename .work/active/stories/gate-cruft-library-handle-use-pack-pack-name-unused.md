@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-library-handle-use-pack-pack-name-unused
 kind: story
-stage: drafting
+stage: implementing
 tags: [cleanup, ui]
 parent: null
 depends_on: []
