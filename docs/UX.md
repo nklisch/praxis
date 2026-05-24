@@ -207,7 +207,7 @@ The body of an active tab takes its shape from the mode. The agent is present in
 
 #### teach (chat)
 
-The familiar conversational chat. Streamed messages with KaTeX, code blocks, citations, sketch input. Composer with mode-aware tutor-verb chips above the textarea: *explain · quiz me on · let me try · show your work · slower · go deeper*. This is the default modality; everything that worked in earlier phases continues to work.
+The familiar conversational chat. Streamed messages with KaTeX, code blocks, citations, sketch input. Composer with mode-aware tutor-verb chips above the textarea: *explain · quiz me on · let me try · show your work · slower · go deeper*. The composer never locks while the tutor is mid-turn — additional messages typed during an in-flight response queue and dispatch in order behind the active turn, and the send button transforms into a cancel control during in-flight state that aborts the current turn via the engine's AbortSignal path. This is the default modality; everything that worked in earlier phases continues to work.
 
 ```
 ┌───────────────────────────────────────────────────────────┐
@@ -463,19 +463,23 @@ Quick checks are formative probes the tutor calls mid-explanation without spawni
 
 **Card anatomy.** From top to bottom: the kicker tag, the prompt text set in the standard body type, the item-specific input control (radio buttons, checkboxes, pair columns, etc.), and a `submit` button. The submit button is disabled until the input is valid. For `requireReasoning` items, a textarea labeled `explain your thinking` appears below the choice control and must be non-empty before submission is permitted.
 
-**Locked state.** Once the student submits, the card locks: all controls become inert and the submit button is replaced with a quiet `answered` marker. When the tool was authored with a `correctIndex` (or equivalent), the locked card overlays correctness feedback in the editorial palette — correct answers with a `°` ornament, incorrect with an `·` ornament, never with color alone. The tutor's next message in the thread immediately follows and narrates the response.
+**Resolved state.** On submit the card transitions immediately to its resolved form — no greyed-out wait through the tutor's thinking round-trip. The submit button is replaced with a quiet `answered` marker and the chosen answer is shown; the card stays in the message flow as a historical record. When the tool was authored with a `correctIndex` (or equivalent), the resolved card overlays correctness feedback in the editorial palette — correct answers with a `°` ornament, incorrect with an `·` ornament, never with color alone. The tutor's next message in the thread follows asynchronously and narrates the response.
 
 **Persistence across tab switches.** Because the chat tab body uses `display:none` rather than unmounting during tab switches (per the `tab-body-isolation` pattern), a pending card survives navigation. If the student switches away and back, the card is still there waiting. A closed tab whose session is still active similarly preserves the card; abandonment only occurs if the session itself ends.
 
-**Multiple in-flight checks.** If the tutor issues more than one quick check before the student answers (unusual but possible), each renders its own card in order, top-to-bottom by call arrival. The student answers them in whatever order they choose.
+**Multiple in-flight checks.** If the tutor issues more than one quick check before the student answers, the cards render as a paged surface — one question visible at a time with `next` / `prev` controls and an `n of m` indicator — rather than stacking vertically and occluding the chat below. The student advances through the set at their own pace and the chat thread remains visible alongside the active card.
 
 **What stays out of episodic.** The synthetic system message that holds the card never reaches the episodic log. The `tool_call` event and the `tool_result` event that bracket the card do appear in episodic — the transcript shows that the tutor asked a question and the student answered, in the normal event flow.
 
 ## Structured question cards (course-create / configure)
 
-`ask_student_question` is the course-create / configure cousin of the quick-check card — a structured-choice prompt the agent uses mid-flow to clarify intent without yielding the turn. Visually identical chassis to `<QuickCheckCard>` (kicker tag, prompt body, choice control, submit button), but the kicker reads `tutor asked` in configure-mode contexts and the card always carries a `choice required` semantic — the agent's next step depends on the answer, so there is no "skip" affordance. Rendered as `<StructuredQuestionCard>` (`packages/ui/src/components/structured-question-card.tsx`).
+`ask_student_question` is the course-create / configure cousin of the quick-check card — a structured-choice prompt the agent uses mid-flow to clarify intent without yielding the turn. Visually identical chassis to `<QuickCheckCard>` (kicker tag, prompt body, choice control, submit button), but the kicker reads `tutor asked` in configure-mode contexts. Rendered as `<StructuredQuestionCard>` (`packages/ui/src/components/structured-question-card.tsx`).
 
-Locked-state treatment mirrors quick-check: controls become inert on submission and the submit button is replaced with a quiet `answered` marker. Because these questions don't carry a `correctIndex` (they're disambiguation, not assessment), the locked card omits correctness feedback — only the chosen answer is shown.
+**Escape hatches.** Each structured question carries two escape hatches alongside the structured choices: a free-form answer field for when no option fits, and an explicit `clarify in chat` cancel control that dismisses the card and signals the agent that the student wants to resolve the question through normal conversation instead. The tool description forbids the agent from adding "tell me in chat" / "explain in chat" as a structured choice — that path is already available through the cancel control.
+
+**Resolved state.** Mirrors quick-check: on submit the card transitions immediately to its resolved form (no greyed-out wait through the round-trip), the submit button is replaced with a quiet `answered` marker, and the chosen answer is shown. Because these questions don't carry a `correctIndex` (they're disambiguation, not assessment), the resolved card omits correctness feedback.
+
+**Multi-question display.** Identical paged treatment to quick-check: when the agent issues multiple structured questions in one turn, they render as a paged surface (one visible at a time with `next` / `prev` and `n of m`) so the chat thread remains visible alongside the active card.
 
 Persistence across tab switches and abandonment semantics are identical to quick-check (the same tool-bridge IPC family applies). The chat-thread placement and "stays out of episodic" rules also apply.
 
@@ -671,6 +675,8 @@ Engine selection, deployment-related settings, telemetry preferences.
 **Mode is identity, not just a setting.** Each mode has its own ornament glyph, tint, and tab body shape. The student doesn't need to remember what mode they're in — the workspace shows it constantly through the tab strip and the modality body. Modes are discoverable, not buried in a settings menu.
 
 **Streaming with intercept and easing.** All long-running operations (agent loops, ingestion, indexer runs) stream progress via the transport. The UI never blocks on a long operation — even ingestion of a 500-page textbook progresses visibly while the user does other things. Model-text streaming is eased (Phase 13): a small ring buffer + `requestAnimationFrame` release schedule + per-chunk fade-in. Reads as someone *thinking and writing*, not as raw token output.
+
+**Chat round-trips never gate user input.** The "UI never blocks" principle applies to in-conversation interactions, not just background streams. Composer send stays active during in-flight turns (queued messages dispatch in order); the cancel control aborts the active turn; structured-question and quick-check cards dismiss to their resolved state on submit rather than greying through the model round-trip; any in-chat affordance that triggers engine work updates optimistically and surfaces failures asynchronously (failed-to-send badges, retry, the activity strip) rather than freezing. The student is always free to do the next thing while the previous request is in flight.
 
 **Citations are first-class.** Every fact the tutor states from the textbook is a clickable citation chip. Clicking opens the source in a side panel. The student learns to expect citations and notice when they're missing.
 
