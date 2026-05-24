@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-6-configurator
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -66,6 +66,16 @@ export function registerAuthorConfiguratorHandlers(services: Services, log: Logg
 
 ## Rollback
 `git revert` the commit for this step; the two handlers remain in `author-channel.ts`.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean mechanical extraction. Both handlers present with correct channel names. `requireUnlocked()` local (not exported). Inline `import("@praxis/core/types").Timestamp` cast in `listConfiguratorActions` preserved verbatim per design note (intentional choice to avoid top-level import for a single cast). Optional schema `.optional()` on `listConfiguratorActions` input preserved correctly. No `getStudentId` usage — correct for this domain.
 
 ## Implementation notes
 - Created `/home/nathan/dev/praxis/packages/desktop/electron/main/author-configurator-channel.ts` (64 lines).

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-4-prompt
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -92,6 +92,16 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the ten handlers and shared schemas remain in `author-channel.ts`.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean mechanical extraction. All 10 handlers present with correct channel names. `modeIdSchema` and `previewPromptSchema` moved into the new module (module-private, not exported). `requireUnlocked()` local (not exported). `wrapEnvelope` correctly used for `getGlobalPrompt` (no-input channel); all others use `handleEnvelope`. Schemas correctly remain in `author-channel.ts` at this commit — Step 7 handles removal and wiring, by design.
 
 ## Implementation notes
 - Created `packages/desktop/electron/main/author-prompt-channel.ts` (163 lines).

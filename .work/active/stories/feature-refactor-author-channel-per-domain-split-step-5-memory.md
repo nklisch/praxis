@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-5-memory
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -72,6 +72,16 @@ export function registerAuthorMemoryHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the four handlers remain in `author-channel.ts`.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean mechanical extraction. All 4 handlers present with correct channel names. `getStudentId` imported and called in exactly the 3 handlers that need it (`resetConcept`, `exportMemory`, `deleteAllMemory`); `clearMisconception` correctly omits it (no studentId needed). `requireUnlocked()` local (not exported). `z.literal(true)` on `confirm` in `deleteAllMemory` preserved verbatim. Branded type casts (`ConceptId`, `MisconceptionId`) correct.
 
 ## Implementation notes
 - Created `packages/desktop/electron/main/author-memory-channel.ts` (104 lines).
