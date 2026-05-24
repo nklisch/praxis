@@ -58,13 +58,12 @@ export interface SessionService {
   }): Promise<SessionHandle>;
   /**
    * Open a new teach session scoped to a passage in a document.
-   * `studentId` may be omitted — the service resolves it via getOrCreateDefaultStudentId.
+   * `studentId` is resolved server-side — callers do not pass it.
    * The passage text is injected into the opening message wrapped in `<passage>` tags.
    * The document is attached to the session with the passage range so the document
    * viewer can render a `†` marker on the cited range.
    */
   spawnFromPassage(input: {
-    studentId?: StudentId;
     documentId: DocumentId;
     range: { startOffset: number; endOffset: number };
   }): Promise<SessionHandle>;

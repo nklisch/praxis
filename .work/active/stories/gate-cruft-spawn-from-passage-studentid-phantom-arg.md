@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-spawn-from-passage-studentid-phantom-arg
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -51,3 +51,25 @@ the signature but unreachable across the wire.
   `packages/core/src/types/session-client.ts:66-70` — it advertises
   `studentId?` but no client surface needs it (server-side resolver
   runs inside the service)
+
+## Implementation notes
+
+Server-side impl check: `SessionServiceImpl.spawnFromPassage` DOES read `input.studentId`
+internally — but this is fine. The IPC channel (`session-channel.ts:142-144`) resolves
+`studentId` via `getStudentId(services)` and passes it explicitly into the service call.
+The `SessionService` interface and the `SessionClient` IPC client are the public surface;
+the service implementation signature remains wider (`studentId?` is still accepted internally)
+which is valid TypeScript (optional property in impl, required subset in interface).
+
+Files edited:
+- `packages/client/src/services/session-client.ts`: removed `studentId?: StudentId` from
+  `spawnFromPassage` input type; removed the now-unused `StudentId` import.
+- `packages/core/src/types/session-client.ts`: removed `studentId?: StudentId` from the
+  `SessionService.spawnFromPassage` interface declaration; updated the JSDoc comment to
+  reflect that `studentId` is resolved server-side.
+
+Import cleanup: `StudentId` was only used by `spawnFromPassage` in `session-client.ts`
+(the client package) — import removed. In `types/session-client.ts`, `StudentId` is still
+referenced by `spawnFromNote` so the import was retained there.
+
+All 440 test files pass; `@praxis/client` typechecks cleanly.
