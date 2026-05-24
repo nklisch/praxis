@@ -32,3 +32,17 @@ Refactor-design will:
 - Cross-cutting: touches many components in the same way
 - Pattern-establishing: produces a reusable shape (the optimistic-dispatch + async-error UI pattern) that future code should follow
 - /agile-workflow:refactor-design is the right entry point — discovery mode to find sync surfaces, then per-surface story decomposition
+
+## Design decisions
+*(captured 2026-05-24 via `feature-design --only-questions --all`. These lock in directional choices so the full design pass + per-surface refactor-design pass inherit them. Note: this feature carries `[refactor]` tag — user explicitly opted to include it in this pass alongside its sibling chat-UX features so the visual pattern is aligned across all three.)*
+
+- **Canonical optimistic-state visual**: Immediate commit + subtle pending pip. The triggering affordance doesn't disable or shape-shift. A tiny pip / dot indicator appears beside it: `[ Generate quiz ↑ • ]`. On success the pip vanishes (+ result appears wherever it lands). On failure the pip turns into `⚠` — click reveals retry. Feels native, never hijacks the affordance with a loading state.
+- **Failure surfacing tier 1 (always)**: Inline at the affordance. The `⚠` indicator + click-to-retry sits where the action was triggered. User sees the failure in context.
+- **Failure surfacing tier 2 (escalation)**: If the inline failure goes unattended for ~30s (or the user navigates away from the surface), the activity strip picks it up as a persistent notification. Two-tier so transient quick-recovery failures don't pollute the strip; lingering errors get a second chance to surface.
+- **Retry model**: One-click retry from the failed-state UI. The action's dispatch params are captured at click-time so retry doesn't need any user re-input. Single source-of-truth pattern: retry uses the exact same dispatch path as the original click.
+- **Auto-retry policy**: Not in v1. All retries are explicit user-driven for now. Revisit if production logs show high transient-error rates that punish the user with manual retry friction.
+- **Pattern scope**: Establishes a reusable hook/component pair (working name: `useOptimisticAction` + `<PendingIndicator>` / `<FailedIndicator>`) that every catalogued sync-await surface refactors to. Pattern skill written under `.claude/skills/patterns/optimistic-dispatch.md` once the third refactor lands and the shape is proven.
+
+## Mockups
+*To be filled in by the mockup pass paired with this `--only-questions` run.*
+- Flow: `.mockups/flows/async-chat-interactions/` — fully interactive multi-page flow demonstrating the pattern across 4-5 heterogeneous affordances (composer send-while-streaming, structured-question submit + tutor next turn, materialize-button kick-off, failed dispatch + retry, activity-strip escalation). Each step is clickable; the flow demonstrates how these interactive moments should *feel*, not just look.
