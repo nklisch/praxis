@@ -43,6 +43,6 @@ The chat composer locks the send button while the tutor is mid-turn, blocking th
   - `responsive-showcase.html` — same composer + queued turn in three `.chat-surface` widths (wide / medium / narrow); demonstrates `@container chat (...)` adaptation
 - Components added to `.mockups/design-system/components.css` (refinement mode, additive):
   - `.chat-surface` + `--wide` / `--medium` / `--narrow` modifiers
-  - `.chat-turn` family — `--tutor` / `--student` / `--queued` / `--failed` + `__speaker` / `__when` / `__streaming` / `__body` / `__cursor` / `__badge` (+ `--failed`) / `__position` / `__actions` / `__action` (+ `--danger` / `--primary`) / `__error-reason`
+  - `.chat-turn` family — `--tutor` / `--student` / `--queued` / `--failed` + `__speaker` / `__when` / `__streaming` / `__body` / `__streaming-tail` / `__badge` (+ `--failed`) / `__position` / `__actions` / `__action` (+ `--danger` / `--primary`) / `__error-reason`
   - `.composer__send--stop` modifier · `.composer__status` (+ `--streaming` / `--failed`) · `.composer__status__pip` · `.composer__hints--split`
 - Shared interactive feel demo: `.mockups/flows/async-chat-interactions/01-composer-queue.html`

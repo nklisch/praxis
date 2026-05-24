@@ -164,6 +164,7 @@
   <a href="#nav">Nav</a>
   <a href="#data">Data</a>
   <a href="#tier2">Tier-2 widgets</a>
+  <a href="#chat">Chat surface</a>
 </nav>
 
 <section class="section" id="about">
@@ -635,6 +636,264 @@
           </p>
           <div class="claude-auth-modal__url">https://claude.ai/login?return_to=praxis://auth/callback</div>
           <div class="claude-auth-modal__status">waiting for browser…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="chat">
+  <h2>Chat surface (Tier-2, container-aware)</h2>
+  <p class="lede">
+    The shared chat primitives. One <code>.chat-surface</code> wrapper
+    hosts every chat-bearing context (teach, course-create, future
+    sidebar tutor); inner components adapt via <code>@container</code>
+    queries against it. Added 2026-05-24 alongside the chat-UX overhaul
+    epic — see <code>.mockups/screens/feature-composer-async-behavior/</code>
+    and <code>.mockups/flows/async-chat-interactions/</code> for the
+    in-context demonstrations.
+  </p>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.chat-turn--tutor + .chat-turn__streaming + .chat-turn__streaming-tail</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="chat-turn chat-turn--tutor">
+            <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div>
+            <p class="chat-turn__body">Volume depends on radius, radius depends on time — two nested rates. The chain rule is <span class="chat-turn__streaming-tail">the product of those rates</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.chat-turn--student (settled student turn)</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="chat-turn chat-turn--student">
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· 2 minutes ago</span></div>
+            <p class="chat-turn__body">I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.chat-turn--queued + per-turn edit / remove + position pip</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="chat-turn chat-turn--queued">
+            <span class="chat-turn__position">1</span>
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· queued</span> <span class="chat-turn__badge">awaiting tutor turn</span></div>
+            <p class="chat-turn__body">also is there a geometric intuition that doesn't go through algebra?</p>
+            <div class="chat-turn__actions">
+              <button class="chat-turn__action">edit</button>
+              <button class="chat-turn__action chat-turn__action--danger">remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.chat-turn--failed + failed badge + retry / edit / discard</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="chat-turn chat-turn--failed">
+            <span class="chat-turn__position">1</span>
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· failed</span> <span class="chat-turn__badge chat-turn__badge--failed">⚠ send failed</span></div>
+            <p class="chat-turn__body">also is there a geometric intuition that doesn't go through algebra?</p>
+            <p class="chat-turn__error-reason">Engine connection lost mid-dispatch.</p>
+            <div class="chat-turn__actions">
+              <button class="chat-turn__action chat-turn__action--primary">↺ retry</button>
+              <button class="chat-turn__action">edit</button>
+              <button class="chat-turn__action">discard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.composer + .composer__send (idle)</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="composer">
+            <div class="composer__form">
+              <textarea class="composer__input" rows="1" placeholder="answer · or ask the tutor a question"></textarea>
+              <div class="composer__buttons">
+                <button class="composer__send" aria-label="Send">↑</button>
+              </div>
+            </div>
+            <div class="composer__hints composer__hints--split">
+              <span>⌘↵ send · ⌘⇧K sketch</span>
+              <span class="composer__status"><span class="composer__status__pip"></span>idle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.composer__send--stop modifier + .composer__status--streaming (in flight)</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="composer">
+            <div class="composer__form">
+              <textarea class="composer__input" rows="1" placeholder="type next thought · ⌘↵ queues behind active turn"></textarea>
+              <div class="composer__buttons">
+                <button class="composer__send composer__send--stop" aria-label="Stop">■</button>
+              </div>
+            </div>
+            <div class="composer__hints composer__hints--split">
+              <span>⌘↵ queue · esc stop</span>
+              <span class="composer__status composer__status--streaming"><span class="composer__status__pip"></span>tutor responding · 2 queued</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.inline-question --radio (single-select)</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="inline-question">
+            <div class="inline-question__kicker"><span class="inline-question__kicker__glyph">?</span>tutor asked</div>
+            <p class="inline-question__prompt">What's the first thing you'd compute to find dV/dt?</p>
+            <div class="inline-question__choices">
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--radio"></span>The volume V at r = 5</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--radio"></span>The derivative dV/dr at r = 5</label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--radio"></span>The integral of dr/dt from 0 to 5</label>
+            </div>
+            <div class="inline-question__actions">
+              <button class="btn btn-primary">Submit ↵</button>
+              <button class="btn btn-ghost">↑ clarify in chat</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.inline-question --check (multi-select) + select-all badge</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="inline-question">
+            <div class="inline-question__kicker">
+              <span class="inline-question__kicker__glyph">?</span>tutor asked
+              <span class="badge badge--info">select all that apply</span>
+            </div>
+            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <div class="inline-question__choices">
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>Order matters in general</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>Special case of the product rule</label>
+            </div>
+            <div class="inline-question__actions">
+              <button class="btn btn-primary">Submit ↵</button>
+              <button class="btn btn-ghost">↑ clarify in chat</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.inline-question-set (paged, mixed single + multi) — uses existing .tabs + .tab</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="inline-question-set">
+            <div class="inline-question-set__head">
+              <span class="inline-question-set__head__label">Questions</span>
+              <div class="tabs"><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 1</button><button class="tab tab--active"><span style="color:var(--color-accent);font-weight:700;">●</span> 2</button><button class="tab"><span style="color:var(--color-text-tertiary);">○</span> 3</button></div>
+              <span class="inline-question-set__head__progress">2 of 3</span>
+            </div>
+            <div class="inline-question inline-question--bare">
+              <div class="inline-question__kicker"><span class="inline-question__kicker__glyph">?</span>tutor asked · question 2 <span class="badge badge--info">select all that apply</span></div>
+              <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+              <div class="inline-question__choices">
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>Order matters in general</label>
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
+              </div>
+              <div class="inline-question__actions">
+                <button class="btn btn-primary">Submit ↵</button>
+                <button class="btn btn-ghost">↑ clarify in chat</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.thread-chip + --dismissed variant</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="thread-chip">
+            <span class="thread-chip__glyph">↳</span>
+            <span class="thread-chip__verb">you answered</span>
+            <span class="thread-chip__answer">the derivative dV/dr at r = 5</span>
+            <span class="thread-chip__when">9:42</span>
+          </div>
+          <br>
+          <div class="thread-chip">
+            <span class="thread-chip__glyph">↳</span>
+            <span class="thread-chip__verb">you selected 3</span>
+            <span class="thread-chip__answer">order matters + f' is evaluated at g(x) + n nested</span>
+            <span class="thread-chip__when">9:43</span>
+          </div>
+          <br>
+          <div class="thread-chip thread-chip--dismissed">
+            <span class="thread-chip__glyph">↳</span>
+            <span class="thread-chip__verb">you asked to discuss in chat</span>
+            <span class="thread-chip__when">9:44</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.action-card + .action-pip (--pending / --success / --failed / --retrying)</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="action-card">
+            <div class="action-card__body">
+              <div class="action-card__label">commit · user-initiated</div>
+              <p class="action-card__title">Save these four items as flashcards</p>
+            </div>
+            <div class="action-card__action" style="position: static;">
+              <button class="btn btn-primary">Save ↑</button>
+              <span class="action-pip action-pip--show action-pip--pending"></span>
+            </div>
+          </div>
+          <div style="display:flex; gap: var(--space-3); margin-top: var(--space-3);">
+            <span class="action-pip action-pip--show action-pip--pending" style="position: relative; margin: 0;"></span>
+            <span class="action-pip action-pip--show action-pip--success" style="position: relative; margin: 0;"></span>
+            <span class="action-pip action-pip--show action-pip--failed" style="position: relative; margin: 0;"></span>
+            <span class="action-pip action-pip--show action-pip--retrying" style="position: relative; margin: 0;"></span>
+            <span style="font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--color-text-tertiary); align-self: center;">pending · success · failed · retrying</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.status-strip --active (escalation tier 2)</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="chat-surface chat-surface--wide">
+          <div class="status-strip status-strip--active" style="border-radius: var(--radius-sm); border: 1px solid var(--color-border); margin: 0;">
+            <div class="status-strip__pip"></div>
+            <div class="status-strip__label">Activity</div>
+            <div class="status-strip__text"><strong>1 action failed.</strong> "Save as flashcards" — unattended for 38s.</div>
+            <button class="btn btn-primary btn--sm">↺ retry</button>
+            <button class="btn btn-ghost btn--sm">dismiss</button>
+          </div>
         </div>
       </div>
     </div>

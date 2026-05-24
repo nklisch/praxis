@@ -59,5 +59,5 @@ Refactor-design will:
   - `.action-pip` + `--show` + `--pending` / `--success` / `--failed` / `--retrying` modifiers — NO squash/overshoot (locked Productive attitude); only opacity + color transitions; size is constant
   - `.failure-popover` + `__label` / `__reason` / `__actions` — anchored to `.action-card__action`
   - `.status-strip` + `--active` + `__pip` / `__label` / `__text` — mock-side mirror of production `<StatusStrip>`
-  - Shared keyframes `chat-pulse`, `chat-blink`, `chat-rise-in` — compositor-cheap (opacity + translate only), all wrapped in `@media (prefers-reduced-motion: reduce)` opt-out
+  - Shared keyframes `chat-pulse`, `chat-fade-in`, `chat-rise-in` — compositor-cheap (opacity + translate only), all wrapped in `@media (prefers-reduced-motion: reduce)` opt-out. Note: streaming text uses `.chat-turn__streaming-tail` (fade-in per new chunk) rather than a blinking cursor — the persistent in-flight signal is the pulsing dot on `.chat-turn__streaming`, not a caret on the body text.
 - Pattern skill candidate: `.claude/skills/patterns/optimistic-dispatch.md` — write after the third per-surface refactor lands and the shape is proven (per `Pattern scope` in Design decisions).

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Inline question · responsive showcase · feature-question-panel-rework</title>
+  <title>Inline question · responsive showcase (long content) · feature-question-panel-rework</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
   <link rel="stylesheet" href="../../design-system/motion.css">
   <link rel="stylesheet" href="../../design-system/components.css">
@@ -22,17 +22,20 @@
     .frame__label__pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ebebe6; padding: 3px 8px; background: rgba(155, 58, 44, 0.4); border-radius: 12px; }
     .frame__label__desc { color: #b1b6bd; font-size: 12px; flex: 1; }
     .frame__label__width { color: #8d8b82; font-family: var(--font-mono); font-size: 11px; }
-    .frame__body { padding: 24px; flex: 1; min-height: 620px; color: var(--color-text-primary); }
+    .frame__body { padding: 24px; flex: 1; min-height: 760px; color: var(--color-text-primary); }
 
     .key { padding: 24px; background: #2c2c28; margin: 16px; border-radius: 4px; font: italic 13px/1.55 var(--font-body); color: #b1b6bd; }
     .key strong { font-style: normal; color: #ebebe6; font-weight: 600; }
     .key code { font: 12px/1 var(--font-mono); background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+    .key ul { margin: var(--space-2) 0 0; padding-left: var(--space-6); }
+    .key li { margin-bottom: var(--space-1); }
+    .key li strong { color: #ebebe6; }
   </style>
 </head>
 <body>
   <header class="mock-meta">
-    <strong>Inline question · responsive showcase</strong>
-    <span>same multi-select question, three container widths · same component classes, same DOM, container-query adaptation</span>
+    <strong>Inline question · responsive showcase (long-content stress test)</strong>
+    <span>realistic dense multi-select · 70-word prompt · 5 choices with 1-4 line wraps · stress-tests where we'd need tool-schema length caps</span>
     <a href="index.html">← all states</a>
   </header>
 
@@ -47,19 +50,22 @@
               <span class="inline-question__kicker__glyph">?</span>tutor asked
               <span class="badge badge--info">select all that apply</span>
             </div>
-            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <p class="inline-question__prompt">Consider the composite <em>f(g(x))</em> where <em>g(x) = e<sup>2x</sup> · ln(x² + 1)</em> and <em>f(u) = sin(u)·cos(u)</em>. We want the derivative at <em>x = 1</em>, which needs both the product rule (for the inner <em>g</em>) and the chain rule (for the composition). Which statements are correct, and which would you push back on? Some are subtly wrong in ways that matter for downstream work.</p>
             <div class="inline-question__choices">
-              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters in general</label>
-              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
-              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It's a special case of the product rule</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The chain rule gives <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em> — direct application</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The derivative exists for every real <em>x</em> in the domain because <em>g</em> is differentiable everywhere on <em>(−1, ∞)</em> and <em>f</em> is differentiable on all of <em>ℝ</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>At <em>x = 0</em>: <em>g(0) = e<sup>0</sup>·ln(1) = 1·0 = 0</em>, so <em>f(g(0)) = sin(0)·cos(0) = 0</em> — a clean sanity check confirming the formula yields the expected numeric result at the origin</label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>Because <em>g(x)</em> involves both an exponential and a logarithm in product form, the chain rule decomposition cannot be expressed as a clean product of two derivative factors</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The full expression simplifies to <em>(cos²(g(x)) − sin²(g(x))) · (2e<sup>2x</sup>·ln(x²+1) + e<sup>2x</sup>·(2x/(x²+1)))</em></label>
             </div>
             <div class="inline-question__free-form">
               <label class="inline-question__free-form__label">or, in your own words</label>
-              <textarea class="inline-question__free-form__input" placeholder="…something else?"></textarea>
+              <textarea class="inline-question__free-form__input" placeholder="…a subtler case you'd push back on, or a step that's missing from these decompositions?"></textarea>
             </div>
             <div class="inline-question__actions">
               <button class="btn btn-primary">Submit ↵</button>
-              <button class="btn btn-ghost">↑ clarify in chat</button>
+              <span class="badge">3 selected</span>
+              <button class="btn btn-ghost" style="margin-left: auto;">↑ clarify in chat</button>
             </div>
           </div>
         </div>
@@ -76,19 +82,22 @@
               <span class="inline-question__kicker__glyph">?</span>tutor asked
               <span class="badge badge--info">select all that apply</span>
             </div>
-            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <p class="inline-question__prompt">Consider the composite <em>f(g(x))</em> where <em>g(x) = e<sup>2x</sup> · ln(x² + 1)</em> and <em>f(u) = sin(u)·cos(u)</em>. We want the derivative at <em>x = 1</em>, which needs both the product rule (for the inner <em>g</em>) and the chain rule (for the composition). Which statements are correct, and which would you push back on? Some are subtly wrong in ways that matter for downstream work.</p>
             <div class="inline-question__choices">
-              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters in general</label>
-              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
-              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It's a special case of the product rule</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The chain rule gives <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em> — direct application</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The derivative exists for every real <em>x</em> in the domain because <em>g</em> is differentiable everywhere on <em>(−1, ∞)</em> and <em>f</em> is differentiable on all of <em>ℝ</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>At <em>x = 0</em>: <em>g(0) = e<sup>0</sup>·ln(1) = 1·0 = 0</em>, so <em>f(g(0)) = sin(0)·cos(0) = 0</em> — a clean sanity check confirming the formula yields the expected numeric result at the origin</label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>Because <em>g(x)</em> involves both an exponential and a logarithm in product form, the chain rule decomposition cannot be expressed as a clean product of two derivative factors</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The full expression simplifies to <em>(cos²(g(x)) − sin²(g(x))) · (2e<sup>2x</sup>·ln(x²+1) + e<sup>2x</sup>·(2x/(x²+1)))</em></label>
             </div>
             <div class="inline-question__free-form">
               <label class="inline-question__free-form__label">or, in your own words</label>
-              <textarea class="inline-question__free-form__input" placeholder="…something else?"></textarea>
+              <textarea class="inline-question__free-form__input" placeholder="…a subtler case you'd push back on, or a step that's missing from these decompositions?"></textarea>
             </div>
             <div class="inline-question__actions">
               <button class="btn btn-primary">Submit ↵</button>
-              <button class="btn btn-ghost">↑ clarify in chat</button>
+              <span class="badge">3 selected</span>
+              <button class="btn btn-ghost" style="margin-left: auto;">↑ clarify in chat</button>
             </div>
           </div>
         </div>
@@ -105,19 +114,22 @@
               <span class="inline-question__kicker__glyph">?</span>tutor asked
               <span class="badge badge--info">select all that apply</span>
             </div>
-            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <p class="inline-question__prompt">Consider the composite <em>f(g(x))</em> where <em>g(x) = e<sup>2x</sup> · ln(x² + 1)</em> and <em>f(u) = sin(u)·cos(u)</em>. We want the derivative at <em>x = 1</em>, which needs both the product rule (for the inner <em>g</em>) and the chain rule (for the composition). Which statements are correct, and which would you push back on? Some are subtly wrong in ways that matter for downstream work.</p>
             <div class="inline-question__choices">
-              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters in general</label>
-              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
-              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It's a special case of the product rule</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The chain rule gives <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em> — direct application</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The derivative exists for every real <em>x</em> in the domain because <em>g</em> is differentiable everywhere on <em>(−1, ∞)</em> and <em>f</em> is differentiable on all of <em>ℝ</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>At <em>x = 0</em>: <em>g(0) = e<sup>0</sup>·ln(1) = 1·0 = 0</em>, so <em>f(g(0)) = sin(0)·cos(0) = 0</em> — a clean sanity check confirming the formula yields the expected numeric result at the origin</label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>Because <em>g(x)</em> involves both an exponential and a logarithm in product form, the chain rule decomposition cannot be expressed as a clean product of two derivative factors</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The full expression simplifies to <em>(cos²(g(x)) − sin²(g(x))) · (2e<sup>2x</sup>·ln(x²+1) + e<sup>2x</sup>·(2x/(x²+1)))</em></label>
             </div>
             <div class="inline-question__free-form">
               <label class="inline-question__free-form__label">or, in your own words</label>
-              <textarea class="inline-question__free-form__input" placeholder="…something else?"></textarea>
+              <textarea class="inline-question__free-form__input" placeholder="…a subtler case you'd push back on, or a step that's missing from these decompositions?"></textarea>
             </div>
             <div class="inline-question__actions">
               <button class="btn btn-primary">Submit ↵</button>
-              <button class="btn btn-ghost">↑ clarify in chat</button>
+              <span class="badge">3 selected</span>
+              <button class="btn btn-ghost" style="margin-left: auto;">↑ clarify in chat</button>
             </div>
           </div>
         </div>
@@ -126,7 +138,28 @@
   </div>
 
   <div class="key">
-    <strong>What's adapting:</strong> identical markup across all three frames — same <code>.inline-question</code>, same <code>.inline-question__choice</code> elements, same <code>.btn-primary</code> + <code>.btn-ghost</code> action row. The only difference is the wrapper modifier (<code>--wide</code> / <code>--medium</code> / <code>--narrow</code>). Container queries on <code>.chat-surface</code> handle: tighter padding at <code>medium</code>; <strong>action row stacks vertically at <code>narrow</code></strong> so Submit and clarify-in-chat each get a full-width tap target. The kicker badge wraps to its own line at narrow widths naturally via <code>flex-wrap</code>. The choice list stays single-column at every width — vertical stack is the right answer for question choices regardless of size.
+    <strong>Stress test:</strong> a realistic dense multi-select question. 70-word prompt with embedded math. Five choices ranging from 9 words to 33 words; some wrap to 4 lines at narrow. Free-form has a multi-line placeholder. This is the kind of question that would surface in a graduate-level chain-rule lesson, a textbook problem disambiguation, or a course-create draft review.
+    <br><br>
+    <strong>What holds up:</strong>
+    <ul>
+      <li><strong>Wide</strong>: prompt and choices read cleanly; the <code>3 selected</code> badge sits naturally between Submit and clarify-in-chat. Each choice is 1-2 lines.</li>
+      <li><strong>Medium</strong>: tighter padding (from <code>@container chat (max-width: 599px)</code>) pulls the card inward; choices grow to 2-3 lines but the radio/check indicator stays anchored top-left. Free-form text area scales to width.</li>
+      <li><strong>Narrow</strong>: action row stacks vertically per container query — Submit, the badge, and clarify each get their own row, full width. Choices wrap to 3-4 lines; the prompt is the densest block. Layout doesn't break.</li>
+    </ul>
+    <strong>Where it strains:</strong>
+    <ul>
+      <li>At <strong>narrow</strong> the long prompt + 5 multi-line choices push the card past 700px tall — significant scroll. Two cards in a paged set would make the chat surface feel overwhelmed.</li>
+      <li>The <code>3 selected</code> badge currently sits in the action row; at narrow it wraps below the primary Submit. Visual is acceptable but feels slightly orphaned. Worth considering whether the selected count belongs in the kicker (top) instead of the actions row (bottom).</li>
+      <li>Math notation (<em>e<sup>2x</sup></em>, etc.) isn't rendered via KaTeX in mocks — production would be richer; the wrap behavior is broadly representative but exact heights will differ.</li>
+    </ul>
+    <strong>Tool-schema constraints worth adding</strong> (input to <code>feature-question-panel-rework</code> design):
+    <ul>
+      <li><strong>Prompt max ~50 words</strong> (~300 chars). Beyond this, the tutor should issue an explanatory chat turn before the question card, not stuff context into the prompt itself.</li>
+      <li><strong>Per-choice max ~15 words</strong> (~80 chars). Choices longer than this read like they should be paragraphs, not options — surface the long content in the chat turn, keep choices crisp.</li>
+      <li><strong>Choice count cap: 5</strong> (we already have this implicitly via Miller's 7±2, but worth explicit in the schema).</li>
+      <li><strong>Multi-select hard cap: 6 choices</strong>; beyond that, single-select with a refining follow-up is the right shape — multi-select fatigue is real.</li>
+    </ul>
+    These caps should be enforced in the <code>ask_student_question</code> Zod schema with descriptive error messages so the agent learns the constraints by reading them, not by repeated rejections.
   </div>
 </body>
 </html>

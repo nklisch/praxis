@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat streaming · standardized pattern · Praxis design system</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="motion.css">
+  <link rel="stylesheet" href="components.css">
+  <style>
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-body); min-height: 100vh; }
+    main { max-width: 1100px; margin: 0 auto; padding: var(--space-12) var(--space-8); }
+    .kicker { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: var(--space-2); align-items: baseline; margin-bottom: var(--space-2); }
+    .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); }
+    h1 { font: var(--font-weight-medium) italic var(--font-size-3xl)/var(--line-height-tight) var(--font-display); margin: 0 0 var(--space-3); }
+    .deck { font: italic var(--font-size-lg)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); margin: 0 0 var(--space-8); max-width: 70ch; }
+    .deck code { font: var(--font-size-sm)/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; font-style: normal; }
+
+    h2 { font: var(--font-weight-medium) italic var(--font-size-2xl)/var(--line-height-tight) var(--font-display); margin: var(--space-12) 0 var(--space-3); }
+    h2 .anchor { font-family: var(--font-mono); font-size: var(--font-size-xs); font-style: normal; font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin-left: var(--space-3); vertical-align: middle; }
+
+    .stage { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-6) var(--space-8); margin: var(--space-4) 0; }
+    .stage--with-controls { padding-bottom: 0; }
+    .stage__controls { border-top: 1px solid var(--color-border); margin: 0 calc(-1 * var(--space-8)); padding: var(--space-4) var(--space-8); background: var(--color-bg-tertiary); display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; margin-top: var(--space-4); }
+    .stage__controls__label { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin-right: var(--space-2); }
+    .stage__controls select { font-family: var(--font-body); font-size: var(--font-size-sm); padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-secondary); color: var(--color-text-primary); }
+
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-top: var(--space-4); }
+    @media (max-width: 760px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-grid > .stage { margin: 0; }
+
+    .principle { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); padding: var(--space-4) var(--space-6); margin: var(--space-4) 0; font: italic var(--font-size-sm)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); }
+    .principle strong { font-style: normal; font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+    .principle code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; font-style: normal; }
+
+    .reject-list { background: var(--color-bg-secondary); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); padding: var(--space-4) var(--space-6); margin: var(--space-4) 0; }
+    .reject-list__label { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: var(--space-2); }
+    .reject-list ul { margin: 0; padding-left: var(--space-6); font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+    .reject-list li { margin-bottom: var(--space-1); }
+    .reject-list li strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+    .reject-list .reason { font-style: italic; color: var(--color-text-tertiary); }
+
+    .demo-thread { min-height: 240px; }
+    .impl-note { font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--color-text-tertiary); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
+    .impl-note strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+    .reset { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); font: 500 12px/1 var(--font-sans); cursor: pointer; opacity: 0.7; z-index: 50; }
+    .reset:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="kicker"><span class="dot"></span>design system · chat streaming</div>
+    <h1>How streaming text should <em>feel</em></h1>
+    <p class="deck">The standardized chat-streaming pattern for every chat-bearing surface in Praxis. <code>.chat-turn__streaming-tail</code> wraps each arriving chunk and fades it in via the <code>chat-fade-in</code> keyframe at <code>--dur-ambient</code> (480ms). The pulsing dot on <code>.chat-turn__streaming</code> is the persistent in-flight signal. No cursor, no caret blink, no terminal-style chrome. Reads as someone <em>thinking and writing</em>, per the assertion in <code>docs/UX.md</code> § "Streaming with intercept and easing".</p>
+
+    <div class="principle">
+      <strong>Two-element pattern.</strong>
+      <br>1. <code>.chat-turn__streaming</code> on the speaker line — pulsing dot + "streaming" label. This is the persistent signal; it tells the eye "still arriving" without competing with the text. Vanishes the moment the turn settles.
+      <br>2. <code>.chat-turn__streaming-tail</code> wraps just-arrived text — fades opacity 0 → 1 over <code>--dur-ambient</code>. Each new chunk wraps in a fresh span; the previous chunks have already settled to opacity 1 and stay that way. Settled spans can be unwrapped at any time (the class is structurally neutral).
+    </div>
+
+    <h2>Live demo · paced stream <span class="anchor">play</span></h2>
+    <p class="deck" style="font-size: var(--font-size-base);">Click <em>play stream</em> to see chunks arrive at the selected pace + chunk size. The streaming badge persists while chunks are still arriving; when the last chunk lands, the badge drops and you're left with a normal settled turn.</p>
+
+    <div class="stage stage--with-controls">
+      <div class="demo-thread" id="demoThread">
+        <div class="chat-turn chat-turn--student">
+          <div class="chat-turn__speaker">You</div>
+          <p class="chat-turn__body">I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+        </div>
+        <div id="streamMount"></div>
+      </div>
+      <div class="stage__controls">
+        <span class="stage__controls__label">pace</span>
+        <select id="paceSelect">
+          <option value="slow">slow · 240ms / chunk</option>
+          <option value="medium" selected>medium · 120ms / chunk</option>
+          <option value="fast">fast · 40ms / chunk</option>
+        </select>
+        <span class="stage__controls__label">chunk</span>
+        <select id="chunkSelect">
+          <option value="char">char-by-char (raw token)</option>
+          <option value="word" selected>word (default)</option>
+          <option value="phrase">phrase (1-2 words)</option>
+          <option value="sentence">sentence</option>
+        </select>
+        <button class="btn btn-primary btn--sm" id="btnPlay">▶ play stream</button>
+        <button class="btn btn-ghost btn--sm" id="btnClear">clear</button>
+      </div>
+    </div>
+
+    <h2>Side-by-side · streaming vs settled <span class="anchor">compare</span></h2>
+    <p class="deck" style="font-size: var(--font-size-base);">Same content, two states. The only visual difference is the speaker-line badge and whether the trailing phrase carries the fade-in span. Once settled the markup is indistinguishable from a normal completed turn.</p>
+
+    <div class="compare-grid">
+      <div class="stage">
+        <div class="kicker" style="margin-bottom: var(--space-3);"><span class="dot" style="background: var(--color-accent);"></span>streaming · still arriving</div>
+        <div class="chat-turn chat-turn--tutor">
+          <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div>
+          <p class="chat-turn__body">That's the most common starting point and it's the one we're going to dismantle. Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — <span class="chat-turn__streaming-tail" id="liveTail1">how fast is the volume changing right then?</span></p>
+        </div>
+        <div class="impl-note"><strong>Markup diff vs settled →</strong> <code>.chat-turn__streaming</code> badge present on speaker line; trailing phrase wrapped in <code>.chat-turn__streaming-tail</code> span (fades in once on mount).</div>
+      </div>
+      <div class="stage">
+        <div class="kicker" style="margin-bottom: var(--space-3);"><span class="dot" style="background: var(--color-text-tertiary);"></span>settled · turn complete</div>
+        <div class="chat-turn chat-turn--tutor">
+          <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span></div>
+          <p class="chat-turn__body">That's the most common starting point and it's the one we're going to dismantle. Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — how fast is the volume changing right then?</p>
+        </div>
+        <div class="impl-note"><strong>Markup diff vs streaming ←</strong> badge removed; trailing span unwrapped (or kept; <code>.chat-turn__streaming-tail</code> at opacity 1 is visually identical to no wrapper).</div>
+      </div>
+    </div>
+
+    <h2>Edge: long-paragraph streaming <span class="anchor">stress</span></h2>
+    <p class="deck" style="font-size: var(--font-size-base);">When the tutor streams a long paragraph, only the <em>trailing chunk</em> wraps in <code>.chat-turn__streaming-tail</code>. Earlier sentences have already settled at opacity 1. The fade is local to the head of the stream — never re-animates settled text.</p>
+
+    <div class="stage">
+      <div class="chat-turn chat-turn--tutor">
+        <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div>
+        <p class="chat-turn__body">When two changes compose — when the position depends on time but the velocity also varies, when the price depends on supply but supply depends on weather — the rate of the whole is the product of the rates. That sentence is the chain rule in one breath; everything else is unpacking it. Before we touch any notation, let me walk you through a concrete case. Suppose a balloon is being inflated, and you track its radius over time. The radius grows at some rate. But what you actually care about is the volume — and volume depends on radius. If I tell you the radius is growing at 2 cm/s when the balloon is 5 cm across, <span class="chat-turn__streaming-tail">how fast is the volume changing right then?</span></p>
+      </div>
+    </div>
+
+    <h2>Reject list · what we are NOT doing <span class="anchor">refusals</span></h2>
+    <div class="reject-list">
+      <div class="reject-list__label">explicitly refused — 2026-05-24</div>
+      <ul>
+        <li><strong>Blinking cursor / caret</strong> (<code>▍</code>). <span class="reason">Terminal-style chrome; competes with the editorial voice of Studio Quiet; perpetual motion on body text fights the "anti-notification" stance locked in <code>motion.css</code>. The persistent in-flight signal lives on the speaker line, not in the body.</span></li>
+        <li><strong>Right-edge mask gradient</strong> (text fades out at the right edge of each line). <span class="reason">Breaks with multi-line wrapping — masks real content, not the head of the stream. The fade-in pattern is per-chunk on append, not per-line on layout.</span></li>
+        <li><strong>Character-by-character animation of settled text</strong>. <span class="reason">Once a chunk has rendered, it never re-animates. Re-renders would cause flicker on tab switches, scrolls, and content-window resizes.</span></li>
+        <li><strong>Word-by-word animation of full settled paragraphs</strong>. <span class="reason">Reserved for the head of the stream. Animating all text on mount would feel like a Karaoke transition.</span></li>
+        <li><strong>Spinner / loading-state element in the body</strong>. <span class="reason">Mode-violation — the speaker-line dot already carries this. A body-mounted spinner reads as "the system is waiting on tutor" rather than "tutor is speaking".</span></li>
+        <li><strong>Squash, scale-up, or overshoot on chunk arrival</strong>. <span class="reason">Locked Productive motion attitude rejects Disney principles. Fade-in is opacity only; geometry is constant.</span></li>
+      </ul>
+    </div>
+
+    <h2>Reduced-motion <span class="anchor">a11y</span></h2>
+    <p class="deck" style="font-size: var(--font-size-base);">Under <code>@media (prefers-reduced-motion: reduce)</code> every chat animation collapses to no-op via the guard in <code>components.css</code>. <code>.chat-turn__streaming-tail</code> renders at opacity 1 immediately on mount (no fade); the speaker-line dot stops pulsing (becomes static). The visual hierarchy and content stay legible — just kinetically muted.</p>
+
+    <h2>Production translation <span class="anchor">how this maps to code</span></h2>
+    <div class="principle">
+      <strong>The streaming hook in <code>packages/ui/src/</code>:</strong>
+      <br><br>
+      On each new chunk from the engine event stream, the streaming hook:
+      <br>1. Removes <code>.chat-turn__streaming-tail</code> from the <em>previous</em> trailing span (it's settled now — class drop is a no-op since the fade-in <code>animation: ... both</code> already left it at opacity 1).
+      <br>2. Appends a fresh <code>&lt;span class="chat-turn__streaming-tail"&gt;{newChunk}&lt;/span&gt;</code> at the end of the body.
+      <br>3. On turn-end event, removes the <code>.chat-turn__streaming</code> badge from the speaker line and unwraps the trailing span (or leaves it — opacity-1 wrapper is visually neutral).
+      <br><br>
+      The hook owns the wrap/unwrap; the CSS owns the fade. Neither knows about the other beyond the class name.
+    </div>
+  </main>
+
+  <button class="reset" onclick="location.reload()">↻ reset</button>
+
+  <script>
+    // Live demo paced stream
+    const demoThread = document.getElementById('demoThread');
+    const streamMount = document.getElementById('streamMount');
+    const paceSelect = document.getElementById('paceSelect');
+    const chunkSelect = document.getElementById('chunkSelect');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnClear = document.getElementById('btnClear');
+
+    const fullText = "That's the most common starting point and it's the one we're going to dismantle. Suppose a balloon is being inflated — how fast is the volume changing right then?";
+
+    const paceMs = { slow: 240, medium: 120, fast: 40 };
+
+    function tokenize(text, mode) {
+      if (mode === 'char') return [...text];
+      if (mode === 'sentence') return text.split(/(?<=[.!?])\s+/).map((s, i, a) => i < a.length - 1 ? s + ' ' : s);
+      if (mode === 'phrase') {
+        // 1-2 word chunks
+        const words = text.split(/\s+/);
+        const chunks = [];
+        for (let i = 0; i < words.length; i += 2) {
+          chunks.push(words.slice(i, i + 2).join(' ') + (i + 2 < words.length ? ' ' : ''));
+        }
+        return chunks;
+      }
+      // default: word
+      return text.split(/(\s+)/).filter(Boolean);
+    }
+
+    let activeRun = null;
+
+    function clearDemo() {
+      streamMount.innerHTML = '';
+      if (activeRun) { clearTimeout(activeRun); activeRun = null; }
+    }
+
+    function play() {
+      clearDemo();
+      const pace = paceMs[paceSelect.value];
+      const mode = chunkSelect.value;
+      const chunks = tokenize(fullText, mode);
+
+      // Build the streaming turn shell once
+      const turn = document.createElement('div');
+      turn.className = 'chat-turn chat-turn--tutor';
+      turn.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming" id="liveBadge">streaming</span></div><p class="chat-turn__body" id="liveBody"></p>`;
+      streamMount.appendChild(turn);
+      const body = document.getElementById('liveBody');
+
+      let i = 0;
+      function nextChunk() {
+        if (i >= chunks.length) {
+          // settle
+          const badge = document.getElementById('liveBadge');
+          if (badge) badge.remove();
+          activeRun = null;
+          return;
+        }
+        // Settle previous trailing span (remove class so it doesn't re-animate)
+        const prev = body.querySelector('.chat-turn__streaming-tail');
+        if (prev) prev.classList.remove('chat-turn__streaming-tail');
+        // Append new trailing span
+        const tail = document.createElement('span');
+        tail.className = 'chat-turn__streaming-tail';
+        tail.textContent = chunks[i];
+        body.appendChild(tail);
+        i++;
+        activeRun = setTimeout(nextChunk, pace);
+      }
+      nextChunk();
+    }
+
+    btnPlay.addEventListener('click', play);
+    btnClear.addEventListener('click', clearDemo);
+  </script>
+</body>
+</html>

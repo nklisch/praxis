@@ -246,6 +246,7 @@
   <a href="#modal">Modal entry · hold-beat</a>
   <a href="#components">Components in motion</a>
   <a href="#ambient">Ambient motion</a>
+  <a href="#chat-streaming">Chat streaming</a>
   <a href="#reduced">Reduced-motion</a>
 </nav>
 
@@ -439,6 +440,41 @@
   </div>
 </section>
 
+<section class="section" id="chat-streaming">
+  <h2>Chat streaming · per-chunk fade-in (no cursor)</h2>
+  <p class="lede">
+    Chat-text streaming uses <code>.chat-turn__streaming-tail</code> — a span that
+    wraps each new chunk of arriving text and fades it from <code>opacity: 0 → 1</code>
+    via the <code>chat-fade-in</code> keyframe at <code>--dur-ambient</code> (480ms) and
+    <code>--ease-standard</code>. The persistent "in-flight" signal stays on the speaker
+    line via the pulsing dot in <code>.chat-turn__streaming</code> — the text body itself
+    carries no perpetual animation. Cursors / blinking carets were removed 2026-05-24
+    as part of the chat-UX overhaul; the per-chunk fade conveys "this just arrived"
+    without the terminal-style chrome.
+  </p>
+
+  <p style="font-family: var(--font-display); font-style: italic; color: var(--color-text-secondary); margin: 0 0 var(--space-4)">
+    Click <em>play</em> to re-trigger the fade. The badge on the speaker line is the persistent signal — it pulses while streaming, vanishes when settled.
+  </p>
+
+  <div id="stream-stage" style="padding: var(--space-4) var(--space-6); background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+    <div class="chat-turn chat-turn--tutor">
+      <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming" id="stream-badge">streaming</span></div>
+      <p class="chat-turn__body" id="stream-body">
+        Volume depends on radius, radius depends on time — two nested rates. The chain rule is <span class="chat-turn__streaming-tail" id="stream-tail">the product of those rates</span>
+      </p>
+    </div>
+    <div style="margin-top: var(--space-4); display: flex; gap: var(--space-3);">
+      <button class="btn btn-primary btn--sm" id="btn-stream-play">▶ play fade</button>
+      <button class="btn btn-ghost btn--sm" id="btn-stream-settle">settle (drop the streaming badge)</button>
+    </div>
+  </div>
+
+  <p style="font-family: var(--font-mono); font-size: var(--font-size-xs); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin: var(--space-3) 0 0;">
+    full demo: <a href="streaming.html" style="color: var(--color-accent); text-decoration: none;">.mockups/design-system/streaming.html ↗</a>
+  </p>
+</section>
+
 <section class="section" id="reduced">
   <h2>Reduced-motion preview</h2>
   <p class="lede">
@@ -489,6 +525,24 @@
   }
   btnOpenModal.addEventListener('click', openModal);
   btnCloseModal.addEventListener('click', closeModal);
+
+  // Chat streaming demo — re-trigger the fade.
+  const streamTailWrap = document.getElementById('stream-stage');
+  const streamBadge = document.getElementById('stream-badge');
+  const btnStreamPlay = document.getElementById('btn-stream-play');
+  const btnStreamSettle = document.getElementById('btn-stream-settle');
+  if (btnStreamPlay) btnStreamPlay.addEventListener('click', () => {
+    const tail = document.getElementById('stream-tail');
+    if (!tail) return;
+    const parent = tail.parentNode;
+    const replacement = tail.cloneNode(true);
+    parent.replaceChild(replacement, tail);
+    replacement.id = 'stream-tail';
+    if (streamBadge) streamBadge.style.display = '';
+  });
+  if (btnStreamSettle) btnStreamSettle.addEventListener('click', () => {
+    if (streamBadge) streamBadge.style.display = 'none';
+  });
 
   // Reduced-motion preview toggle — adds a class that overrides all motion vars to 0.
   let reduced = false;
