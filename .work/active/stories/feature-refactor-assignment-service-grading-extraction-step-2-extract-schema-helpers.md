@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-2-extract-schema-helpers
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on:
@@ -64,6 +64,14 @@ belongs in the grading loop itself.
 - `import { AssignmentItemSchema, validateItems } from "@praxis/core/services"` still resolves
   (verified by the export chain through `services/index.ts`)
 - `assignment-service.ts` no longer contains the Zod schema block or `rowToAssignment`/`composeSubmissionNote`
+
+## Implementation notes
+
+- Created `packages/core/src/services/graders/item-schemas.ts` (206 lines): all Zod schemas (`RubricCriterionSchema`, `RubricSchema`, `BaseItem`, `WithReasoning`, `AssignmentItemSchema`) plus `validateItems` and `validateRubricWeights` (now exported, previously private in assignment-service.ts).
+- Created `packages/core/src/services/graders/submission-helpers.ts` (73 lines): `rowToAssignment` and `composeSubmissionNote`, both exported.
+- Import fix: `Timestamp` resolved from `../../types/common.js` directly (not `types/index.js` or `types/artifacts.js` which don't re-export it directly); `ConceptId`/`CourseId`/`AssignmentId` brands used via generic `brandId<"BrandName">` calls — no explicit type imports needed.
+- `assignment-service.ts` not modified per deviation instructions — Step 4 will add re-exports and wiring.
+- `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 test files, 1164 tests).
 
 ## Rollback
 Revert `graders/item-schemas.ts`, `graders/submission-helpers.ts`, edits to
