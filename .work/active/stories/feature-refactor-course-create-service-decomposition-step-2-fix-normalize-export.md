@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-2-fix-normalize-export
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -65,3 +65,9 @@ Rollback: delete `index.ts`, restore the three direct imports in the service.
 - Re-exports: `normalizeConceptName` from `helpers.js`, `Issue` + `validateProposed` from `draft-validator.js`, `persistDraftTx` + `PersistDraftTxArgs` from `draft-persistence.js`.
 - Per the step 2 deviation, `course-create-service.ts` was NOT modified — step 7 will update its imports to use the barrel.
 - `pnpm typecheck` and `pnpm --filter @praxis/core test` pass (96 test files, 1164 tests).
+
+## Review
+
+Verdict: **done**.
+
+`course-create/index.ts` is exactly 3 lines, re-exporting `normalizeConceptName` from `./helpers.js`, `Issue` + `validateProposed` from `./draft-validator.js`, and `persistDraftTx` + `PersistDraftTxArgs` from `./draft-persistence.js`. This establishes a clean public API surface for the module. The deviation (not modifying `course-create-service.ts` yet — deferred to Step 7) is correctly noted and intentional. `pnpm typecheck` and 1164 core tests pass.
