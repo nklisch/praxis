@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -119,3 +119,25 @@ packages/core/src/services/memory/
   mastery-queries.ts        (NEW — step 3)
   memory-service.ts         (edited all three steps)
 ```
+
+## Implementation summary
+
+Three sequential stories shipped across two parallel waves (steps 1+2 in parallel, step 3 after both):
+
+**Step 1** (`354f6a3`) — `mastery-row-mapper.ts` (39 lines new)
+- Pure function `rowToConceptMastery(row: StudentMasteryRow): ConceptMastery`
+- Eliminates milli-int → float + brandId duplication that was copy-pasted in 3 places
+- No changes to callers yet (integration deferred to step 3)
+
+**Step 2** (`6d95959`) — `mastery-writes.ts` (100 lines new)
+- Single canonical `applySignalsToConcept` extracted from `mastery-indexer.ts`
+- Fixes import direction: memory module no longer reaches into indexers module
+- BKT fold loop, FIFO evidence truncation, milli-int encoding moved verbatim
+
+**Step 3** (`6c90dcf`) — integration + `mastery-queries.ts` (150 lines new)
+- `mastery-queries.ts`: `MasteryQueries` class with 5 read methods, file-private `rowToMisconception` helper
+- `memory-service.ts`: 632 → 507 lines (−125); all 5 read methods now 1-line delegations
+- `mastery-indexer.ts`: 374 → 232 lines (−142); standalone duplicate removed; instance method is one-liner delegation
+- `services/index.ts`: `applySignalsToConcept` re-export switched to `./memory/mastery-writes.js`
+
+**Net result**: +289 lines (3 new files), −267 lines (2 files shrunk), public `MemoryService` interface unchanged. 4773 tests pass, typecheck clean.
