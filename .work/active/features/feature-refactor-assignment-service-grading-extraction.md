@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -135,3 +135,28 @@ Update `AssignmentServiceDeps`. Update construction sites and test helpers.
 | 4 | `...-step-4-wire-facade` | Step 3 | Medium |
 
 Implementation wave order: Steps 1+2 in parallel → Step 3 → Step 4.
+
+## Implementation summary
+
+All 4 child stories completed across 4 commits (3e9c17a → eb6ee85 → 46eaa29 → c02f21b).
+
+### Line reduction
+`packages/core/src/services/assignment-service.ts`: **725 → 338 lines (−387 lines, −53%)**
+
+### New files added to `graders/`
+| File | Lines | Contents |
+|---|---|---|
+| `graders/blending.ts` | 37 | `blendDeterministicAndWorkRubric` pure function |
+| `graders/item-schemas.ts` | 234 | All Zod schemas + `validateItems` + `validateRubricWeights` |
+| `graders/submission-helpers.ts` | 72 | `rowToAssignment` + `composeSubmissionNote` |
+| `graders/grading-orchestrator.ts` | 181 | `GradingOrchestrator` interface + `GradingOrchestratorImpl` |
+
+### Invariants preserved
+- Public `AssignmentService` interface unchanged (no IPC channel changes)
+- `submit()` atomicity: DB write and `notifyParentSession` remain in the facade
+- `AssignmentItemSchema` and `validateItems` re-exported from `services/index.ts` via chain
+- `GradingOrchestrator`, `GradingOrchestratorDeps`, `GradingOrchestratorImpl` added to public surface
+- Backward-compat escape hatch: `orchestrator?` is optional on `AssignmentServiceDeps`; constructor self-wires from `graderServices` + `enableApproachFeedback` when omitted (TODO for follow-on cleanup)
+
+### Test results
+4773 tests passed (full workspace). No test changes required.
