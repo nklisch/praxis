@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-attach-doc-modal-stuck
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ingestion, bug]
 parent: epic-course-create-readiness
 depends_on: []
@@ -44,3 +44,52 @@ Two suspected causes, both likely contributing:
    renders; fix the scopes refresh so the attachments list re-reads after
    attach completes.
 5. Add a UI test covering the flow end-to-end.
+
+## Implementation notes
+
+### Bug 1 — modal stacking root cause + fix
+
+**Root cause**: `library-document-picker.tsx` renders its JSX in a fragment with three siblings:
+the picker `<Modal>` (always rendered while the component is mounted), `<PickerTierModal>` (gated
+on `tier_selection` status), and `<BatchSummaryModal>` (gated on `batch_summary` status). When
+the user uploads a file via drag-drop or the Upload button, the batch loop transitions to
+`batch_summary`, rendering `BatchSummaryModal` — but the picker `<Modal>` had no corresponding
+gate and remained mounted, producing two stacked `role="dialog"` elements simultaneously.
+
+**Fix** (`packages/ui/src/components/library-document-picker.tsx:141`): Wrapped the picker
+`<Modal>` in `{ingestion.state.status !== "batch_summary" && (...)}` so it is conditionally
+rendered. The `LibraryDocumentPicker` component stays mounted (ingestion state is preserved);
+only its `<Modal>` is hidden when the batch-summary modal is active.
+
+### Bug 2 — missing attachments display root cause + fix (callback approach)
+
+**Root cause layer A** (`packages/ui/src/components/course-create-tab-body.tsx`): No component
+on the canvas displayed the session-scope attached documents. The canvas had the "Add documents"
+button and the draft outline but no rendering of `documentScopes.listForScope(...)`.
+
+**Fix layer A**: Added `useResource(attachedLoader)` in `CourseCreateTabBody` (line 74) to load
+the attached docs list. Added `<div data-testid="attached-docs-section">` with a `<ul>` in the
+canvas scroll area (line 167) that renders when `attachedDocs.length > 0`. Added supporting CSS
+classes (`.attachedDocsSection`, `.attachedDocsKicker`, `.attachedDocsList`, `.attachedDocRow`,
+`.attachedDocName`, `.attachedDocMeta`) to `course-create-tab-body.module.css`.
+
+**Root cause layer B**: `LibraryDocumentPicker` had an existing `onAttached?` callback prop but
+`CourseCreateTabBody` didn't pass it, so the canvas resource was never refreshed after attach.
+
+**Fix layer B** (`packages/ui/src/components/course-create-tab-body.tsx:230`): Added
+`onAttached={() => void refreshAttached()}` to the `<LibraryDocumentPicker>` invocation. The
+picker already calls `onAttached?.(documentId)` after each successful attach (line 114 in the
+picker), so this wires the refresh path cleanly. No subscriber stream needed.
+
+### Test added
+
+`packages/ui/src/__tests__/course-create-tab-body-add-docs.test.tsx` — two new tests appended to
+the existing describe block:
+
+- **Bug 2**: open picker → attach → assert `attached-docs-section` appears on canvas; verifies
+  `listForScope` is called at least twice (initial load + refresh after attach).
+- **Bug 1**: open picker → drop a non-PDF file → batch ingestion runs → assert only ONE
+  `role="dialog"` is in DOM when `BatchSummaryModal` is showing (picker modal not stacked).
+
+Also added `vi.mock("../hooks/use-tabs.js")` to the existing test file since the pre-existing
+story changes added `useTabs` to `CourseCreateTabBody`.

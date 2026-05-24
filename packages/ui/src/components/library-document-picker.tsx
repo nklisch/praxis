@@ -138,103 +138,108 @@ export function LibraryDocumentPicker({ scope, onClose, onAttached }: LibraryDoc
 
   return (
     <>
-      <Modal onClose={onClose} ariaLabel="Attach document from library" maxWidth="520px">
-        <div className={styles.pickerHeader}>
-          <div>
-            <span className={styles.ornament}>⁂</span>
-            <span className={styles.kicker}>LIBRARY</span>
-            <h2 className={styles.title}>attach from library</h2>
-            <p className={styles.deck}>{deckCopy}</p>
+      {/* Hide the picker while the batch-summary modal is showing so both modals
+          don't stack simultaneously (Bug 1 fix). The LibraryDocumentPicker
+          component stays mounted — only its <Modal> is conditionally rendered. */}
+      {ingestion.state.status !== "batch_summary" && (
+        <Modal onClose={onClose} ariaLabel="Attach document from library" maxWidth="520px">
+          <div className={styles.pickerHeader}>
+            <div>
+              <span className={styles.ornament}>⁂</span>
+              <span className={styles.kicker}>LIBRARY</span>
+              <h2 className={styles.title}>attach from library</h2>
+              <p className={styles.deck}>{deckCopy}</p>
+            </div>
+            <button
+              type="button"
+              className={styles.uploadBtn}
+              onClick={() => void handleUploadClick()}
+              disabled={isIngestionActive}
+              title="Upload files"
+            >
+              + Upload
+            </button>
           </div>
-          <button
-            type="button"
-            className={styles.uploadBtn}
-            onClick={() => void handleUploadClick()}
-            disabled={isIngestionActive}
-            title="Upload files"
-          >
-            + Upload
-          </button>
-        </div>
 
-        {loading && <LoadingState message={COPY.loading.documents} />}
+          {loading && <LoadingState message={COPY.loading.documents} />}
 
-        {error && <ErrorMessage error={error} />}
+          {error && <ErrorMessage error={error} />}
 
-        {!loading && !error && data && data.library.length === 0 && (
-          <EmptyState message={COPY.empty.libraryPickerEmpty} compact />
-        )}
+          {!loading && !error && data && data.library.length === 0 && (
+            <EmptyState message={COPY.empty.libraryPickerEmpty} compact />
+          )}
 
-        {!loading && !error && data && data.library.length > 0 && (
-          // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop progressive enhancement; keyboard upload is provided by the "+ Upload" button above
-          <div
-            className={styles.listArea}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => void handleDrop(e)}
-          >
-            <ul className={styles.list}>
-              {data.library.map((doc) => {
-                const isAttached = data.attachedIds.has(doc.documentId as DocumentId);
-                const isAttaching = attaching[doc.documentId] === true;
-                const rowError = rowErrors[doc.documentId];
+          {!loading && !error && data && data.library.length > 0 && (
+            // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop progressive enhancement; keyboard upload is provided by the "+ Upload" button above
+            <div
+              className={styles.listArea}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => void handleDrop(e)}
+            >
+              <ul className={styles.list}>
+                {data.library.map((doc) => {
+                  const isAttached = data.attachedIds.has(doc.documentId as DocumentId);
+                  const isAttaching = attaching[doc.documentId] === true;
+                  const rowError = rowErrors[doc.documentId];
 
-                return (
-                  <li key={doc.documentId} className={styles.row}>
-                    <div className={styles.rowInfo}>
-                      <span className={styles.filename}>{doc.filename}</span>
-                      <span className={styles.meta}>
-                        {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
-                      </span>
-                      {rowError && <span className={styles.rowError}>{rowError}</span>}
-                    </div>
-                    {isAttached ? (
-                      <span className={styles.attachedBadge}>attached</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.attachBtn}
-                        onClick={() => void handleAttach(doc.documentId as DocumentId)}
-                        disabled={isAttaching}
-                      >
-                        {isAttaching ? "attaching…" : "Attach"}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-            {isDraggingOver && (
-              <div className={styles.dropOverlay} role="presentation">
-                <p>Drop files to upload</p>
-              </div>
-            )}
+                  return (
+                    <li key={doc.documentId} className={styles.row}>
+                      <div className={styles.rowInfo}>
+                        <span className={styles.filename}>{doc.filename}</span>
+                        <span className={styles.meta}>
+                          {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                        </span>
+                        {rowError && <span className={styles.rowError}>{rowError}</span>}
+                      </div>
+                      {isAttached ? (
+                        <span className={styles.attachedBadge}>attached</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.attachBtn}
+                          onClick={() => void handleAttach(doc.documentId as DocumentId)}
+                          disabled={isAttaching}
+                        >
+                          {isAttaching ? "attaching…" : "Attach"}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {isDraggingOver && (
+                <div className={styles.dropOverlay} role="presentation">
+                  <p>Drop files to upload</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Show drag hint when library is empty too */}
+          {!loading && !error && data && data.library.length === 0 && (
+            // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop progressive enhancement; keyboard upload is provided by the "+ Upload" button above
+            <div
+              className={styles.emptyDropZone}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => void handleDrop(e)}
+            >
+              {isDraggingOver && (
+                <div className={styles.dropOverlay} role="presentation">
+                  <p>Drop files to upload</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className={styles.footer}>
+            <button type="button" className={styles.closeBtn} onClick={onClose}>
+              Close
+            </button>
           </div>
-        )}
-
-        {/* Show drag hint when library is empty too */}
-        {!loading && !error && data && data.library.length === 0 && (
-          // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop progressive enhancement; keyboard upload is provided by the "+ Upload" button above
-          <div
-            className={styles.emptyDropZone}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => void handleDrop(e)}
-          >
-            {isDraggingOver && (
-              <div className={styles.dropOverlay} role="presentation">
-                <p>Drop files to upload</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className={styles.footer}>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </Modal>
+        </Modal>
+      )}
 
       {ingestion.state.status === "tier_selection" && (
         <PickerTierModal

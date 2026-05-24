@@ -32,7 +32,7 @@ import type {
   SessionTabSummary,
 } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
-import { type ChangeEvent, type JSX, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import {
   COURSE_CREATE_BUDGET_MAX,
@@ -40,7 +40,9 @@ import {
   useCourseCreateBudget,
 } from "../hooks/use-course-create-budget.js";
 import { useDrafts } from "../hooks/use-drafts.js";
-import { openSessionInTab } from "../lib/open-session-in-tab.js";
+import { useResource } from "../hooks/use-resource.js";
+import { useTabs } from "../hooks/use-tabs.js";
+import { consumeInitialMessage, openSessionInTab } from "../lib/open-session-in-tab.js";
 import { AuthoringChatPane } from "./authoring-chat-pane.js";
 import styles from "./course-create-tab-body.module.css";
 import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
@@ -61,11 +63,27 @@ export interface CourseCreateTabBodyProps {
 export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
+  const { openTab } = useTabs();
   const { current } = useDrafts();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   // Tracks finalization in-flight so we don't double-open.
   const materializingRef = useRef(false);
+
+  // Attached documents for this session-scope — refreshed after each attach.
+  const attachedLoader = useCallback(
+    () => client.documentScopes.listForScope({ kind: "session", id: tab.sessionId }),
+    [client, tab.sessionId],
+  );
+  const { data: attachedDocs, refresh: refreshAttached } = useResource(attachedLoader);
+
+  // Consume any pending initial message stored by openSessionInTab before navigation.
+  // This is the user's context text from the /course-create form. Stored by
+  // openSessionInTab, read once on mount via useState initializer, then passed to
+  // AuthoringChatPane as prefillMessage so it sends through the pane's own
+  // useStreamedSend — engine events flow to the UI correctly.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: consumeInitialMessage is a pure module fn with no reactive deps; tab.sessionId is stable per tab instance
+  const [startupPrefill] = useState(() => consumeInitialMessage(tab.sessionId));
 
   // ── Finalization handler — open first teach session on draft finalized ────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: client.drafts.events is a stable method ref; subscribing once per tab session is intentional
@@ -81,6 +99,7 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
             await openSessionInTab({
               client,
               navigate,
+              openTab,
               startOpts: {
                 modeId: "teach",
                 courseId: event.courseId as CourseId,
@@ -96,7 +115,7 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
     return () => {
       cancelled = true;
     };
-  }, [tab.sessionId, client, navigate]);
+  }, [tab.sessionId, client, navigate, openTab]);
 
   const proposed = current?.proposed ?? null;
   // Show the confirm card once there's at least one lesson drafted.
@@ -144,6 +163,22 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
               <p>the outline will appear here as the tutor builds the course.</p>
             </div>
           )}
+
+          {attachedDocs && attachedDocs.length > 0 && (
+            <div className={styles.attachedDocsSection} data-testid="attached-docs-section">
+              <p className={styles.attachedDocsKicker}>⊞ attached documents</p>
+              <ul className={styles.attachedDocsList}>
+                {attachedDocs.map((doc) => (
+                  <li key={doc.documentId} className={styles.attachedDocRow}>
+                    <span className={styles.attachedDocName}>{doc.filename}</span>
+                    <span className={styles.attachedDocMeta}>
+                      {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 
@@ -154,6 +189,10 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
           <AuthoringChatPane
             mode="course-create"
             sessionId={tab.sessionId}
+            {...(startupPrefill !== undefined &&
+              !confirming && {
+                prefillMessage: startupPrefill,
+              })}
             {...(confirming && {
               prefillMessage: "Please confirm the draft and open the course.",
               onPrefillSent: () => setConfirming(false),
@@ -187,6 +226,7 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
         <LibraryDocumentPicker
           scope={{ kind: "session", id: tab.sessionId }}
           onClose={() => setPickerOpen(false)}
+          onAttached={() => void refreshAttached()}
         />
       )}
     </div>
