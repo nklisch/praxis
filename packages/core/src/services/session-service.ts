@@ -1,4 +1,4 @@
-import { documentChunks, documents, notes } from "@praxis/artifacts/schema";
+import { documentChunks, documents } from "@praxis/artifacts/schema";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { and, asc, desc, eq, isNull, notInArray } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -21,7 +21,7 @@ import type {
   SystemNoteOrigin,
   Timestamp,
 } from "../types/index.js";
-import { brandId, engineError, parseNoteBody } from "../types/index.js";
+import { brandId, engineError } from "../types/index.js";
 import { SessionDiscardedError } from "../types/session-discarded-error.js";
 import { type ActiveEntry, EngineSessionManager } from "./session/engine-session-manager.js";
 import { SessionPromoter } from "./session/session-promoter.js";
@@ -628,94 +628,7 @@ export class SessionServiceImpl implements SessionService {
     noteId: NoteId;
     cueId?: string;
   }): Promise<SessionHandle> {
-    // Resolve studentId — falls back to the default student if not supplied.
-    const studentId: StudentId =
-      input.studentId ?? (getOrCreateDefaultStudentId(this.deps.db) as StudentId);
-
-    // Resolve the note row.
-    const noteRow = this.deps.db
-      .select()
-      .from(notes)
-      .where(and(eq(notes.id, input.noteId), eq(notes.studentId, studentId)))
-      .get();
-    if (!noteRow) {
-      throw new Error(`Note not found: ${input.noteId}`);
-    }
-
-    // Parse the body so we can extract the cue text.
-    let cueText: string | null = null;
-    let noteBodyText: string | null = null;
-
-    if (noteRow.body != null && noteRow.format !== "sketch") {
-      try {
-        const body = parseNoteBody(
-          noteRow.format as "cornell" | "feynman" | "outline" | "free",
-          noteRow.body,
-        );
-
-        // Collect cues depending on format.
-        if (body.kind === "feynman") {
-          noteBodyText = body.explanation;
-          const idx = input.cueId !== undefined ? parseInt(input.cueId, 10) : 0;
-          cueText = body.followUps[idx] ?? body.followUps[0] ?? null;
-        } else if (body.kind === "cornell") {
-          const idx = input.cueId !== undefined ? parseInt(input.cueId, 10) : 0;
-          cueText = body.questions[idx] ?? body.questions[0] ?? null;
-          noteBodyText = body.details[idx] ?? body.details[0] ?? null;
-        } else if (body.kind === "outline") {
-          // Flat rows (new editor) or legacy tree root — extract the first meaningful text.
-          if (body.rows !== undefined) {
-            cueText = body.rows[0]?.text ?? null;
-          } else if (body.root !== undefined) {
-            cueText = body.root.text;
-          }
-        } else if (body.kind === "free") {
-          cueText = body.text;
-        }
-      } catch {
-        // If parsing fails, fall through with null cue (session still opens)
-      }
-    }
-
-    // Compose the injected opening message.
-    const parts: string[] = [];
-    if (cueText) {
-      parts.push(`<note-cue>${cueText}</note-cue>`);
-    }
-    if (noteBodyText) {
-      parts.push(`<note-body>${noteBodyText}</note-body>`);
-    }
-    if (parts.length === 0) {
-      parts.push("<note-cue>I have a question from my notes that I'd like to explore.</note-cue>");
-    }
-    const openingMessage =
-      `I'm looking at my ${noteRow.format} notes and have a question I'd like to work through with you.\n\n` +
-      parts.join("\n\n");
-
-    // Start a teach session. _persistImmediately: true — this spawn path injects
-    // an opening message before the student's first turn, so the session has meaning
-    // before the student interacts. Registering it lazily would risk a discard race.
-    const handle = await this.start({ modeId: "teach", _persistImmediately: true });
-
-    // Inject the cue as the first user message turn (fire-and-forget, non-streaming).
-    // This seeds the session transcript so when the student opens the tab, the
-    // tutor has already received the context and can respond immediately.
-    try {
-      const sessionId = handle.sessionId;
-      // biome-ignore lint/suspicious/noExplicitAny: engine send is async-iterable; drain it
-      const stream = this.send(sessionId as any, openingMessage);
-      for await (const _event of stream) {
-        // Drain; we don't forward events — caller opens the tab and sees history.
-      }
-    } catch (cause) {
-      this.deps.log.warn("spawn_from_note.opening_turn_failed", {
-        noteId: input.noteId,
-        err: cause instanceof Error ? cause.message : String(cause),
-      });
-      // Non-fatal: session is still valid; tutor just won't have pre-context.
-    }
-
-    return handle;
+    return this.spawner.spawnFromNote(input);
   }
 
   /**

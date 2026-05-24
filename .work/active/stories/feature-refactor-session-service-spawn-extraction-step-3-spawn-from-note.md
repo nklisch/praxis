@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-3-spawn-from-note
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: [feature-refactor-session-service-spawn-extraction-step-2-spawn-from-assignment]
@@ -85,6 +85,14 @@ Imports moved from `session-service.ts` to `session-spawner.ts`:
 - `session-service-spawn-from-note.test.ts` all cases pass.
 - The `biome-ignore` cast comment is gone from the spawner (clean API via
   `deps.sendMessage`).
+
+## Implementation notes
+
+- Moved ~87 lines from `SessionServiceImpl.spawnFromNote` into `SessionSpawner.spawnFromNote`.
+- `session-service.ts` net delta: -87 lines for the method body, +1 one-line delegate. Removed `notes` from the `@praxis/artifacts/schema` import and `parseNoteBody` from `../types/index.js` (both unused elsewhere in the file).
+- Added imports to `session-spawner.ts`: `notes` from `@praxis/artifacts/schema`; `and` from `drizzle-orm` (was already imported for step 2, verified present); `NoteId`, `StudentId` type imports; `parseNoteBody` from `../../types/index.js`.
+- The `biome-ignore lint/suspicious/noExplicitAny` cast on the `send()` call was removed: inside `SessionSpawner`, `deps.sendMessage(sessionId, openingMessage)` is correctly typed as `(sessionId: SessionId, message: string) => AsyncIterable<EngineEvent>` — no cast needed.
+- `pnpm typecheck && pnpm --filter @praxis/core test`: all green (96 files, 1164 tests).
 
 ## Rollback
 Revert spawner additions; restore original body in `session-service.ts`.
