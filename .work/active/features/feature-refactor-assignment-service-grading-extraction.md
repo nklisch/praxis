@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -160,3 +160,19 @@ All 4 child stories completed across 4 commits (3e9c17a → eb6ee85 → 46eaa29 
 
 ### Test results
 4773 tests passed (full workspace). No test changes required.
+
+## Review
+
+Verdict: **done**
+
+The feature lands cleanly. All three design constraints met:
+
+1. **Public interface unchanged** — `AssignmentService` (7 methods) in `core/types/artifacts.ts` was not touched. IPC channels unchanged.
+2. **submit() atomicity preserved** — DB write and `notifyParentSession` fire-and-forget both remain in `AssignmentServiceImpl.submit()`. The orchestrator is a pure compute unit.
+3. **Per-item-type graders untouched** — only the dispatch + enrichment + sequencing lifted; the existing grader implementations in `graders/` stayed where they were.
+
+Code quality is high throughout: clean file-level JSDoc on each new module, consistent use of `import type` for type-only deps, `GraderContext` construction in the right place, all branching logic from the original submit() preserved verbatim including the Phase 17.5 misconception TODO stub. The `orchestrator?` escape hatch with TODO annotation is a pragmatic call consistent with the story's documented escape hatch clause.
+
+The `validateRubricWeights` function is now exported (was previously private) — acceptable since it was only private by accident of collocation, not by design intent.
+
+No blockers. No follow-up items required beyond the pre-existing TODO to eventually require callers to pass `orchestrator` explicitly.
