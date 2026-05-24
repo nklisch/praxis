@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-vision-temp-dir
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -60,3 +60,15 @@ files required by its provider path).
 - Both `ClaudeCodeVision.describe` and `CodexVision.describe` use the shared helper
 - Cleanup still runs on error paths
 - No behavior change to either adapter's `VisionDescribeResponse`
+
+## Implementation notes
+
+**New helper:** `packages/engines/src/vision/temp-images.ts` — 43 lines
+Signature: `writeVisionImages(images: ReadonlyArray<{ mimeType: string; data: string }>): Promise<{ tempDir: string; filePaths: string[]; cleanup: () => Promise<void> }>`
+Partial-write failures clean up before re-throwing; callers own the `finally { await cleanup() }` block for SDK-level errors.
+
+**claude-code/vision.ts:** 69 lines → 55 lines (removed `mkdtemp`, `rm`, `writeFile`, `tmpdir`, `join` imports; replaced 13-line write loop with one `writeVisionImages` call)
+
+**codex/vision.ts:** 85 lines → 71 lines (same removal; `tempDir` not destructured since Codex path doesn't need it for `workDir`)
+
+**Verification:** `pnpm typecheck` clean across all packages; `pnpm test` — 440 test files passed, 0 failures.

@@ -1,6 +1,3 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { Codex } from "@openai/codex-sdk";
 import type { EngineConfig } from "@praxis/core/config";
 import type {
@@ -8,6 +5,7 @@ import type {
   VisionDescribeRequest,
   VisionDescribeResponse,
 } from "@praxis/core/types";
+import { writeVisionImages } from "../vision/temp-images.js";
 
 /**
  * One-shot vision capability for the Codex engine.
@@ -25,20 +23,8 @@ export class CodexVision implements VisionCapability {
   }
 
   async describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse> {
-    const tempDir = await mkdtemp(join(tmpdir(), "praxis-vision-"));
+    const { filePaths, cleanup } = await writeVisionImages(req.images);
     try {
-      // Write image files to temp dir.
-      const filePaths: string[] = [];
-      let imgIndex = 0;
-      for (const img of req.images) {
-        const ext =
-          img.mimeType === "image/jpeg" ? "jpg" : img.mimeType === "image/webp" ? "webp" : "png";
-        const filePath = join(tempDir, `image-${imgIndex}.${ext}`);
-        await writeFile(filePath, Buffer.from(img.data, "base64"));
-        filePaths.push(filePath);
-        imgIndex += 1;
-      }
-
       // Build input array: text prompt + one local_image per file.
       const inputs: Array<{ type: "text"; text: string } | { type: "local_image"; path: string }> =
         [
@@ -78,7 +64,7 @@ export class CodexVision implements VisionCapability {
         }),
       };
     } finally {
-      await rm(tempDir, { recursive: true, force: true });
+      await cleanup();
     }
   }
 }

@@ -1,12 +1,10 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { collectResult, query } from "@praxis/claude-cli-sdk";
 import type {
   VisionCapability,
   VisionDescribeRequest,
   VisionDescribeResponse,
 } from "@praxis/core/types";
+import { writeVisionImages } from "../vision/temp-images.js";
 
 /**
  * One-shot vision capability for the Claude Code engine.
@@ -19,20 +17,8 @@ import type {
  */
 export class ClaudeCodeVision implements VisionCapability {
   async describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse> {
-    const tempDir = await mkdtemp(join(tmpdir(), "praxis-vision-"));
+    const { tempDir, filePaths, cleanup } = await writeVisionImages(req.images);
     try {
-      // Write image files to temp dir.
-      const filePaths: string[] = [];
-      let imgIndex = 0;
-      for (const img of req.images) {
-        const ext =
-          img.mimeType === "image/jpeg" ? "jpg" : img.mimeType === "image/webp" ? "webp" : "png";
-        const filePath = join(tempDir, `image-${imgIndex}.${ext}`);
-        await writeFile(filePath, Buffer.from(img.data, "base64"));
-        filePaths.push(filePath);
-        imgIndex += 1;
-      }
-
       // Build prompt: instruct Claude to Read the files, then complete the task.
       const fileList = filePaths.map((p) => `  - ${p}`).join("\n");
       const fullPrompt =
@@ -62,7 +48,7 @@ export class ClaudeCodeVision implements VisionCapability {
         }),
       };
     } finally {
-      await rm(tempDir, { recursive: true, force: true });
+      await cleanup();
     }
   }
 }
