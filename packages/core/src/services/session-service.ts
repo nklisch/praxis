@@ -630,6 +630,22 @@ export class SessionServiceImpl implements SessionService {
     assignmentId: AssignmentId;
     parentSessionId: SessionId;
   }): Promise<SessionHandle> {
+    // Resolve the current student (single-user; server-side only).
+    const studentId = getOrCreateDefaultStudentId(this.deps.db);
+
+    // Validate parent session exists and belongs to this student.
+    const parentRow = this.deps.db
+      .select({ id: sessions.id, studentId: sessions.studentId })
+      .from(sessions)
+      .where(eq(sessions.id, input.parentSessionId))
+      .get();
+    if (!parentRow) {
+      throw new Error(`Parent session not found: ${input.parentSessionId}`);
+    }
+    if (parentRow.studentId !== studentId) {
+      throw new Error(`Parent session belongs to a different student`);
+    }
+
     const assignmentRow = this.deps.db
       .select()
       .from(assignments)

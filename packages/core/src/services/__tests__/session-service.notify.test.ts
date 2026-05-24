@@ -323,4 +323,31 @@ describe("SessionServiceImpl.spawnFromAssignment", () => {
       }),
     ).rejects.toThrow(/Assignment not found/);
   });
+
+  it("throws when parentSessionId does not exist", async () => {
+    const { assignmentId } = seedCourseAndAssignment(db, { studentId, kind: "quiz" });
+    const { svc } = makeService(db);
+
+    await expect(
+      svc.spawnFromAssignment({
+        assignmentId,
+        parentSessionId: brandId<"SessionId">(uuidv7()),
+      }),
+    ).rejects.toThrow(/Parent session not found/);
+  });
+
+  it("throws when parentSessionId belongs to a different student", async () => {
+    // Insert a session belonging to a different student (different UUID).
+    const otherStudentId = uuidv7();
+    const otherParentId = insertSession(db, { studentId: otherStudentId, modeId: "teach" });
+    const { assignmentId } = seedCourseAndAssignment(db, { studentId, kind: "quiz" });
+    const { svc } = makeService(db);
+
+    await expect(
+      svc.spawnFromAssignment({
+        assignmentId,
+        parentSessionId: otherParentId,
+      }),
+    ).rejects.toThrow(/Parent session belongs to a different student/);
+  });
 });
