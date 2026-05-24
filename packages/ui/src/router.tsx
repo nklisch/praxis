@@ -6,6 +6,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
+import { z } from "zod";
 import { OnboardingFlow } from "./components/onboarding-flow.js";
 import { StatusStrip } from "./components/status-strip.js";
 import { TabStrip } from "./components/tab-strip.js";
@@ -178,10 +179,14 @@ const noteEditorRoute = createRoute({
 
 // Course-create entry flow — step 2: upload/material screen.
 // Library "Create a course" CTA navigates here before opening a course-create session.
+// ?pack=<packId> pre-selects the Pack tab and pre-attaches that pack as source on mount.
 const courseCreateRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/course-create",
   component: CourseCreateRoute,
+  validateSearch: z.object({
+    pack: z.string().optional(),
+  }),
 });
 
 // Top-nav surface stubs — full implementations land in subsequent surface stories.

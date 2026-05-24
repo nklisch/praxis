@@ -8,6 +8,7 @@ import type {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
+import { PacksSection } from "../components/library/packs-section.js";
 import { getModeMeta } from "../components/mode-meta.js";
 import { RecommendationRow } from "../components/recommendation-row.js";
 import { usePraxisClient } from "../context/client-context.js";
@@ -26,10 +27,10 @@ import styles from "./library.module.css";
  * - Greeting line with count of ready recommendations
  * - Two-column layout: what's-next queue (left) + lately timeline (right)
  * - Footer row: packs / concept maps / documents
+ * - PacksSection browse-and-discover surface below the footer row
  *
- * The existing CoursesSection, PacksSection, DocumentsSection content
- * is surfaced through the footer cards and the "+ Create a course" CTA
- * per the Option-4 Workbench locked mock.
+ * /packs is a redirect to /library (router.tsx) — the packs content
+ * is now surfaced here via the PacksSection component.
  */
 export function LibraryRoute() {
   const navigate = useNavigate();
@@ -87,9 +88,7 @@ export function LibraryRoute() {
     [client, navigate, openTab],
   );
 
-  // Keep packName accessible but avoid lint warning if it's not used yet.
-  void handleUsePack;
-  void importing;
+  // handleUsePack and importing are used by PacksSection below.
 
   // ── Recommendation action dispatch ─────────────────────────────────────────
 
@@ -342,6 +341,17 @@ export function LibraryRoute() {
             <AddDocumentButton ingestion={ingestion} />
           </div>
         </div>
+
+        {/* ── Packs section ─────────────────────────────────────────────────── */}
+        {/* Browse-and-discover surface for knowledge packs. The pack-picker    */}
+        {/* inside /course-create is the primary "use this pack" entry point;   */}
+        {/* this section is the secondary browse surface.                       */}
+        <PacksSection
+          packs={data?.packs}
+          loading={loading}
+          onUsePack={handleUsePack}
+          importing={importing}
+        />
       </div>
     </div>
   );

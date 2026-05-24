@@ -527,6 +527,9 @@ importers:
       unist-util-visit-parents:
         specifier: ^6.0.2
         version: 6.0.2
+      zod:
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@testing-library/react':
         specifier: ^16.3.2

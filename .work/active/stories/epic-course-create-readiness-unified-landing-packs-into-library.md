@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-packs-into-library
 kind: story
-stage: implementing
+stage: review
 tags: [ui, refactor, navigation]
 parent: epic-course-create-readiness-unified-landing
 depends_on: []
@@ -67,3 +67,21 @@ browse-and-discover surface.
 - Source-picker UI work (separate story).
 - Bypass-route rerouting (separate story).
 - Any changes to the pack data source / IPC.
+
+## Implementation notes
+
+**PacksSection location**: `packages/ui/src/components/library/packs-section.tsx` — already existed (pre-built by sibling story tooling). The component accepts `packs`, `loading`, `onUsePack`, and `importing` props; renders via `LibrarySection` with the `¶` ornament and `PACKS` kicker.
+
+**Library section placement**: `PacksSection` is rendered below the footer row in `packages/ui/src/routes/library.tsx`. The `handleUsePack` callback (which was already wired but suppressed with `void`) is now passed as `onUsePack`. The `importing` state is passed through. The packs data comes from `useLibrary()`'s `data?.packs`.
+
+**Redirect setup**: `packages/ui/src/router.tsx` lines 153–159 — `packsRedirect` route was already in place (a `beforeLoad: () => { throw redirect({ to: "/library" }) }` route at path `/packs`). No changes needed; it was correctly implemented.
+
+**Inbound links audit**: Searched for `to="/packs"`, `navigate("/packs")`, `href="/packs"` across all `.tsx`/`.ts` files. No inbound navigation links found — the only `/packs` reference was the redirect itself in `router.tsx` (which is correct to keep).
+
+**packs.tsx deletion**: `packages/ui/src/routes/packs.tsx` deleted. `packages/ui/src/routes/packs.module.css` also deleted (no longer needed).
+
+**Tests**: `packages/ui/src/__tests__/packs-route.test.tsx` replaced with `packages/ui/src/__tests__/packs-section.test.tsx`. The new test exercises `PacksSection` directly as a prop-driven component (no client needed): PACKS kicker, loading state, empty state (empty array and undefined), pack name/deck render, "Use this pack" button calls `onUsePack`, "Imported" badge for imported packs, disabled state while importing, and multi-pack rendering.
+
+**Zod dependency**: The sibling story (`source-picker`) added `import { z } from "zod"` and `validateSearch` to `router.tsx` but did not add `zod` to `packages/ui/package.json`. Added `"zod": "4.3.6"` to fix the typecheck failure.
+
+**Verification**: `pnpm typecheck && pnpm test` both green. 158 test files, 1637 tests all pass. Lint errors are pre-existing in `.mockups/` HTML files and other unchanged source files — none in changed files.
