@@ -241,8 +241,8 @@
 .conceptMapLink {
   width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.1rem;
   padding: 0.55rem 0.85rem;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
@@ -252,6 +252,12 @@
   transition:
     border-color var(--dur-quick),
     background var(--dur-quick);
+}
+
+.conceptMapTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .conceptMapLink:hover {
@@ -274,6 +280,26 @@
 .conceptMapVersions {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
+}
+
+.mapCoverageRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.mapCoverageLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.mapCoverageNum {
+  color: var(--color-text-primary, inherit);
 }
 
 .divergenceBadge {

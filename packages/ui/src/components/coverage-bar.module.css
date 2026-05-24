@@ -1,0 +1,25 @@
+/**
+ * CoverageBar — a horizontal progress bar for showing coverage percent.
+ *
+ * The outer rail (.coverageBar) uses `flex: 1` so it fills available width
+ * when placed inside a flex row. Callers must ensure the parent is a flex
+ * container (e.g. `display: flex; align-items: center`).
+ */
+
+.coverageBar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.coverageBar--compact {
+  height: 3px;
+}
+
+.coverageBarFill {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width var(--dur-quick) var(--ease-standard);
+}

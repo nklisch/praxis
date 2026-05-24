@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav-coverage-bar
 kind: story
-stage: implementing
+stage: review
 tags: [ui, design-system]
 parent: feature-concept-maps-top-nav
 depends_on: []
@@ -108,6 +108,16 @@ field names — the parallel agents will land both in the same wave.
 - The Option 2 mock shows the bar as `flex: 1` so it expands to fill
   the row. Document this in the component JSDoc so consumers know
   to put it inside a flex container.
+
+## Implementation notes
+
+- `CoverageBar` component: `packages/ui/src/components/coverage-bar.tsx` + `coverage-bar.module.css`.
+- The CSS spec called for `--dur-2` which does not exist in the design system; used `--dur-quick` (the project's standard short-duration token) instead. `--ease-standard` exists and was used as specified.
+- The return type annotation was updated from `JSX.Element` to `ReactElement` (Biome's `useImportType` rule) — functionally identical.
+- `course-detail.tsx` adoption: each concept-map row now wraps title+meta in a `.conceptMapTopRow` div and adds a `.mapCoverageRow` containing `<CoverageBar compact>` + a "X / Y · Z% mapped" label. The `linkedNodeCount` and `totalNodeCount` fields landed on `ConceptMapSummary` in the sibling `feature-concept-maps-top-nav-list-extension` story (both in the same wave).
+- `handleNewMap` optimistic update already had `linkedNodeCount: 0, totalNodeCount: 0` (added by the list-extension story).
+- Tests: `packages/ui/src/__tests__/coverage-bar.test.tsx` — 11 tests covering percent=0/0.58/1, clamping below 0 and above 1, aria attributes (default + custom label, valuenow), compact class count, no-compact class count.
+- Verification: `pnpm --filter @praxis/ui typecheck` + `pnpm biome check` on changed files + `pnpm --filter @praxis/ui test` all pass (161 files, 1672 tests).
 
 ## Out of scope
 

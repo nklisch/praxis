@@ -3,6 +3,7 @@ import { brandId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
+import { CoverageBar } from "../components/coverage-bar.js";
 import { EmptyState } from "../components/empty-state.js";
 import { LibraryDocumentPicker } from "../components/library-document-picker.js";
 import { RouteHeader } from "../components/route-header.js";
@@ -92,6 +93,8 @@ export function CourseDetailRoute() {
         hasDivergences: false,
         createdAt: newMap.createdAt,
         updatedAt: newMap.updatedAt,
+        linkedNodeCount: 0,
+        totalNodeCount: 0,
       },
       ...(prev ?? []),
     ]);
@@ -256,15 +259,31 @@ export function CourseDetailRoute() {
                       })
                     }
                   >
-                    <span className={styles.conceptMapTitle}>{m.title}</span>
-                    <span className={styles.conceptMapMeta}>
-                      <span className={styles.conceptMapVersions}>
-                        {m.versionCount} version{m.versionCount !== 1 ? "s" : ""}
+                    <div className={styles.conceptMapTopRow}>
+                      <span className={styles.conceptMapTitle}>{m.title}</span>
+                      <span className={styles.conceptMapMeta}>
+                        <span className={styles.conceptMapVersions}>
+                          {m.versionCount} version{m.versionCount !== 1 ? "s" : ""}
+                        </span>
+                        {m.hasDivergences && (
+                          <span className={styles.divergenceBadge}>discussion points</span>
+                        )}
                       </span>
-                      {m.hasDivergences && (
-                        <span className={styles.divergenceBadge}>discussion points</span>
-                      )}
-                    </span>
+                    </div>
+                    <div className={styles.mapCoverageRow}>
+                      <CoverageBar
+                        compact
+                        percent={m.linkedNodeCount / Math.max(m.totalNodeCount, 1)}
+                      />
+                      <span className={styles.mapCoverageLabel}>
+                        <span className={styles.mapCoverageNum}>
+                          {m.linkedNodeCount} / {m.totalNodeCount}
+                        </span>
+                        {" · "}
+                        {Math.round((100 * m.linkedNodeCount) / Math.max(m.totalNodeCount, 1))}%
+                        mapped
+                      </span>
+                    </div>
                   </button>
                 </li>
               ))}
