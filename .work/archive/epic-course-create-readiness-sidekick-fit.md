@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-sidekick-fit
 kind: feature
-stage: drafting
+stage: done
 tags: [ui, tutor-ux, course-authoring]
 parent: epic-course-create-readiness
 depends_on: []
@@ -77,3 +77,13 @@ their own `SidekickPanel` slide-in chat), file separate fix stories.
      a closure note pointing at the story.
   Out of scope for this collapse: quiz/homework right-rail audit
   (file separately if needed).
+
+## Closure (feature-design, 2026-05-23, autopilot)
+
+Collapsed to a single story per the locked `--only-questions` decision.
+Spawned `epic-course-create-readiness-sidekick-fit-hide` (story,
+stage: implementing, parent: epic-course-create-readiness). The
+implementation is ~30 lines (modeId guard in `chat.tsx` + UI test);
+the feature shell adds no value. Archiving this feature wrapper as
+done — the story carries the actual work and the epic's child set
+now points at the story directly.
