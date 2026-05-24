@@ -1,7 +1,7 @@
 ---
 id: feature-progress-top-nav
 kind: feature
-stage: review
+stage: done
 tags: [ui, content]
 parent: null
 depends_on: []
@@ -415,3 +415,24 @@ review) resolved cleanly — the progress route imports `<CoverageBar>`
 directly from `packages/ui/src/components/coverage-bar.tsx`.
 
 Feature advancing `implementing → review` for final pass.
+
+## Review (2026-05-23, feature-level)
+
+**Verdict**: Approve
+
+All 2 child stories approved at `stage: done`. Capability completeness:
+`/progress` now renders a per-course chapter view per the Option 1
+Course-by-Course Review mock. `ProgressService.rollup` is the single-
+payload aggregator (no caching v1 per the locked decision). Cross-
+feature consumption of `<CoverageBar>` worked cleanly — both surfaces
+share the same visual primitive without coupling.
+
+**Foundation-doc alignment**: no `docs/` assertions invalidated.
+VISION.md's "single student v1" constraint honored — no multi-student
+selector. The `/progress` placeholder route comment was satisfied.
+
+**Breaking changes**: none. ProgressService + IPC channel are net-new;
+no existing signatures changed.
+
+**Notes**: Feature has no parent and no release_binding — archiving on
+completion.

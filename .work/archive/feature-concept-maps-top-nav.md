@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav
 kind: feature
-stage: review
+stage: done
 tags: [ui, content]
 parent: null
 depends_on: []
@@ -368,3 +368,29 @@ sort spread in concept-maps IPC handler (commit `3dcbacc`) — addressed
 typecheck breaks at the seams between parallel agents.
 
 Feature advancing `implementing → review` for final pass.
+
+## Review (2026-05-23, feature-level)
+
+**Verdict**: Approve
+
+All 3 child stories approved at `stage: done`. Capability completeness:
+`/concept-maps` is now a fully functional cross-course browser per the
+Option 2 Swiss Grid Catalog mock. Backend extended cleanly (optional
+courseId + sort modes + coverage enrichment); CoverageBar primitive
+shipped as a reusable building block that the sibling progress feature
+consumed cross-feature; the route surface ties it all together with
+bookmarkable URL state. Coverage micro-bar is now the canonical
+visualization across both the new route AND course-detail.tsx
+(legacy affordance replaced).
+
+**Foundation-doc alignment**: no `docs/` assertions invalidated. The
+`/concept-maps` route had a placeholder comment naming "the concept-maps
+surface story" — that promise is now delivered.
+
+**Breaking changes**: `client.conceptMaps.list` signature changed —
+`courseId` is now optional. All in-tree callers updated; no external
+consumers exist. `ConceptMapSummary` gained two fields
+(`linkedNodeCount`, `totalNodeCount`) — additive, not breaking.
+
+**Notes**: Feature has no parent and no release_binding — archiving on
+completion.
