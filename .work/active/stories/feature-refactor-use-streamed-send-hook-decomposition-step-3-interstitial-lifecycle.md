@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-3-interstitial-lifecycle
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -178,3 +178,13 @@ passed at `onToolResult` time — ensure no stale-dispatch issue.
 - `drainOnFinally` clears renderable accumulators after draining so calling it twice is safe.
 - `pendingRenderables` getter returns a snapshot copy (safe for consumer to iterate without mutation).
 - `pnpm typecheck` and `pnpm --filter @praxis/ui test` both pass (1711 tests, 164 files).
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Story body stated "300 lines" but the file landed at 400 — the estimate was off; no impact on correctness.
+
+**Notes**: All acceptance criteria verified. `MIN_INTERSTITIAL_VISIBLE_MS = 800` moved to this file and exported. All per-turn Maps and renderable arrays live in a single `InterstitialRef` held by `useRef`. `reset()` cancels orphaned timers before discarding the ref. `onInterrupted()` clears timers without firing settle (correct per spec). `drainOnFinally()` cancels each pending timer and immediately calls `settleNow()` so no dangling in_flight items remain after a turn. Timer closure captures `setItems` at `onToolResult` call time (stable React dispatch) — no stale-closure issue. `drainOnFinally` clears renderable accumulators after draining (idempotent). 1711 UI tests pass.
