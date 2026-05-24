@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-9-session-assembly
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -105,3 +105,15 @@ The orchestrator (`buildServices()`) calls `setSessionServiceRef(sessionService)
 Medium — contains the session-promotion ref-cell, a subtlety identical to the
 `notifyParentSessionRef` in step 6. The setter pattern is well-established by that step.
 Rollback: revert the new file and restore the inline blocks in `buildServices()`.
+
+## Implementation notes
+
+Created `packages/desktop/electron/main/services/build-session-precursors.ts` (109 lines).
+
+**Ref-cell shape**: `sessionServiceRef` is a `let` declared inside the factory body (module-internal). The factory returns `setSessionServiceRef: (svc: SessionServiceImpl) => void` — a closure that writes `sessionServiceRef`. The `SessionPromotionRegistryImpl`'s `engineSessionManager` thunk closes over `sessionServiceRef` and throws `"SessionPromotionRegistry: sessionService not yet initialised"` if called before the setter is invoked, matching the guard in the original `services.ts`.
+
+**Services extracted**: `SessionPromotionRegistryImpl`, `PromptCustomizationServiceImpl` (constructed inside the factory from its single `db` dep), and `AuthoringServiceImpl` (depends on `artifactsService`, `memoryService`, `conceptMapService`, `conceptMapConfiguratorId`, and `promptCustomizationService` — all in-scope from factory parameters or local construction).
+
+**services.ts not modified** — Step 10 orchestrator will wire the outputs.
+
+**Verification**: `pnpm typecheck` green (all packages); `pnpm --filter @praxis/desktop test --reporter=basic` green (34 files, 520 tests).
