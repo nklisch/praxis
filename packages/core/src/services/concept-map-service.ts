@@ -1,4 +1,4 @@
-import { notes } from "@praxis/artifacts/schema";
+import { courses, notes } from "@praxis/artifacts/schema";
 import { conceptMaps, conceptMapVersions, sessions } from "@praxis/memory/schema";
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -145,20 +145,31 @@ export class ConceptMapServiceImpl implements ConceptMapService {
     return row ? rowToDrawing(row as MapRow) : null;
   }
 
-  async list(input: { studentId: StudentId; courseId: CourseId }): Promise<ConceptMapSummary[]> {
-    // Join with a subquery to get version counts and existence of divergences.
+  async list(input: {
+    studentId: StudentId;
+    courseId?: CourseId;
+    sort?: "recent" | "coverage" | "course";
+  }): Promise<ConceptMapSummary[]> {
+    const sort = input.sort ?? "recent";
+
+    // Build WHERE: always filter by studentId; optionally also by courseId.
+    const whereClause =
+      input.courseId !== undefined
+        ? and(eq(conceptMaps.studentId, input.studentId), eq(conceptMaps.courseId, input.courseId))
+        : eq(conceptMaps.studentId, input.studentId);
+
+    // Fetch maps; always order by updatedAt desc as the base DB order.
+    // For coverage/course sorts we re-sort post-enrichment.
     const maps = this.deps.db
       .select()
       .from(conceptMaps)
-      .where(
-        and(eq(conceptMaps.studentId, input.studentId), eq(conceptMaps.courseId, input.courseId)),
-      )
+      .where(whereClause)
       .orderBy(desc(conceptMaps.updatedAt))
       .all();
 
     if (maps.length === 0) return [];
 
-    // For each map, count versions.
+    // For each map, count versions and compute coverage counts.
     const summaries: ConceptMapSummary[] = await Promise.all(
       maps.map(async (m) => {
         const countResult = this.deps.db
@@ -167,6 +178,15 @@ export class ConceptMapServiceImpl implements ConceptMapService {
           .where(eq(conceptMapVersions.conceptMapId, m.id))
           .get();
         const row = m as MapRow;
+
+        // Compute coverage: reuse scene extraction to count text-bearing nodes.
+        const { nodes } = extractFromTldrawScene(row.sceneJson);
+        const totalNodeCount = nodes.length;
+
+        // Count concept links with linkState === "linked".
+        const links = (row.conceptLinksJson as ConceptLink[]) ?? [];
+        const linkedNodeCount = links.filter((l) => l.linkState === "linked").length;
+
         return {
           id: brandId<"ConceptMapId">(row.id),
           studentId: brandId<"StudentId">(row.studentId),
@@ -180,11 +200,58 @@ export class ConceptMapServiceImpl implements ConceptMapService {
             (row.divergencesJson as ConceptMapDivergence[]).length > 0,
           createdAt: row.createdAt.getTime() as Timestamp,
           updatedAt: row.updatedAt.getTime() as Timestamp,
+          linkedNodeCount,
+          totalNodeCount,
         } satisfies ConceptMapSummary;
       }),
     );
 
-    return summaries;
+    // Apply sort post-enrichment.
+    switch (sort) {
+      case "recent":
+        // Already ordered by updatedAt desc from the DB query.
+        return summaries;
+
+      case "coverage": {
+        // Desc by coverage ratio; maps with totalNodeCount === 0 sort last.
+        // Ties break on updatedAt desc (already the natural order from DB).
+        return summaries.slice().sort((a, b) => {
+          const aZero = a.totalNodeCount === 0;
+          const bZero = b.totalNodeCount === 0;
+          if (aZero && bZero) return b.updatedAt - a.updatedAt;
+          if (aZero) return 1; // a sorts after b
+          if (bZero) return -1; // b sorts after a
+          const aCoverage = a.linkedNodeCount / a.totalNodeCount;
+          const bCoverage = b.linkedNodeCount / b.totalNodeCount;
+          if (bCoverage !== aCoverage) return bCoverage - aCoverage;
+          return b.updatedAt - a.updatedAt;
+        });
+      }
+
+      case "course": {
+        // Asc by courseTitle, then updatedAt desc within each course.
+        // Fetch course titles for the relevant courseIds.
+        const courseIds = [...new Set(summaries.map((s) => s.courseId))];
+        const courseTitleMap = new Map<string, string>();
+        for (const courseId of courseIds) {
+          const courseRow = this.deps.db
+            .select({ title: courses.title })
+            .from(courses)
+            .where(eq(courses.id, courseId))
+            .get();
+          if (courseRow) {
+            courseTitleMap.set(courseId, courseRow.title);
+          }
+        }
+        return summaries.slice().sort((a, b) => {
+          const aTitle = courseTitleMap.get(a.courseId) ?? a.courseId;
+          const bTitle = courseTitleMap.get(b.courseId) ?? b.courseId;
+          const titleCmp = aTitle.localeCompare(bTitle);
+          if (titleCmp !== 0) return titleCmp;
+          return b.updatedAt - a.updatedAt;
+        });
+      }
+    }
   }
 
   async rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing> {

@@ -597,7 +597,34 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
     expect(result).toMatchObject({ ok: true, value: maps });
   });
 
-  it("returns VALIDATION_FAILED when courseId is missing", async () => {
+  it("resolves with { ok: true, value: [] } when called without courseId (cross-course list)", async () => {
+    // courseId is now optional — omitting it returns maps across all courses.
+    const log = makeFakeLogger();
+    const services = makeServices({}, { list: async () => [] });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, {});
+    expect(result).toMatchObject({ ok: true, value: [] });
+    expect(services.conceptMaps.list).toHaveBeenCalledOnce();
+  });
+
+  it("resolves with sort param forwarded to service", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices({}, { list: async () => [] });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { sort: "coverage" });
+    expect(result).toMatchObject({ ok: true, value: [] });
+    expect(services.conceptMaps.list).toHaveBeenCalledOnce();
+  });
+
+  it("returns VALIDATION_FAILED when sort value is invalid", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -605,7 +632,7 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
     const handler = handlers.get("praxis.conceptMaps.list");
     expect(handler).toBeDefined();
 
-    const result = await handler?.({}, {});
+    const result = await handler?.({}, { sort: "invalid-sort" });
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
     expect(services.conceptMaps.list).not.toHaveBeenCalled();
   });

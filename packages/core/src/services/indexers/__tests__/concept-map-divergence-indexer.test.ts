@@ -222,6 +222,8 @@ function makeSummary(): ConceptMapSummary {
     hasDivergences: false,
     createdAt: Date.now() as Timestamp,
     updatedAt: Date.now() as Timestamp,
+    linkedNodeCount: 0,
+    totalNodeCount: 0,
   };
 }
 

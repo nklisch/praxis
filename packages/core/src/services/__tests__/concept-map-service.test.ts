@@ -1,4 +1,4 @@
-import { notes as notesTable } from "@praxis/artifacts/schema";
+import { courses as coursesTable, notes as notesTable } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
 import { configuratorSnapshots } from "@praxis/core/schema";
 import { describe, expect, it } from "vitest";
@@ -38,6 +38,37 @@ const STUDENT_A = brandId<"StudentId">("student-a") as StudentId;
 const COURSE_X = brandId<"CourseId">("course-x") as CourseId;
 const COURSE_Y = brandId<"CourseId">("course-y") as CourseId;
 const SESSION_1 = brandId<"SessionId">("session-1") as SessionId;
+
+/** A scene with 2 text nodes (shape:1, shape:2) using the props.text format. */
+const SCENE_TWO_NODES = {
+  store: {
+    "shape:n1": { id: "shape:n1", type: "text", props: { text: "Alpha" } },
+    "shape:n2": { id: "shape:n2", type: "text", props: { text: "Beta" } },
+  },
+} as unknown as TldrawSnapshot;
+
+/** A scene with 1 geo node. */
+const SCENE_ONE_NODE = {
+  store: {
+    "shape:n3": { id: "shape:n3", type: "geo", props: { text: "Gamma" } },
+  },
+} as unknown as TldrawSnapshot;
+
+/** ConceptLinks with one "linked" and one "best_guess" for SCENE_TWO_NODES. */
+const LINKS_LINKED: ConceptLink[] = [
+  {
+    elementId: "shape:n1",
+    conceptId: brandId<"ConceptId">("c-1"),
+    confidence: 1.0,
+    linkState: "linked",
+  },
+  {
+    elementId: "shape:n2",
+    conceptId: brandId<"ConceptId">("c-2"),
+    confidence: 0.7,
+    linkState: "best_guess",
+  },
+];
 
 const _SCENE_EMPTY = {} as TldrawSnapshot;
 const SCENE_A = {
@@ -148,6 +179,149 @@ describe("ConceptMapServiceImpl", () => {
       await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Course X Map" });
       const others = await service.list({ studentId: STUDENT_A, courseId: COURSE_Y });
       expect(others).toHaveLength(0);
+    });
+
+    it("summary includes linkedNodeCount and totalNodeCount", async () => {
+      const { service } = makeService();
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Coverage Map",
+      });
+      // Update scene: 2 text nodes, 1 linked
+      await service.updateScene({ id: map.id, scene: SCENE_TWO_NODES, conceptLinks: LINKS_LINKED });
+
+      const [summary] = await service.list({ studentId: STUDENT_A, courseId: COURSE_X });
+      expect(summary?.totalNodeCount).toBe(2);
+      expect(summary?.linkedNodeCount).toBe(1);
+    });
+
+    it("returns 0/0 coverage for a new map with empty scene", async () => {
+      const { service } = makeService();
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Empty Map" });
+      const [summary] = await service.list({ studentId: STUDENT_A, courseId: COURSE_X });
+      expect(summary?.totalNodeCount).toBe(0);
+      expect(summary?.linkedNodeCount).toBe(0);
+    });
+
+    it("cross-course list: omitting courseId returns all maps for the student", async () => {
+      const { service } = makeService();
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Map X" });
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_Y, title: "Map Y" });
+
+      const all = await service.list({ studentId: STUDENT_A });
+      expect(all).toHaveLength(2);
+      const titles = all.map((s) => s.title).sort();
+      expect(titles).toEqual(["Map X", "Map Y"]);
+    });
+
+    it("sort=coverage: orders by linkedNodeCount/totalNodeCount descending", async () => {
+      const { service } = makeService();
+
+      // Map A: 1/2 covered (50%)
+      const mapA = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Map A" });
+      await service.updateScene({ id: mapA.id, scene: SCENE_TWO_NODES, conceptLinks: LINKS_LINKED });
+
+      // Small delay so updatedAt differs.
+      await new Promise((r) => setTimeout(r, 5));
+
+      // Map B: 1/1 covered (100%)
+      const mapB = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Map B" });
+      await service.updateScene({
+        id: mapB.id,
+        scene: SCENE_ONE_NODE,
+        conceptLinks: [
+          { elementId: "shape:n3", conceptId: brandId<"ConceptId">("c-3"), confidence: 1.0, linkState: "linked" },
+        ],
+      });
+
+      const summaries = await service.list({ studentId: STUDENT_A, courseId: COURSE_X, sort: "coverage" });
+      expect(summaries).toHaveLength(2);
+      // Map B (100%) should come before Map A (50%).
+      expect(summaries[0]?.title).toBe("Map B");
+      expect(summaries[1]?.title).toBe("Map A");
+    });
+
+    it("sort=coverage: maps with totalNodeCount=0 sort last", async () => {
+      const { service } = makeService();
+
+      // Map A: 1/2 covered
+      const mapA = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Map A" });
+      await service.updateScene({ id: mapA.id, scene: SCENE_TWO_NODES, conceptLinks: LINKS_LINKED });
+
+      // Map B: empty scene (0/0)
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Map Empty" });
+
+      const summaries = await service.list({ studentId: STUDENT_A, courseId: COURSE_X, sort: "coverage" });
+      expect(summaries).toHaveLength(2);
+      expect(summaries[0]?.title).toBe("Map A");
+      expect(summaries[1]?.title).toBe("Map Empty");
+    });
+
+    it("sort=course: orders by courseId (fallback when no course row) then updatedAt desc", async () => {
+      const { service } = makeService();
+
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Alpha" });
+      await new Promise((r) => setTimeout(r, 5));
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_Y, title: "Beta" });
+
+      // COURSE_X = "course-x", COURSE_Y = "course-y" — "course-x" < "course-y" alphabetically.
+      const summaries = await service.list({ studentId: STUDENT_A, sort: "course" });
+      expect(summaries).toHaveLength(2);
+      expect(summaries[0]?.courseId).toBe(COURSE_X);
+      expect(summaries[1]?.courseId).toBe(COURSE_Y);
+    });
+
+    it("sort=course: uses course title when course row exists", async () => {
+      const { service, db } = makeService();
+      const now = new Date();
+
+      // Insert course rows so sort=course can look up titles.
+      db.insert(coursesTable).values({
+        id: COURSE_X,
+        studentId: STUDENT_A,
+        title: "Zebra Course",
+        subject: "science",
+        gradeLevel: "9-12",
+        sourceJson: { kind: "bootstrapped", sourceMaterials: [] },
+        conceptGraphId: "cg-sort-test",
+        thresholdsJson: { conceptMastery: 0.8 },
+        createdAt: now,
+        updatedAt: now,
+      }).run();
+      db.insert(coursesTable).values({
+        id: COURSE_Y,
+        studentId: STUDENT_A,
+        title: "Alpha Course",
+        subject: "math",
+        gradeLevel: "9-12",
+        sourceJson: { kind: "bootstrapped", sourceMaterials: [] },
+        conceptGraphId: "cg-sort-test-2",
+        thresholdsJson: { conceptMastery: 0.8 },
+        createdAt: now,
+        updatedAt: now,
+      }).run();
+
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Map X" });
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_Y, title: "Map Y" });
+
+      // "Alpha Course" < "Zebra Course", so COURSE_Y maps come first.
+      const summaries = await service.list({ studentId: STUDENT_A, sort: "course" });
+      expect(summaries).toHaveLength(2);
+      expect(summaries[0]?.courseId).toBe(COURSE_Y); // Alpha Course
+      expect(summaries[1]?.courseId).toBe(COURSE_X); // Zebra Course
+    });
+
+    it("sort=recent (default) is consistent with omitting sort", async () => {
+      const { service } = makeService();
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Old" });
+      await new Promise((r) => setTimeout(r, 5));
+      await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "New" });
+
+      const implicit = await service.list({ studentId: STUDENT_A, courseId: COURSE_X });
+      const explicit = await service.list({ studentId: STUDENT_A, courseId: COURSE_X, sort: "recent" });
+      expect(implicit.map((s) => s.title)).toEqual(explicit.map((s) => s.title));
+      expect(implicit[0]?.title).toBe("New");
     });
   });
 

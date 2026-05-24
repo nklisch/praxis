@@ -64,12 +64,16 @@ export function registerConceptMapsHandlers(services: Services, log: Logger): vo
     handleEnvelope(
       "praxis.conceptMaps.list",
       log,
-      z.object({ courseId: z.string().min(1, "courseId") }),
+      z.object({
+        courseId: z.string().optional(),
+        sort: z.enum(["recent", "coverage", "course"]).optional(),
+      }),
       async (opts) => {
         const studentId = getStudentId(services);
         return services.conceptMaps.list({
           studentId,
-          courseId: opts.courseId as CourseId,
+          ...(opts.courseId !== undefined && { courseId: opts.courseId as CourseId }),
+          sort: opts.sort,
         });
       },
     ),

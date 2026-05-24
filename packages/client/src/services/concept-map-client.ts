@@ -41,10 +41,13 @@ export class ConceptMapClient implements ConceptMapClientApi {
     return unwrapEnvelope(result);
   }
 
-  async list(input: { courseId: CourseId }): Promise<ConceptMapSummary[]> {
+  async list(input?: {
+    courseId?: CourseId;
+    sort?: "recent" | "coverage" | "course";
+  }): Promise<ConceptMapSummary[]> {
     const result = await this.transport.invoke<
       IpcEnvelope<ConceptMapSummary[]> | ConceptMapSummary[]
-    >(`${C}.list`, input);
+    >(`${C}.list`, input ?? {});
     return unwrapEnvelope(result);
   }
 

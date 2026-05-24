@@ -49,6 +49,8 @@ export function ConceptMapsListRoute() {
         hasDivergences: false,
         createdAt: newMap.createdAt,
         updatedAt: newMap.updatedAt,
+        linkedNodeCount: 0,
+        totalNodeCount: 0,
       },
       ...(prev ?? []),
     ]);

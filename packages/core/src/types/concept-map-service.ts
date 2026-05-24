@@ -21,10 +21,18 @@ export interface ConceptMapService {
   get(id: ConceptMapId): Promise<ConceptMapDrawing | null>;
 
   /**
-   * List summaries for a (student, course) — many-maps-per-course model.
-   * Ordered by updatedAt descending.
+   * List summaries for a student. When `courseId` is provided, filters to
+   * that course; omitting it returns maps across all courses. The `sort`
+   * parameter controls order: `"recent"` (default, updatedAt desc),
+   * `"coverage"` (desc by linkedNodeCount/totalNodeCount), or `"course"`
+   * (asc courseTitle then updatedAt desc). Each summary includes
+   * `linkedNodeCount` and `totalNodeCount` pre-computed.
    */
-  list(input: { studentId: StudentId; courseId: CourseId }): Promise<ConceptMapSummary[]>;
+  list(input: {
+    studentId: StudentId;
+    courseId?: CourseId;
+    sort?: "recent" | "coverage" | "course";
+  }): Promise<ConceptMapSummary[]>;
 
   /** Rename a map. Bumps updatedAt. */
   rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing>;
@@ -125,7 +133,10 @@ export interface ConceptMapService {
 export interface ConceptMapClientApi {
   create(input: { courseId: CourseId; title: string }): Promise<ConceptMapDrawing>;
   get(id: ConceptMapId): Promise<ConceptMapDrawing | null>;
-  list(input: { courseId: CourseId }): Promise<ConceptMapSummary[]>;
+  list(input?: {
+    courseId?: CourseId;
+    sort?: "recent" | "coverage" | "course";
+  }): Promise<ConceptMapSummary[]>;
   rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing>;
   delete(id: ConceptMapId): Promise<void>;
   updateScene(input: {

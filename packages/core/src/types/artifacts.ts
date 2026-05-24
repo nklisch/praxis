@@ -520,6 +520,10 @@ export interface ConceptMapSummary {
   readonly hasDivergences: boolean;
   readonly createdAt: Timestamp;
   readonly updatedAt: Timestamp;
+  /** Count of conceptLinks with linkState === "linked". */
+  readonly linkedNodeCount: number;
+  /** Count of text-bearing shapes in the scene (denominator for coverage %). */
+  readonly totalNodeCount: number;
 }
 
 export interface ConceptMapDivergence {
