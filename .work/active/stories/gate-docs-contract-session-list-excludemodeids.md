@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-session-list-excludemodeids
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -46,3 +46,8 @@ hide `configure` sessions.
 
 ## Implementation notes
 Expanded the single-line `list(opts?:...)` declaration in `docs/CONTRACT.md` (actual line 1263, ±5 from story's 1258 due to prior sibling edit) into the multi-line form matching `session-client.ts:33-37`, and added a prose sentence explaining that `excludeModeIds` is filtered at the DB layer before `limit` is applied and that the library catalog uses `["configure"]`. `pnpm typecheck` passed with no errors.
+
+## Review
+Verdict: **done** (no blockers).
+
+Cross-check against `packages/core/src/types/session-client.ts:33-37` confirms the multi-line signature in CONTRACT.md is an exact match — `includeEnded?`, `limit?`, and `excludeModeIds?` in the same order. The accompanying prose sentence correctly describes the DB-layer filtering and the `["configure"]` catalog use-case. No findings.
