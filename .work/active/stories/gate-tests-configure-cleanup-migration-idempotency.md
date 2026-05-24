@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-cleanup-migration-idempotency
 kind: story
-stage: implementing
+stage: review
 tags: [testing, db]
 parent: null
 depends_on: []
@@ -42,3 +42,30 @@ it("0025 deletes configure sessions and is idempotent on re-run", async () => {
 
 ## Test location (suggested)
 `tests/db/configure-cleanup-migration.test.ts` (new) using `useTempDb`
+
+## Implementation notes
+
+**Test file**: `tests/db/configure-cleanup-migration.test.ts` (160 lines)
+
+**Approach**: `useTempDb()` applies all migrations (including 0025). Tests then
+insert fresh rows into the fully-migrated DB and re-execute the migration's SQL
+directly via `better-sqlite3`'s `prepare().run()`. This is the correct approach
+because Drizzle's `__drizzle_migrations` tracker prevents re-running the same
+migration file, but the test can still verify the SQL's correctness and
+idempotency by running it directly.
+
+**Four test cases**:
+1. `deletes configure sessions and leaves teach sessions intact` — inserts one
+   configure and one teach session, executes the migration SQL, asserts the
+   configure row is gone and the teach row survives.
+2. `cascades episodic_events for deleted configure sessions (FK ON DELETE CASCADE)` —
+   inserts episodic_events for both sessions, runs the SQL, asserts the configure
+   session's events are cascaded (gone) and the teach session's events survive.
+3. `tabs rows referencing configure sessions are orphaned (no FK after migration 0026)` —
+   documents that tabs rows are NOT cascaded (migration 0026 dropped the FK), so
+   the tab row becomes an orphan; this is the expected post-0026 contract.
+4. `is idempotent — re-executing the SQL a second time does not throw` — runs the
+   SQL twice; first run deletes configure sessions, second run is a no-op (no rows
+   match); asserts no error and that teach sessions still survive.
+
+**Verification**: all 4 tests pass; full suite: 4749 tests passed, 0 failures.
