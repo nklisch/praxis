@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction-step-1-row-mapper
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-memory-service-bkt-extraction
 depends_on: []
@@ -81,3 +81,19 @@ Created `packages/core/src/services/memory/mastery-row-mapper.ts` (42 lines).
 - Returns stored `effectivePKnown` without decay; callers in `studentModel()` will apply `applyDecay` on top.
 - `pnpm typecheck` passes clean across all packages. All 96 core test files (1164 tests) pass without modification.
 - `memory-service.ts` not modified — Step 3 wires the integration.
+
+## Review
+
+**Verdict: done**
+
+Commit `354f6a3`. New file `mastery-row-mapper.ts` (39 lines) is a clean, pure extraction.
+
+- `StudentMasteryRow` correctly typed via `typeof studentMastery.$inferSelect` — no hand-rolled duplicate.
+- All three milli-int → float conversions (`pKnown`, `uncertainty`, `effectivePKnown`) handled correctly (`/ 1000`).
+- `conceptId` and `evidence` EventIds properly branded via `brandId<...>`.
+- `lastPracticedAt`: `Date | null → Timestamp | undefined` via `.getTime()`, spread-optional pattern is correct.
+- Returns stored `effectivePKnown` without decay — caller responsibility preserved.
+- File is strictly additive; `memory-service.ts` integration deferred to step 3 per implementation note.
+- `pnpm typecheck && pnpm test` pass: 4773 tests green.
+
+No findings. Acceptance criteria met in full.
