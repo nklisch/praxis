@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -319,3 +319,26 @@ returns `{ sessionPromotionRegistry, setSessionServiceRef, promptCustomizationSe
 ## Children complete (2026-05-24)
 
 All 10 child stories advanced to `stage: done`. Feature advanced to `stage: review`.
+
+## Review (2026-05-24)
+
+**Verdict: approved — advanced to `done`.**
+
+All 10 child stories landed cleanly:
+
+- **9 new factory files** created under `packages/desktop/electron/main/services/`:
+  `build-infra-services.ts`, `build-secret-services.ts`, `build-sandbox-services.ts`,
+  `build-embeddings-services.ts`, `build-memory-services.ts`, `build-artifacts-services.ts`,
+  `build-indexer-services.ts`, `build-workspace-services.ts`, `build-session-precursors.ts`.
+
+- **`services.ts` reduced from 721 → 379 lines** (−342 lines, −47%). `buildServices()` is
+  now a ≤200-line orchestrator that calls each factory in construction order and assembles
+  `ServiceDeps`.
+
+- **No behavioral regressions**: `pnpm typecheck` clean across all 10 packages; all 520
+  tests pass; construction order (DB-first, ref-cell closures after `SessionServiceImpl`)
+  preserved exactly.
+
+- **Constraints met**: Phase 3 exception (only `packages/core/src/services/` imports
+  `@praxis/engines` at runtime) unaffected — all new factories live in
+  `packages/desktop/electron/main/services/`.
