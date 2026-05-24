@@ -149,9 +149,18 @@
       cursor: help;
     }
 
-    /* Units — "5 cm/s" — slight small-caps treatment on the unit */
+    /* Units — "5 cm/s" — clean sans treatment, primary color, no small-caps.
+     * (Previous small-caps + secondary-color treatment read as too quiet —
+     * "hard to see" in 2026-05-24 review. Switched to a visible sans-serif
+     * inflection with a hair of weight contrast against the serif body.) */
     .units { font-feature-settings: "tnum" on; }
-    .units .unit { font-variant-caps: all-small-caps; letter-spacing: 0.06em; color: var(--color-text-secondary); margin-left: 0.15em; font-style: normal; }
+    .units .unit {
+      font-family: var(--font-sans);
+      font-size: 0.88em;
+      color: var(--color-text-primary);
+      margin-left: 0.25em;
+      font-style: normal;
+    }
 
     /* Numeric values — tabular figures for alignment */
     .num { font-feature-settings: "tnum" on, "lnum" on; }
@@ -193,11 +202,35 @@
     .figure__verdict { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-success); margin-top: var(--space-2); }
     .figure__verdict--failed { color: var(--color-danger); }
 
-    /* Pseudocode — numbered procedural steps */
+    /* Procedural steps — numbered list with mono step counter.
+     *
+     * Block layout (not grid) so step body text containing <em>/<sup>/.math-inline
+     * spans flows as normal inline content rather than each inline element becoming
+     * its own grid item (which fragments text into vertical column stacks — same
+     * bug class as the .inline-question__choice flex bug, fixed 2026-05-24 review).
+     * Counter is absolutely positioned in the left padding zone. */
     .procedure { counter-reset: step; padding: 0; margin: var(--space-3) 0; list-style: none; }
-    .procedure li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); align-items: baseline; }
+    .procedure li {
+      counter-increment: step;
+      display: block;
+      position: relative;
+      padding: var(--space-3) 0 var(--space-3) calc(28px + var(--space-3));
+      border-bottom: 1px solid var(--color-border);
+      line-height: var(--line-height-loose);
+    }
     .procedure li:last-child { border-bottom: 0; }
-    .procedure li::before { content: counter(step); font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text-tertiary); text-align: right; padding-top: 2px; }
+    .procedure li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: calc(var(--space-3) + 0.35em);
+      width: 28px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text-tertiary);
+    }
 
     /* Block quote / sourced passage */
     .passage {

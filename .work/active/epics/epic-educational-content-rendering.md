@@ -67,6 +67,56 @@ The work was sourced from a mockup-review session on 2026-05-24 that surfaced fo
 - `.mockups/design-system/components.html` § Chat surface — existing components the new treatments will sit alongside. No changes here in this epic; the new content-type primitives append.
 - `.mockups/design-system/streaming.html` — locked direction for chat-text streaming (medium pace × word chunks × gentle 480ms fade). Math renders post-settle per Strategic decisions; child feature 1 implements that interaction.
 
+## Agent contract — markup conventions + parser strategy
+
+*(Captured 2026-05-24 from user feedback during content-types.html review: "all of this will require either special instructions to the agent and/or special parsers.")*
+
+Every treatment in this epic is useless without the connective tissue between agent output and renderer. Each content type needs ONE of: (a) standard markdown the agent already produces, (b) Praxis markdown extension the agent learns via system-prompt instruction, (c) tool-result structured data the agent emits, or (d) renderer post-pass auto-detection. The full mapping below sets the contract child features 1-3 implement.
+
+| Content type | Agent markup | Parser / renderer |
+|---|---|---|
+| Inline math | `$f(x) = x^2$` (LaTeX) | Existing KaTeX (Phase 13) — extend wiring to question prompts, course materials, flashcards, notes |
+| Display math | `$$\frac{dV}{dt} = ...$$` (LaTeX) | Same — KaTeX block render on settle |
+| Bare math glyphs | None — agent forgot to wrap | Renderer post-pass — unicode codepoint table wraps each loose char in `<span class="math-glyph">` |
+| Inline code | \`identifier\` (markdown) | Existing markdown — no new work |
+| Code block | \`\`\`lang ... \`\`\` (markdown) | Existing markdown + Shiki/Prism syntax tokens |
+| File paths | New Praxis extension: `[[packages/core/src/foo.ts]]` OR auto-detect `\b\w+/\w+/[\w.-]+\.\w+\b` | Markdown extension processor → `.file-path` class |
+| Citations | Tool call (existing `citation` tool emits structured `tool_result`) | Renderer reads citation events, inserts `.citation-chip` chips inline at the position the tool was called |
+| Block passages | `> ` block-quote (markdown) with attribution via `— source` line | Existing markdown; renderer maps block-quote with terminal `—` line to `.passage` + `.passage__cite` |
+| First-introduction definitions | Markdown extension: `[[def:derivative]]` OR `:term:derivative:` | Markdown extension; renderer tracks "first occurrence" per session and emits `.definition` only on first mention |
+| Concept refs | Markdown link with custom scheme: `[chain rule](concept:chain-rule)` | Link-scheme handler — renderer maps `concept:` href to `.concept-ref` + side-panel-open click handler |
+| Glossary terms | HTML5 semantic: `<abbr title="...">term</abbr>` | Existing browser semantic; renderer adds `.glossary` class |
+| Theorem / lemma / hint / warning callouts | GitHub admonition syntax: `> [!theorem]`, `> [!lemma]`, `> [!hint]`, `> [!warning]` | Markdown extension processor — maps to `.callout--theorem` / `--lemma` / `--hint` / `--warning` |
+| Worked-example figures | Container directive: `::: figure {caption="fig. 1 · ..." verdict="ok"}` ... `:::` | Markdown container-directive extension (CommonMark spec) — maps to `.figure` chassis |
+| Procedural steps | Markdown numbered list `1. ... 2. ...` inside a `> [!steps]` admonition OR class-tagged list `1.{.procedure}` | Either GitHub-admonition extension OR markdown attribute-list extension |
+| Units | Auto-detect: regex over text for `<number><unit>` patterns against a unit table (SI + common imperial + Praxis domain units) | Renderer post-pass; agent doesn't markup. Configurable per-mode in `@praxis/curriculum` to disable for prose-heavy modes if false positives appear |
+| Numerical (tabular figures) | Auto-applied inside `<table>` and `.procedure` numeric columns; explicit `<span class="num">` available for inline use | Renderer post-pass; `.num` class applied automatically where numbers should align |
+| Diagrams | Existing tldraw / sketch tool output renders into the chat thread as `<SubAgentBlock>`-style cards | Existing tool-result rendering; no new work |
+
+### Implementation strategy
+
+The renderer becomes a small pipeline running in order on each chat turn body once the streaming-tail has settled:
+
+1. **Markdown parse with Praxis extensions** — math (KaTeX), GitHub admonitions, container directives, link-scheme handlers, attribute lists.
+2. **Tool-result splice** — citations, figures, diagrams, sub-agent blocks already emitted as structured events; renderer inserts their rendered forms at the position the agent referenced them.
+3. **Post-render passes** — bare-glyph math wrapping, unit auto-detection, first-introduction definition tracking, number-tabular-figure application.
+
+The pipeline is the entire surface of feature 1 (math primary path) + feature 3 (educational-content typography); feature 2 (mode-aware constraints) feeds the AGENT side via the system prompt fragment that interpolates per-mode caps AND lists the available markup conventions.
+
+### Agent prompt fragment scope
+
+The mode prompt fragment that introduces the question tool grows beyond just per-mode caps + LaTeX instruction. It becomes the canonical "how to write educational content" reference the agent reads each turn. Sections:
+
+1. **Length constraints** — per-mode caps for question prompts and choices (from feature 2).
+2. **Math** — wrap in `$...$` or `$$...$$`; bare unicode glyphs are auto-styled but the agent should wrap for full math typesetting.
+3. **Citations** — call the citation tool with `source_id` + `passage`; do NOT inline-write `[Stewart §3.5]` markup (the tool emits the chip).
+4. **Definitions** — wrap first-introduction terms in `[[def:term-name]]`; the renderer styles the FIRST occurrence and reverts subsequent mentions to plain prose.
+5. **Callouts** — use GitHub admonition syntax for theorems / lemmas / hints / pitfalls; one register per moment.
+6. **Concept references** — link with `concept:` scheme (`[chain rule](concept:chain-rule)`).
+7. **Figures** — for worked examples, use `::: figure` directive with caption + verdict.
+
+These are documented once in the fragment; the agent reads them every turn alongside the per-mode caps. Feature 2's design pass owns the final fragment text; the bullet list above is the input.
+
 ## Risks and open questions
 
 - **`docs/SPEC.md` may need a per-mode-question-constraints addition** during feature 2's implementation — the spec currently describes question tools but not their length contracts. Roll-forward at feature-implementation time, not at scope.
