@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inline question · responsive showcase · feature-question-panel-rework</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/motion.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; flex: 1; }
+    .mock-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    body { margin: 0; background: #1a1a18; color: #ebebe6; font: var(--font-size-sm)/1.4 system-ui, sans-serif; min-height: 100vh; }
+
+    .showcase-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 16px; }
+    @media (max-width: 1100px) { .showcase-grid { grid-template-columns: 1fr; } }
+
+    .frame { background: var(--color-bg-primary); border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px #2c2c28; display: flex; flex-direction: column; }
+    .frame__label { background: #2c2c28; padding: 10px 14px; display: flex; gap: 12px; align-items: baseline; }
+    .frame__label__pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ebebe6; padding: 3px 8px; background: rgba(155, 58, 44, 0.4); border-radius: 12px; }
+    .frame__label__desc { color: #b1b6bd; font-size: 12px; flex: 1; }
+    .frame__label__width { color: #8d8b82; font-family: var(--font-mono); font-size: 11px; }
+    .frame__body { padding: 24px; flex: 1; min-height: 620px; color: var(--color-text-primary); }
+
+    .key { padding: 24px; background: #2c2c28; margin: 16px; border-radius: 4px; font: italic 13px/1.55 var(--font-body); color: #b1b6bd; }
+    .key strong { font-style: normal; color: #ebebe6; font-weight: 600; }
+    .key code { font: 12px/1 var(--font-mono); background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Inline question · responsive showcase</strong>
+    <span>same multi-select question, three container widths · same component classes, same DOM, container-query adaptation</span>
+    <a href="index.html">← all states</a>
+  </header>
+
+  <div class="showcase-grid">
+    <!-- WIDE -->
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">wide</span><span class="frame__label__desc">teach window default</span><span class="frame__label__width">720px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--wide">
+          <div class="inline-question">
+            <div class="inline-question__kicker">
+              <span class="inline-question__kicker__glyph">?</span>tutor asked
+              <span class="badge badge--info">select all that apply</span>
+            </div>
+            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <div class="inline-question__choices">
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters in general</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It's a special case of the product rule</label>
+            </div>
+            <div class="inline-question__free-form">
+              <label class="inline-question__free-form__label">or, in your own words</label>
+              <textarea class="inline-question__free-form__input" placeholder="…something else?"></textarea>
+            </div>
+            <div class="inline-question__actions">
+              <button class="btn btn-primary">Submit ↵</button>
+              <button class="btn btn-ghost">↑ clarify in chat</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEDIUM -->
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">medium</span><span class="frame__label__desc">course-create panel</span><span class="frame__label__width">560px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--medium">
+          <div class="inline-question">
+            <div class="inline-question__kicker">
+              <span class="inline-question__kicker__glyph">?</span>tutor asked
+              <span class="badge badge--info">select all that apply</span>
+            </div>
+            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <div class="inline-question__choices">
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters in general</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It's a special case of the product rule</label>
+            </div>
+            <div class="inline-question__free-form">
+              <label class="inline-question__free-form__label">or, in your own words</label>
+              <textarea class="inline-question__free-form__input" placeholder="…something else?"></textarea>
+            </div>
+            <div class="inline-question__actions">
+              <button class="btn btn-primary">Submit ↵</button>
+              <button class="btn btn-ghost">↑ clarify in chat</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NARROW -->
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">narrow</span><span class="frame__label__desc">mobile / sidebar tutor</span><span class="frame__label__width">380px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--narrow">
+          <div class="inline-question">
+            <div class="inline-question__kicker">
+              <span class="inline-question__kicker__glyph">?</span>tutor asked
+              <span class="badge badge--info">select all that apply</span>
+            </div>
+            <p class="inline-question__prompt">Which statements about <em>(f ∘ g)'(x)</em> are correct?</p>
+            <div class="inline-question__choices">
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters in general</label>
+              <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em></label>
+              <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It's a special case of the product rule</label>
+            </div>
+            <div class="inline-question__free-form">
+              <label class="inline-question__free-form__label">or, in your own words</label>
+              <textarea class="inline-question__free-form__input" placeholder="…something else?"></textarea>
+            </div>
+            <div class="inline-question__actions">
+              <button class="btn btn-primary">Submit ↵</button>
+              <button class="btn btn-ghost">↑ clarify in chat</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="key">
+    <strong>What's adapting:</strong> identical markup across all three frames — same <code>.inline-question</code>, same <code>.inline-question__choice</code> elements, same <code>.btn-primary</code> + <code>.btn-ghost</code> action row. The only difference is the wrapper modifier (<code>--wide</code> / <code>--medium</code> / <code>--narrow</code>). Container queries on <code>.chat-surface</code> handle: tighter padding at <code>medium</code>; <strong>action row stacks vertically at <code>narrow</code></strong> so Submit and clarify-in-chat each get a full-width tap target. The kicker badge wraps to its own line at narrow widths naturally via <code>flex-wrap</code>. The choice list stays single-column at every width — vertical stack is the right answer for question choices regardless of size.
+  </div>
+</body>
+</html>

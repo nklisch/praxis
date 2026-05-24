@@ -1238,3 +1238,790 @@ body {
   padding-top: var(--space-6);
   margin-top: var(--space-6);
 }
+
+/* ─── Tier 2: chat-surface ────────────────────────────────────────────── */
+
+/* Container-aware chat surface that hosts the whole chat thread + composer.
+ * Every chat-bearing context (teach window, course-create panel, future
+ * sidebar tutor, mobile) wraps its content in .chat-surface so the
+ * downstream components (.chat-turn, .inline-question, .action-card, .composer)
+ * adapt via container queries rather than per-context overrides.
+ *
+ * Usage:
+ *   <div class="chat-surface chat-surface--wide">  // teach window default
+ *     <main>...thread + composer...</main>
+ *   </div>
+ *
+ * Modifiers tune defaults; container queries on inner components do the
+ * adaptive work. Inner components MUST NOT use viewport media queries —
+ * they use @container against this wrapper. */
+.chat-surface {
+  container-type: inline-size;
+  container-name: chat;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.chat-surface--wide { max-width: 720px; }
+.chat-surface--medium { max-width: 560px; }   /* course-create panel */
+.chat-surface--narrow { max-width: 380px; }   /* future mobile / sidebar tutor */
+
+/* ─── Tier 2: chat-turn ───────────────────────────────────────────────── */
+
+/* Generic chat-thread turn — the conversational unit shared by every chat
+ * surface in Praxis (teach, course-create, configure, study-skills, future
+ * sidebar tutor). Roles: tutor (editorial prose, no indent) / student
+ * (italic, accent-muted left border + indent) / queued (italic, dashed
+ * border + opacity-0.62, awaiting dispatch) / failed (danger border + badge,
+ * full opacity to surface).
+ *
+ * Streaming state is conveyed by appending a .chat-turn__streaming badge
+ * to the speaker line, NOT by a turn-level class — same turn renders
+ * streaming → settled with no DOM swap. */
+.chat-turn {
+  margin-bottom: var(--space-6);
+}
+.chat-turn__speaker {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.chat-turn__when {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+.chat-turn__streaming {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.chat-turn__streaming::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: chat-pulse var(--dur-pulse) var(--ease-linear) infinite;
+}
+.chat-turn__body {
+  margin: 0;
+}
+.chat-turn__cursor::after {
+  content: "▍";
+  color: var(--color-accent);
+  animation: chat-blink 900ms steps(1) infinite;
+  margin-left: 1px;
+}
+
+/* Role variants */
+.chat-turn--tutor .chat-turn__body {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-loose);
+  color: var(--color-text-primary);
+}
+.chat-turn--student {
+  padding-left: var(--space-6);
+  border-left: 2px solid var(--color-accent-muted);
+}
+.chat-turn--student .chat-turn__body {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+}
+.chat-turn--queued {
+  padding-left: var(--space-6);
+  border-left: 2px dashed var(--color-border-strong);
+  opacity: 0.62;
+  position: relative;
+  animation: chat-rise-in var(--dur-quick) var(--ease-standard);
+}
+.chat-turn--queued .chat-turn__body {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+}
+.chat-turn--failed {
+  padding-left: var(--space-6);
+  border-left: 3px solid var(--color-danger);
+  opacity: 1;
+  position: relative;
+}
+.chat-turn--failed .chat-turn__speaker {
+  color: var(--color-danger);
+}
+.chat-turn--failed .chat-turn__body {
+  font-family: var(--font-body);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* Inline pieces inside the speaker row */
+.chat-turn__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  padding: 2px var(--space-2);
+  font-size: 9px;
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.chat-turn__badge--failed {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+  border-color: var(--color-danger);
+}
+.chat-turn__position {
+  position: absolute;
+  left: -10px;
+  top: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 12px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+.chat-turn--failed .chat-turn__position {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
+/* Actions row beneath a queued/failed turn (edit / remove / retry / discard) */
+.chat-turn__actions {
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.chat-turn__action {
+  background: transparent;
+  border: 0;
+  padding: var(--space-1) 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: var(--t-quick);
+}
+.chat-turn__action:hover { color: var(--color-text-primary); }
+.chat-turn__action--danger:hover { color: var(--color-danger); }
+.chat-turn__action--primary {
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+}
+.chat-turn__error-reason {
+  margin-top: var(--space-1);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+/* ─── Tier 2: composer extensions (composes against existing .composer*) ─ */
+
+/* Stop variant of .composer__send — visually inverted (background secondary,
+ * border-strong, danger-colored stop glyph) so the role swap from Send is
+ * immediate-but-quiet. Same footprint as .composer__send.
+ *
+ * Toggling between Send and Stop happens by toggling this modifier class on
+ * the single button element — no DOM swap, no width change. */
+.composer__send--stop {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+.composer__send--stop:hover { background: var(--color-bg-tertiary); }
+
+/* Composer hint strip carries an .composer__status pip that signals idle /
+ * streaming / queue depth. */
+.composer__status {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-text-tertiary);
+}
+.composer__status--streaming { color: var(--color-accent); }
+.composer__status--failed { color: var(--color-danger); }
+.composer__status__pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.composer__status--streaming .composer__status__pip {
+  animation: chat-pulse var(--dur-pulse) var(--ease-linear) infinite;
+}
+
+/* The composer hint strip splits into two slots (kbd hints left, status right). */
+.composer__hints--split {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+/* ─── Tier 2: inline-question (mid-thread quick-check / structured-question) ─ */
+
+/* Single shared chassis for in-chat questions. Two semantic variants:
+ *   --quick-check    (teach modality: formative probe, has correctIndex)
+ *   --structured     (configure / course-create: disambiguation, no correctIndex)
+ * Two choice-mode variants (controlled by inner controls, not class):
+ *   single-select    → .inline-question__choice contains <input type="radio">
+ *   multi-select     → .inline-question__choice contains <input type="checkbox">
+ *                      AND the card carries a "select all" badge in the kicker.
+ *
+ * For a SET of N questions rendered in one card (paged display), wrap them in
+ * an .inline-question-set and use the existing .tabs / .tab primitives for
+ * the paging chrome. */
+.inline-question {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-6);
+  margin: var(--space-4) 0;
+  transition: opacity var(--dur-ambient) var(--ease-standard),
+    transform var(--dur-ambient) var(--ease-standard);
+}
+.inline-question--dismissed {
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  max-height: 0;
+  padding: 0 var(--space-6);
+  margin: 0;
+  border-color: transparent;
+  overflow: hidden;
+}
+.inline-question__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.inline-question__kicker__glyph {
+  color: var(--tint-teach);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+.inline-question__prompt {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-primary);
+}
+.inline-question__choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+.inline-question__choice {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  transition: var(--t-quick);
+}
+.inline-question__choice:hover { background: var(--color-bg-tertiary); }
+.inline-question__choice--selected { background: var(--color-accent-muted); }
+.inline-question__indicator {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--color-border-strong);
+  flex-shrink: 0;
+  position: relative;
+}
+.inline-question__indicator--radio { border-radius: 50%; }
+.inline-question__indicator--check { border-radius: var(--radius-sm); }
+.inline-question__choice--selected .inline-question__indicator { border-color: var(--color-accent); }
+.inline-question__choice--selected .inline-question__indicator--radio::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.inline-question__choice--selected .inline-question__indicator--check::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+.inline-question__free-form {
+  margin: var(--space-1) 0 var(--space-3);
+}
+.inline-question__free-form__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1-5);
+}
+.inline-question__free-form__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  resize: vertical;
+  min-height: 56px;
+  outline: none;
+  transition: var(--t-quick);
+}
+.inline-question__free-form__input::placeholder { color: var(--color-text-tertiary); }
+.inline-question__free-form__input:focus {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-secondary);
+}
+
+.inline-question__actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Set wrapper for paged N-question display. Uses existing .tabs / .tab. */
+.inline-question-set {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin: var(--space-4) 0;
+  overflow: hidden;
+}
+.inline-question-set__head {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.inline-question-set__head__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+.inline-question-set__head__progress {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-left: auto;
+}
+.inline-question-set__body {
+  /* The current question renders here with .inline-question, minus the
+   * card chassis (the set already provides it). Use --bare modifier. */
+}
+.inline-question--bare {
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+}
+
+/* ─── Tier 2: thread-chip (resolved-question summary in chat history) ───── */
+
+/* One-line bubble that replaces a resolved/dismissed inline-question in the
+ * chat history. Two variants:
+ *   --answered (default): brick accent left border, "you answered" verb
+ *   --dismissed: neutral border, "you asked to discuss in chat" verb */
+.thread-chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-1-5) var(--space-3) var(--space-1-5) var(--space-2);
+  margin: var(--space-1) 0 var(--space-1) var(--space-6);
+  background: var(--color-bg-tertiary);
+  border-left: 2px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  max-width: fit-content;
+  transition: var(--t-quick);
+  animation: chat-rise-in var(--dur-quick) var(--ease-standard);
+}
+.thread-chip:hover {
+  background: var(--color-accent-muted);
+  color: var(--color-text-primary);
+}
+.thread-chip__glyph {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-accent);
+}
+.thread-chip__verb {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-style: normal;
+}
+.thread-chip__answer {
+  color: var(--color-text-primary);
+  font-style: italic;
+}
+.thread-chip__answer::before, .thread-chip__answer::after { content: '"'; color: var(--color-text-tertiary); }
+.thread-chip__when {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-text-tertiary);
+  padding-left: var(--space-2);
+}
+.thread-chip__expand {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-text-tertiary);
+}
+.thread-chip--dismissed {
+  border-left-color: var(--color-text-tertiary);
+}
+.thread-chip--dismissed .thread-chip__glyph { color: var(--color-text-tertiary); }
+.thread-chip--dismissed:hover { background: var(--color-bg-tertiary); }
+
+/* ─── Tier 2: action-card (in-chat affordance triggering engine work) ──── */
+
+/* A bordered card mid-thread offering a user-initiated action that fires
+ * an engine job (materialize a draft, save thread to notes, generate
+ * flashcards, etc). The PRINCIPLE: clicking the button does not disable
+ * the button — instead an .action-pip appears beside it indicating pending
+ * state. Result lands wherever it lands (next chat turn, side panel, new tab).
+ *
+ * This is the canonical optimistic-dispatch + async-error shape that
+ * `feature-refactor-async-chat-interactions-audit` will spread across all
+ * in-chat affordances. */
+.action-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-6);
+  margin: var(--space-4) 0;
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-card__body { flex: 1; min-width: 200px; }
+.action-card__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1);
+}
+.action-card__title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+.action-card__action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The pip — single element, state-driven via modifier class. No squash,
+ * no overshoot (locked motion attitude: Productive — anti-notification).
+ * Only opacity and color transitions; size is constant. */
+.action-pip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-quick) var(--ease-standard),
+    background-color var(--dur-quick) var(--ease-standard),
+    color var(--dur-quick) var(--ease-standard);
+}
+.action-pip--show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.action-pip--pending {
+  background: var(--color-text-tertiary);
+  animation: chat-pulse var(--dur-pulse) var(--ease-linear) infinite;
+}
+.action-pip--pending::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-inverse);
+}
+.action-pip--success {
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+}
+.action-pip--success::after { content: "✓"; }
+.action-pip--failed {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+.action-pip--failed::after { content: "⚠"; }
+.action-pip--retrying {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+.action-pip--retrying::after {
+  content: "↺";
+  /* No spin — Productive attitude forbids decorative motion. The color
+   * change to accent is the state signal. */
+}
+
+/* ─── Tier 2: failure-popover (anchored to a failed .action-pip) ───────── */
+
+/* Appears below a clicked .action-pip--failed. Carries the error reason and
+ * retry/dismiss actions. Anchored via absolute positioning relative to
+ * .action-card__action. */
+.failure-popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-danger);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  min-width: 320px;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  animation: chat-rise-in var(--dur-quick) var(--ease-standard);
+}
+.failure-popover__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-danger);
+  margin-bottom: var(--space-2);
+}
+.failure-popover__reason {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3);
+}
+.failure-popover__reason code {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 12px;
+  background: var(--color-bg-tertiary);
+  padding: 1px var(--space-1);
+  border-radius: 3px;
+  color: var(--color-text-primary);
+}
+.failure-popover__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ─── Tier 2: status-strip (ambient activity surface — escalation tier) ── */
+
+/* Mock-side mirror of the production <StatusStrip>. Slides down from the top
+ * of the chat surface to surface a failed or long-pending action that the
+ * user hasn't addressed inline. Two-tier failure model:
+ *   tier 1 — inline at the .action-pip / .chat-turn--failed (always)
+ *   tier 2 — here, after ~30s unattended (escalation)
+ *
+ * In production this is positioned at the app-shell level, NOT inside
+ * .chat-surface. In mocks we embed it inside the surface for demo clarity. */
+.status-strip {
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  max-height: 0;
+  overflow: hidden;
+  padding: 0 var(--space-6);
+  transition: max-height var(--dur-ambient) var(--ease-standard),
+    padding var(--dur-ambient) var(--ease-standard);
+  flex-wrap: wrap;
+}
+.status-strip--active {
+  max-height: 120px;
+  padding: var(--space-2) var(--space-6);
+}
+.status-strip__pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  flex-shrink: 0;
+  animation: chat-pulse var(--dur-pulse) var(--ease-linear) infinite;
+}
+.status-strip__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-style: normal;
+}
+.status-strip__text {
+  flex: 1;
+  min-width: 200px;
+}
+.status-strip__text strong {
+  font-style: normal;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ─── Container query adaptations ─────────────────────────────────────── */
+
+/* Components inside .chat-surface adapt their layout based on the surface's
+ * inline width. Breakpoints align with the .chat-surface modifier sizes:
+ *   wide   ≥ 600px  (teach window default — no adaptation needed)
+ *   medium 420-599  (course-create panel — tighter spacing, kicker glyph
+ *                    on its own row if cramped)
+ *   narrow < 420    (mobile / sidebar — action card stacks, tab strip wraps)
+ *
+ * Inner components MUST query @container (not the viewport). */
+@container chat (max-width: 599px) {
+  .inline-question { padding: var(--space-3) var(--space-4); }
+  .inline-question__prompt { font-size: var(--font-size-base); }
+  .inline-question-set__head { padding: var(--space-2) var(--space-3); }
+  .action-card { padding: var(--space-3) var(--space-4); gap: var(--space-3); }
+  .action-card__title { font-size: var(--font-size-sm); }
+  .chat-turn { margin-bottom: var(--space-4); }
+}
+@container chat (max-width: 419px) {
+  .inline-question__actions { flex-direction: column; align-items: stretch; }
+  .action-card { flex-direction: column; align-items: stretch; }
+  .action-card__action { justify-content: flex-end; }
+  .status-strip { flex-direction: column; align-items: stretch; gap: var(--space-2); padding-top: var(--space-3); }
+  .composer__hints--split { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+  .failure-popover { min-width: auto; width: 100%; }
+}
+
+/* ─── Shared keyframes (compositor-cheap; no squash/overshoot) ────────── */
+
+/* These follow the locked Productive motion attitude in motion.css:
+ *   - Only opacity, transform-translate, background-color animate
+ *   - No scale-up overshoot (would violate anti-notification stance)
+ *   - All collapse to no-op under prefers-reduced-motion via motion.css */
+@keyframes chat-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes chat-blink {
+  50% { opacity: 0; }
+}
+@keyframes chat-rise-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Reduced-motion: every chat animation collapses to no-op. Pairs with
+ * motion.css which already collapses durations on transitions; keyframe
+ * animations need their own opt-out. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-turn__streaming::before,
+  .composer__status--streaming .composer__status__pip,
+  .action-pip--pending,
+  .status-strip__pip,
+  .chat-turn__cursor::after { animation: none; }
+  .chat-turn--queued,
+  .thread-chip,
+  .failure-popover { animation: none; }
+}

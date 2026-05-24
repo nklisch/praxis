@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Composer · responsive showcase · feature-composer-async-behavior</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/motion.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; flex: 1; }
+    .mock-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    body { margin: 0; background: #1a1a18; color: #ebebe6; font: var(--font-size-sm)/1.4 system-ui, sans-serif; min-height: 100vh; }
+
+    .showcase-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 16px; }
+    @media (max-width: 1100px) { .showcase-grid { grid-template-columns: 1fr; } }
+
+    .frame { background: var(--color-bg-primary); border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px #2c2c28; display: flex; flex-direction: column; }
+    .frame__label { background: #2c2c28; padding: 10px 14px; display: flex; gap: 12px; align-items: baseline; }
+    .frame__label__pill { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ebebe6; padding: 3px 8px; background: rgba(155, 58, 44, 0.4); border-radius: 12px; }
+    .frame__label__desc { color: #b1b6bd; font-size: 12px; flex: 1; }
+    .frame__label__width { color: #8d8b82; font-family: var(--font-mono); font-size: 11px; }
+
+    .frame__body { padding: 24px; flex: 1; min-height: 540px; color: var(--color-text-primary); }
+
+    .session-head__kicker { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-2); }
+    .session-head__kicker__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tint-teach); }
+
+    .key { padding: 24px; background: #2c2c28; margin-top: 16px; border-radius: 4px; font: italic 13px/1.55 var(--font-body); color: #b1b6bd; max-width: 80ch; margin: 16px auto; }
+    .key strong { font-style: normal; color: #ebebe6; font-weight: 600; }
+    .key code { font: 12px/1 var(--font-mono); background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Composer · responsive showcase</strong>
+    <span>same components, three container widths · adaptation via @container queries against .chat-surface · zero per-context overrides</span>
+    <a href="index.html">← all states</a>
+  </header>
+
+  <div class="showcase-grid">
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">wide</span><span class="frame__label__desc">teach window default</span><span class="frame__label__width">720px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--wide">
+          <div class="session-head__kicker"><span class="session-head__kicker__dot"></span>Teach · L3 · Calculus I</div>
+          <div class="chat-turn chat-turn--student" style="margin-top: 16px;">
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· 2m ago</span></div>
+            <p class="chat-turn__body">I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+          </div>
+          <div class="chat-turn chat-turn--tutor">
+            <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· now</span> <span class="chat-turn__streaming">streaming</span></div>
+            <p class="chat-turn__body">That's the most common starting point — let's dismantle it. Imagine a balloon inflating<span class="chat-turn__cursor"></span></p>
+          </div>
+          <div class="chat-turn chat-turn--queued">
+            <span class="chat-turn__position">1</span>
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· queued</span></div>
+            <p class="chat-turn__body">also is there a geometric intuition?</p>
+            <div class="chat-turn__actions">
+              <button class="chat-turn__action">edit</button>
+              <button class="chat-turn__action chat-turn__action--danger">remove</button>
+            </div>
+          </div>
+          <div class="composer" style="margin-top: 24px;">
+            <div class="composer__form">
+              <textarea class="composer__input" rows="1" placeholder="type next thought · ⌘↵ queues at position 2"></textarea>
+              <div class="composer__buttons">
+                <button class="composer__send composer__send--stop">■</button>
+              </div>
+            </div>
+            <div class="composer__hints composer__hints--split">
+              <span>⌘↵ queue · esc stop</span>
+              <span class="composer__status composer__status--streaming"><span class="composer__status__pip"></span>responding · 1 queued</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">medium</span><span class="frame__label__desc">course-create panel</span><span class="frame__label__width">560px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--medium">
+          <div class="session-head__kicker"><span class="session-head__kicker__dot"></span>Course-create · drafting</div>
+          <div class="chat-turn chat-turn--student" style="margin-top: 16px;">
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· 2m ago</span></div>
+            <p class="chat-turn__body">I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+          </div>
+          <div class="chat-turn chat-turn--tutor">
+            <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· now</span> <span class="chat-turn__streaming">streaming</span></div>
+            <p class="chat-turn__body">That's the most common starting point — let's dismantle it. Imagine a balloon inflating<span class="chat-turn__cursor"></span></p>
+          </div>
+          <div class="chat-turn chat-turn--queued">
+            <span class="chat-turn__position">1</span>
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· queued</span></div>
+            <p class="chat-turn__body">also is there a geometric intuition?</p>
+            <div class="chat-turn__actions">
+              <button class="chat-turn__action">edit</button>
+              <button class="chat-turn__action chat-turn__action--danger">remove</button>
+            </div>
+          </div>
+          <div class="composer" style="margin-top: 24px;">
+            <div class="composer__form">
+              <textarea class="composer__input" rows="1" placeholder="type next thought · ⌘↵ queues"></textarea>
+              <div class="composer__buttons">
+                <button class="composer__send composer__send--stop">■</button>
+              </div>
+            </div>
+            <div class="composer__hints composer__hints--split">
+              <span>⌘↵ queue · esc stop</span>
+              <span class="composer__status composer__status--streaming"><span class="composer__status__pip"></span>responding · 1 queued</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">narrow</span><span class="frame__label__desc">mobile / sidebar tutor</span><span class="frame__label__width">380px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--narrow">
+          <div class="session-head__kicker"><span class="session-head__kicker__dot"></span>Tutor · sidebar</div>
+          <div class="chat-turn chat-turn--student" style="margin-top: 16px;">
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· 2m ago</span></div>
+            <p class="chat-turn__body">I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+          </div>
+          <div class="chat-turn chat-turn--tutor">
+            <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· now</span> <span class="chat-turn__streaming">streaming</span></div>
+            <p class="chat-turn__body">That's the most common starting point — let's dismantle it. Imagine a balloon inflating<span class="chat-turn__cursor"></span></p>
+          </div>
+          <div class="chat-turn chat-turn--queued">
+            <span class="chat-turn__position">1</span>
+            <div class="chat-turn__speaker">You <span class="chat-turn__when">· queued</span></div>
+            <p class="chat-turn__body">also is there a geometric intuition?</p>
+            <div class="chat-turn__actions">
+              <button class="chat-turn__action">edit</button>
+              <button class="chat-turn__action chat-turn__action--danger">remove</button>
+            </div>
+          </div>
+          <div class="composer" style="margin-top: 24px;">
+            <div class="composer__form">
+              <textarea class="composer__input" rows="1" placeholder="type · ⌘↵ queues"></textarea>
+              <div class="composer__buttons">
+                <button class="composer__send composer__send--stop">■</button>
+              </div>
+            </div>
+            <div class="composer__hints composer__hints--split">
+              <span>⌘↵ queue</span>
+              <span class="composer__status composer__status--streaming"><span class="composer__status__pip"></span>1 queued</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="key">
+    <strong>What's adapting:</strong> not the components — the <code>.chat-surface</code> wrapper changes max-width via the <code>--wide</code> / <code>--medium</code> / <code>--narrow</code> modifier, and components inside use <code>@container chat (max-width: ...)</code> queries against the surface. At <code>medium</code>, padding tightens. At <code>narrow</code>, the composer hint strip stacks vertically. Same DOM, same component classes, same JS. The only thing that changes per context is one modifier on the surface wrapper. Course-create wraps its chat panel in <code>chat-surface chat-surface--medium</code>; a future mobile / sidebar tutor uses <code>chat-surface--narrow</code>; teach window uses the default <code>--wide</code>.
+  </div>
+</body>
+</html>

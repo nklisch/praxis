@@ -44,12 +44,20 @@ Refactor-design will:
 - **Pattern scope**: Establishes a reusable hook/component pair (working name: `useOptimisticAction` + `<PendingIndicator>` / `<FailedIndicator>`) that every catalogued sync-await surface refactors to. Pattern skill written under `.claude/skills/patterns/optimistic-dispatch.md` once the third refactor lands and the shape is proven.
 
 ## Mockups
-- Inherits design system: `.mockups/design-system/tokens.css`
+*Rebuilt 2026-05-24 using the `ux-ui-design` plugin's conventions properly — `.flow-hybrid` chrome (matches the topology: sequential walk + jump-anywhere), links `tokens.css` + `motion.css` + `components.css`, action-card reframed from confusing "Generate quiz items" to the canonical "Save as flashcards" user-initiated commit pattern, motion uses locked tokens with no squash/overshoot (respects the Productive attitude in `motion.css`), and `prefers-reduced-motion` collapses all custom animations.*
+
+- Inherits design system: `.mockups/design-system/{tokens,motion,components}.css`
 - Flow · fully interactive at `.mockups/flows/async-chat-interactions/` (also linked from `.mockups/flows/index.html`):
-  - `index.html` — flow navigator + the canonical-pattern principle box + state-glyph legend
-  - `01-composer-queue.html` — interactive: type, send during streaming, queue grows as ghost bubbles, edit/remove per item, Esc or Stop aborts
-  - `02-question-submit.html` — interactive: pick a choice, Submit, card collapses to a chip instantly; tutor next turn streams behind it; also try `clarify in chat`
-  - `03-materialize-pending.html` — interactive: click a `Generate quiz items` button; pip pulses; result lands in thread; button never disables
-  - `04-failed-retry.html` — interactive: same affordance rigged to fail first time; pip turns to ⚠; click ⚠ for popover with retry; second attempt succeeds
-  - `05-strip-escalation.html` — interactive: dispatch fails; do nothing; after 6s (compressed from production 30s) the activity strip slides down with the failed item; retry / dismiss from the strip
+  - `index.html` — flow navigator + canonical-pattern principle box + state-glyph legend + enumerated components-used reference
+  - `01-composer-queue.html` — interactive: type, send during streaming, queue grows as `.chat-turn--queued` ghost bubbles, edit/remove per item, Esc or Stop aborts via `.composer__send--stop`
+  - `02-question-submit.html` — interactive: BOTH single-select (`.inline-question__indicator--radio`) AND multi-select (`.inline-question__indicator--check` + `select all that apply` badge) in one scenario; each submits to a `.thread-chip`; try `clarify in chat` on the other to see `.thread-chip--dismissed`
+  - `03-action-card-pending.html` — interactive: tutor produces 4 practice items; `.action-card` offers to commit them as flashcards; click triggers `.action-pip--pending`; result lands as confirmation card; button never disables
+  - `04-failed-retry.html` — interactive: same `.action-card` rigged to fail first time; `.action-pip--failed` clickable opens `.failure-popover` with retry; second attempt succeeds
+  - `05-strip-escalation.html` — interactive: dispatch fails; do nothing; after 6s (compressed from production 30s) `.status-strip--active` slides down with the failed item; retry / dismiss from strip
+- Components added to `.mockups/design-system/components.css` (refinement mode, additive):
+  - `.action-card` + `__body` (+ `__label` / `__title`) + `__action` — canonical in-chat user-initiated affordance
+  - `.action-pip` + `--show` + `--pending` / `--success` / `--failed` / `--retrying` modifiers — NO squash/overshoot (locked Productive attitude); only opacity + color transitions; size is constant
+  - `.failure-popover` + `__label` / `__reason` / `__actions` — anchored to `.action-card__action`
+  - `.status-strip` + `--active` + `__pip` / `__label` / `__text` — mock-side mirror of production `<StatusStrip>`
+  - Shared keyframes `chat-pulse`, `chat-blink`, `chat-rise-in` — compositor-cheap (opacity + translate only), all wrapped in `@media (prefers-reduced-motion: reduce)` opt-out
 - Pattern skill candidate: `.claude/skills/patterns/optimistic-dispatch.md` — write after the third per-surface refactor lands and the shape is proven (per `Pattern scope` in Design decisions).

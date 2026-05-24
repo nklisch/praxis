@@ -6,25 +6,30 @@
   <title>Composer states · feature-composer-async-behavior</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
   <style>
-    body { margin: 0; font: 14px/1.5 system-ui; background: #111; color: #eee; min-height: 100vh; }
-    h1 { padding: 16px 24px 6px; margin: 0; font: 500 italic 22px/1 var(--font-serif); color: #f5f4f0; }
-    h1 .meta { color: #8b949e; font-style: normal; font-weight: 400; font-size: 13px; margin-left: 12px; }
-    .lede { padding: 0 24px 16px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 90ch; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 100px); box-sizing: border-box; }
-    .cell { background: var(--color-bg-primary); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #222; }
-    .cell h2 { margin: 0; padding: 8px 12px; font: 600 12px/1.3 system-ui; background: #1f1f22; color: #eee; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; flex: 1; }
-    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #1a1a18; color: #ebebe6; min-height: 100vh; }
+    h1 { padding: 20px 24px 6px; margin: 0; font: 500 italic 22px/1 var(--font-display); color: #f5f4f0; }
+    h1 .meta { color: #8d8b82; font-style: normal; font-weight: 400; font-size: 13px; margin-left: 12px; }
+    .lede { padding: 0 24px 20px; margin: 6px 0 0; color: #b1b6bd; font-size: 13px; max-width: 95ch; }
+    .lede code { font: 12px/1 var(--font-mono); background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 3px; }
+
+    .section-label { padding: 16px 24px 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #8d8b82; }
+
+    .grid-states { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 0 8px 8px; height: 70vh; }
+    .grid-showcase { padding: 0 8px 24px; }
+    .grid-showcase .cell { height: 50vh; }
+    .cell { background: var(--color-bg-primary); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #2c2c28; }
+    .cell h2 { margin: 0; padding: 10px 14px; font: 600 12px/1.3 system-ui; background: #2c2c28; color: #ebebe6; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .cell h2 .desc { color: #8d8b82; font-weight: 400; font-size: 11px; flex: 1; }
+    .cell h2 a { color: #58a6ff; text-decoration: none; font-size: 11px; }
     .cell iframe { border: 0; flex: 1; width: 100%; background: var(--color-bg-primary); }
-    .scope { padding: 12px 24px 18px; margin: 0; color: #b1b6bd; font-size: 12px; max-width: 90ch; line-height: 1.55; }
-    .scope code { background: #222; padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono); font-size: 11px; }
   </style>
 </head>
 <body>
-  <h1>Composer · async behavior <span class="meta">feature-composer-async-behavior · 4 states</span></h1>
-  <p class="lede">The composer never locks while a tutor turn is in flight. Messages queue inline as ghost bubbles with per-item edit/remove; the Send button transforms into Stop in place; failures surface inline first and escalate to the activity strip if unattended.</p>
+  <h1>Composer · async behavior <span class="meta">feature-composer-async-behavior · 4 states + responsive showcase</span></h1>
+  <p class="lede">The composer never locks while a tutor turn is in flight. Messages queue inline as ghost turns with per-item edit / remove; <code>.composer__send</code> takes <code>.composer__send--stop</code> modifier in place during in-flight; failures surface inline first and escalate to <code>.status-strip</code> if unattended. Composed against <code>.chat-surface</code> so the same components work in teach, course-create, and future sidebar contexts.</p>
 
-  <div class="grid">
+  <div class="section-label">States</div>
+  <div class="grid-states">
     <div class="cell">
       <h2><span>state-idle</span> <span class="desc">baseline · no turn in flight</span><a href="state-idle.html" target="_blank">open ↗</a></h2>
       <iframe src="state-idle.html"></iframe>
@@ -34,12 +39,20 @@
       <iframe src="state-in-flight-empty.html"></iframe>
     </div>
     <div class="cell">
-      <h2><span>state-in-flight-queued</span> <span class="desc">2 queued ghost bubbles · edit / remove</span><a href="state-in-flight-queued.html" target="_blank">open ↗</a></h2>
+      <h2><span>state-in-flight-queued</span> <span class="desc">2 queued ghost turns · edit / remove</span><a href="state-in-flight-queued.html" target="_blank">open ↗</a></h2>
       <iframe src="state-in-flight-queued.html"></iframe>
     </div>
     <div class="cell">
-      <h2><span>state-failed-retry</span> <span class="desc">inline failed badge · escalated to activity strip · retry</span><a href="state-failed-retry.html" target="_blank">open ↗</a></h2>
+      <h2><span>state-failed-retry</span> <span class="desc">inline failed turn · status-strip escalation · retry</span><a href="state-failed-retry.html" target="_blank">open ↗</a></h2>
       <iframe src="state-failed-retry.html"></iframe>
+    </div>
+  </div>
+
+  <div class="section-label">Responsive — same components, three container widths</div>
+  <div class="grid-showcase">
+    <div class="cell">
+      <h2><span>responsive-showcase</span> <span class="desc">wide (teach window) · medium (course-create panel) · narrow (mobile / sidebar tutor) · all adapt via @container queries against .chat-surface</span><a href="responsive-showcase.html" target="_blank">open ↗</a></h2>
+      <iframe src="responsive-showcase.html"></iframe>
     </div>
   </div>
 </body>

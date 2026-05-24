@@ -31,11 +31,18 @@ The chat composer locks the send button while the tutor is mid-turn, blocking th
 - **Queue depth cap**: Unlimited. Trust the user; cancel is always available. Avoids re-introducing the kind of locked state this epic is removing.
 
 ## Mockups
-- Inherits design system: `.mockups/design-system/tokens.css`
+*Rebuilt 2026-05-24 using the `ux-ui-design` plugin's conventions properly — links `tokens.css` + `motion.css` + `components.css`, composes against components rather than inlining, uses locked motion tokens with `prefers-reduced-motion` respect, and demonstrates the responsive `.chat-surface` adaptation.*
+
+- Inherits design system: `.mockups/design-system/{tokens,motion,components}.css`
 - Screens · state mocks at `.mockups/screens/feature-composer-async-behavior/`:
-  - `index.html` — navigator (2×2 grid of states)
-  - `state-idle.html` — baseline; Send button; no in-flight turn
-  - `state-in-flight-empty.html` — tutor streaming; Send transformed to Stop; composer remains fully active
-  - `state-in-flight-queued.html` — tutor streaming; 2 queued ghost bubbles with per-bubble `edit` / `remove` affordances and ordered position pips
-  - `state-failed-retry.html` — queued #1 hit a transient engine error; inline failed-to-send badge + retry; activity-strip escalated the failure as a persistent banner after 38s
+  - `index.html` — navigator (4 states + responsive showcase row)
+  - `state-idle.html` — baseline; `.composer` with `.composer__status`
+  - `state-in-flight-empty.html` — tutor streaming; `.composer__send` takes `.composer__send--stop` modifier in place; `.composer__status--streaming`; same DOM element role-swaps
+  - `state-in-flight-queued.html` — tutor streaming + 2 queued `.chat-turn--queued` ghost bubbles with `.chat-turn__position` pips and `.chat-turn__actions` (edit / remove)
+  - `state-failed-retry.html` — queued #1 hit transient engine error; `.chat-turn--failed` inline + `.status-strip--active` escalated after 38s; coexisting tiers
+  - `responsive-showcase.html` — same composer + queued turn in three `.chat-surface` widths (wide / medium / narrow); demonstrates `@container chat (...)` adaptation
+- Components added to `.mockups/design-system/components.css` (refinement mode, additive):
+  - `.chat-surface` + `--wide` / `--medium` / `--narrow` modifiers
+  - `.chat-turn` family — `--tutor` / `--student` / `--queued` / `--failed` + `__speaker` / `__when` / `__streaming` / `__body` / `__cursor` / `__badge` (+ `--failed`) / `__position` / `__actions` / `__action` (+ `--danger` / `--primary`) / `__error-reason`
+  - `.composer__send--stop` modifier · `.composer__status` (+ `--streaming` / `--failed`) · `.composer__status__pip` · `.composer__hints--split`
 - Shared interactive feel demo: `.mockups/flows/async-chat-interactions/01-composer-queue.html`

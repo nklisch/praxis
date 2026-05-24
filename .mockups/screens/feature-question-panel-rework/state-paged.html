@@ -3,138 +3,119 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Question card · paged (4 in flight) · feature-question-panel-rework</title>
+  <title>Inline question · paged (single + multi mixed) · feature-question-panel-rework</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/motion.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
   <style>
-    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
     .mock-meta strong { font-weight: 600; }
-    .mock-meta span { color: #8b949e; }
-    .mock-meta a { color: #6cf; text-decoration: none; margin-left: auto; }
+    .mock-meta span { color: #8b949e; flex: 1; }
+    .mock-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-body); min-height: 100vh; }
+    main { padding: var(--space-12) var(--space-8) var(--space-12); }
+    .session-head { margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+    .session-head__kicker { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-3); }
+    .session-head__kicker__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: var(--font-weight-medium) italic var(--font-size-2xl)/var(--line-height-tight) var(--font-display); margin: 0; }
 
-    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+    /* Tab variants for question status — extend the shared .tab */
+    .tab__status { display: inline-block; width: 14px; text-align: center; font-family: var(--font-mono); font-weight: 700; }
+    .tab--done .tab__status { color: var(--color-success); }
+    .tab--unanswered .tab__status { color: var(--color-text-tertiary); }
+    .tab--active .tab__status { color: var(--color-accent); }
 
-    main.session { max-width: 720px; margin: 0 auto; padding: 48px 48px 80px; }
-    .session-head { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
-    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
-    .session-head h1 { font: 500 italic 28px/1.2 var(--font-display); margin: 0; }
-
-    .turn { margin-bottom: 28px; }
-    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
-    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 10px; }
-
-    /* Question-set card — wraps the tab strip + the active question */
-    .question-set { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin: 24px 0; overflow: hidden; }
-
-    /* Tab strip */
-    .tab-strip { display: flex; gap: 4px; padding: 10px 14px; background: var(--color-bg-tertiary); border-bottom: 1px solid var(--color-border); align-items: center; }
-    .tab-strip .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-right: 8px; }
-    .tab { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: var(--radius-sm); font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); cursor: pointer; background: transparent; border: 1px solid transparent; transition: background 100ms ease; }
-    .tab:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
-    .tab .num { font-weight: 700; }
-    .tab .marker { font-family: var(--font-mono); font-size: 11px; }
-    .tab.done { color: var(--color-success); }
-    .tab.done .marker { color: var(--color-success); }
-    .tab.active { background: var(--color-bg-secondary); border-color: var(--color-text-primary); color: var(--color-text-primary); }
-    .tab.active .marker { color: var(--color-accent); }
-    .tab.unanswered .marker { color: var(--color-text-tertiary); }
-    .tab-strip .spacer { flex: 1; }
-    .tab-strip .progress { font: italic 12px/1 var(--font-serif); color: var(--color-text-secondary); }
-    .tab-strip .progress strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
-
-    /* Active question body */
-    .question-body { padding: 20px 24px; }
-    .question-body .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; }
-    .question-body .kicker .glyph { color: var(--tint-teach); font-style: italic; font-family: var(--font-serif); font-size: 14px; }
-    .question-body .prompt { font: italic 17px/1.5 var(--font-display); margin: 0 0 16px; }
-
-    .choices { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-    .choice { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; font: 15px/1.4 var(--font-serif); }
-    .choice:hover { background: var(--color-bg-tertiary); }
-    .choice .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; position: relative; }
-    .choice.selected .radio { border-color: var(--color-accent); }
-    .choice.selected .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--color-accent); }
-    .choice.selected { background: var(--color-accent-muted); }
-
-    .free-form { margin: 4px 0 14px; }
-    .free-form label { display: block; font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
-    .free-form textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-tertiary); padding: 10px 12px; font: italic 15px/1.5 var(--font-serif); resize: vertical; min-height: 56px; outline: none; }
-    .free-form textarea::placeholder { color: var(--color-text-tertiary); }
-
-    .actions { display: flex; gap: 12px; align-items: center; }
-    .btn-primary { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 9px 18px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
-    .btn-text { background: transparent; border: 0; padding: 9px 12px; color: var(--color-text-secondary); font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
-    .btn-text:hover { color: var(--color-accent); }
-    .btn-text .glyph { font-family: var(--font-mono); font-size: 12px; }
-    .nav-arrows { margin-left: auto; display: inline-flex; gap: 6px; }
-    .nav-arrows button { background: transparent; border: 1px solid var(--color-border-strong); padding: 6px 10px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); cursor: pointer; border-radius: var(--radius-sm); }
+    .nav-arrows { margin-left: auto; display: inline-flex; gap: var(--space-1); }
+    .nav-arrows button { background: transparent; border: 1px solid var(--color-border-strong); padding: var(--space-1) var(--space-2); font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: 0.06em; color: var(--color-text-secondary); cursor: pointer; border-radius: var(--radius-sm); transition: var(--t-quick); }
     .nav-arrows button:hover { color: var(--color-text-primary); border-color: var(--color-text-primary); }
     .nav-arrows button:disabled { opacity: 0.4; cursor: default; }
 
-    .state-note { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-border-strong); padding: 10px 14px; margin: 24px 0; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
-    .state-note strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
-    .state-note code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; }
+    .state-note { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-border-strong); padding: var(--space-2) var(--space-4); margin: var(--space-6) 0; font: italic var(--font-size-sm)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); }
+    .state-note strong { font-style: normal; font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+    .state-note code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; font-style: normal; }
   </style>
 </head>
 <body>
   <header class="mock-meta">
-    <strong>Question card · state-paged</strong>
-    <span>4 questions in flight · tab strip [1 ✓] [2 ✓] [● 3] [4 •] · jump by click · prev/next nav</span>
+    <strong>Inline question · state-paged</strong>
+    <span>4 questions in one tutor turn · tab strip with single + multi-select badges · current is question 3</span>
     <a href="index.html">← all states</a>
   </header>
 
-  <main class="session">
-    <header class="session-head">
-      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 of 12 · Calculus I</div>
-      <h1>Why the chain rule <em>actually works</em></h1>
-    </header>
+  <div class="chat-surface chat-surface--wide">
+    <main>
+      <header class="session-head">
+        <div class="session-head__kicker"><span class="session-head__kicker__dot"></span>Teach · Lesson 3 of 12 · Calculus I</div>
+        <h1>Why the chain rule <em>actually works</em></h1>
+      </header>
 
-    <div class="turn tutor">
-      <div class="speaker">Tutor · just now</div>
-      <p>Four quick checks before we move into worked examples. They build on each other — feel free to jump around if one's harder than the others.</p>
-    </div>
-
-    <div class="question-set">
-      <div class="tab-strip">
-        <span class="label">Questions</span>
-        <button class="tab done"><span class="marker">✓</span><span class="num">1</span></button>
-        <button class="tab done"><span class="marker">✓</span><span class="num">2</span></button>
-        <button class="tab active"><span class="marker">●</span><span class="num">3</span></button>
-        <button class="tab unanswered"><span class="marker">○</span><span class="num">4</span></button>
-        <span class="spacer"></span>
-        <span class="progress"><strong>3</strong> of 4 · 2 answered</span>
+      <div class="chat-turn chat-turn--tutor">
+        <div class="chat-turn__speaker">Tutor · just now</div>
+        <p class="chat-turn__body">Four quick checks before we move into worked examples. They build on each other — feel free to jump around if one's harder than the others. Mix of single- and multi-select.</p>
       </div>
 
-      <div class="question-body">
-        <div class="kicker"><span class="glyph">?</span>tutor asked · question 3</div>
-        <div class="prompt">When you write <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em>, why is the <em>argument of f'</em> still <em>g(x)</em>, not <em>x</em>?</div>
-
-        <div class="choices">
-          <div class="choice"><span class="radio"></span>Because f'(x) and f'(g(x)) are interchangeable</div>
-          <div class="choice selected"><span class="radio"></span>Because f operates on the output of g, so its rate is evaluated at g(x)</div>
-          <div class="choice"><span class="radio"></span>Because g(x) is just shorthand for x in this notation</div>
-          <div class="choice"><span class="radio"></span>Because the product rule rearranges f' to use g(x)</div>
+      <div class="inline-question-set">
+        <div class="inline-question-set__head">
+          <span class="inline-question-set__head__label">Questions</span>
+          <div class="tabs" role="tablist">
+            <button class="tab tab--done" role="tab" aria-selected="false"><span class="tab__status">✓</span> 1</button>
+            <button class="tab tab--done" role="tab" aria-selected="false"><span class="tab__status">✓</span> 2</button>
+            <button class="tab tab--active" role="tab" aria-selected="true"><span class="tab__status">●</span> 3</button>
+            <button class="tab tab--unanswered" role="tab" aria-selected="false"><span class="tab__status">○</span> 4</button>
+          </div>
+          <span class="inline-question-set__head__progress">3 of 4 · 2 answered</span>
         </div>
 
-        <div class="free-form">
-          <label>or, in your own words</label>
-          <textarea placeholder="…something else? sketch the reasoning."></textarea>
-        </div>
+        <div class="inline-question-set__body">
+          <div class="inline-question inline-question--bare">
+            <div class="inline-question__kicker">
+              <span class="inline-question__kicker__glyph">?</span>tutor asked · question 3
+              <span class="badge badge--info">select all that apply</span>
+            </div>
+            <p class="inline-question__prompt">Which of the following statements about <em>(f ∘ g)'(x)</em> are correct?</p>
 
-        <div class="actions">
-          <button class="btn-primary">Submit ↵</button>
-          <button class="btn-text"><span class="glyph">↑</span>clarify in chat</button>
-          <div class="nav-arrows">
-            <button>‹ prev</button>
-            <button>next ›</button>
+            <div class="inline-question__choices">
+              <label class="inline-question__choice inline-question__choice--selected">
+                <span class="inline-question__indicator inline-question__indicator--check"></span>
+                The order matters — <em>(f ∘ g)' ≠ (g ∘ f)'</em> in general
+              </label>
+              <label class="inline-question__choice inline-question__choice--selected">
+                <span class="inline-question__indicator inline-question__indicator--check"></span>
+                <em>f'</em> is evaluated at <em>g(x)</em>, not at <em>x</em>
+              </label>
+              <label class="inline-question__choice">
+                <span class="inline-question__indicator inline-question__indicator--check"></span>
+                The chain rule is a special case of the product rule
+              </label>
+              <label class="inline-question__choice">
+                <span class="inline-question__indicator inline-question__indicator--check"></span>
+                It generalizes cleanly to three or more nested functions
+              </label>
+            </div>
+
+            <div class="inline-question__free-form">
+              <label class="inline-question__free-form__label">or, in your own words</label>
+              <textarea class="inline-question__free-form__input" placeholder="…something else? a statement you'd add or quibble with?"></textarea>
+            </div>
+
+            <div class="inline-question__actions">
+              <button class="btn btn-primary">Submit ↵</button>
+              <button class="btn btn-ghost">↑ clarify in chat</button>
+              <div class="nav-arrows">
+                <button>‹ prev</button>
+                <button>next ›</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="state-note">
-      <strong>State:</strong> tutor issued 4 structured questions in one turn. Rendered as a paged surface inside one card, with a tab strip at the top: <code>[1 ✓] [2 ✓] [● 3] [4 ○]</code>. Tabs marked ✓ are answered, ● is current, ○ is unanswered. Click any tab to jump (no forced linear walk); arrows at bottom-right offer the linear path for keyboard users. The chat thread above remains visible — paging happens within the card, never occluding the conversation. The card stays mounted until <em>all</em> questions in the set resolve (either submitted or dismissed via <code>clarify in chat</code>); per-question submit collapses just that one question to a chip in the eventual transcript (see <code>state-resolved-chip</code>).
-    </div>
-  </main>
+      <div class="state-note">
+        <strong>State:</strong> 4 questions in flight from one tutor turn, wrapped in <code>.inline-question-set</code>. Tab strip uses the project's existing <code>.tabs</code> + <code>.tab</code> primitives with <code>--done</code> / <code>--active</code> / <code>--unanswered</code> modifiers — answered carry <code>✓</code>, current carries <code>●</code>, unanswered carry <code>○</code>. The body slot mounts the active question as an <code>.inline-question--bare</code> (chassis chrome stripped — the set provides it).
+        <br><br>
+        Questions 1 and 2 (already done) were single-select; question 3 (current) is multi-select — the kicker shows the <code>select all that apply</code> badge to make the mode clear. The chat thread remains visible above; paging happens entirely within the card. Click any tab to jump (no forced linear walk); arrows for keyboard users. The card stays mounted until all questions resolve.
+      </div>
+    </main>
+  </div>
 </body>
 </html>

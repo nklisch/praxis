@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>4 · Failed → retry · async chat interactions</title>
+  <title>3 · Action card · pending pip · async chat interactions</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
   <link rel="stylesheet" href="../../design-system/motion.css">
   <link rel="stylesheet" href="../../design-system/components.css">
@@ -36,19 +36,21 @@
 </head>
 <body>
   <header class="flow-hybrid">
-    <a href="03-action-card-pending.html" class="flow-hybrid__prev">← action card</a>
+    <a href="02-question-submit.html" class="flow-hybrid__prev">← question submit</a>
     <nav class="flow-hybrid__crumbs">
       <a href="01-composer-queue.html">1 Composer queue</a>
       <a href="02-question-submit.html">2 Question submit</a>
-      <a href="03-action-card-pending.html">3 Action card</a>
-      <a href="04-failed-retry.html" aria-current="step" class="flow-hybrid__current">4 Failed + retry</a>
+      <a href="03-action-card-pending.html" aria-current="step" class="flow-hybrid__current">3 Action card</a>
+      <a href="04-failed-retry.html" class="flow-hybrid__future">4 Failed + retry</a>
       <a href="05-strip-escalation.html" class="flow-hybrid__future">5 Strip escalation</a>
     </nav>
-    <a href="05-strip-escalation.html" class="flow-hybrid__next">next →</a>
+    <a href="04-failed-retry.html" class="flow-hybrid__next">next →</a>
   </header>
 
   <div class="instructions">
-    <strong>Try it.</strong> Same action as scenario 3, but the first attempt is rigged to fail. Click <code>Save as flashcards ↑</code> — the pip will turn to <code>⚠</code> after a moment. Click the warning. A <code>.failure-popover</code> appears with the error reason and a <code>retry</code> button. Retry uses the exact same dispatch params — no re-input. The second attempt succeeds.
+    <strong>Try it.</strong> The tutor just produced four practice items. The <code>.action-card</code> below offers a user-initiated commit: <em>save them as flashcards in your deck</em>. Click <code>Save as flashcards ↑</code> — the button doesn't disable, doesn't change shape; a pending <code>.action-pip</code> appears beside it. The result lands in the thread when the engine settles. Click the button again any time you want; each click is its own dispatch.
+    <br><br>
+    <strong>Why this shape and not "Generate quiz items":</strong> the tutor already generated the items above — the user's action here is the <em>commit step</em>, not the generation step. That's the canonical "ready to materialize" pattern in Praxis (course materialize, note clip, draft confirm, sketch convert) — agent produces output, user commits it.
   </div>
 
   <div class="chat-surface chat-surface--wide">
@@ -58,7 +60,7 @@
 
       <div class="chat-turn chat-turn--tutor">
         <div class="chat-turn__speaker">Tutor</div>
-        <p class="chat-turn__body">You've worked the balloon case. Four practice items at your current mastery — save them to your deck for daily review, or just leave them in this conversation.</p>
+        <p class="chat-turn__body">You've worked the balloon case. Here are four practice items at your current mastery level — you can keep them in this conversation, or save them to your flashcard deck so they show up in your daily review.</p>
       </div>
 
       <ol style="font-family: var(--font-body); font-size: var(--font-size-sm); line-height: var(--line-height-loose); padding-left: var(--space-8); margin: var(--space-4) 0 var(--space-6); color: var(--color-text-secondary);">
@@ -75,8 +77,7 @@
         </div>
         <div class="action-card__action">
           <button class="btn btn-primary" onclick="dispatch()">Save as flashcards ↑</button>
-          <span class="action-pip" id="pip" onclick="onPipClick()"></span>
-          <div id="popoverMount"></div>
+          <span class="action-pip" id="pip"></span>
         </div>
       </div>
 
@@ -88,54 +89,22 @@
 
   <script>
     const pip = document.getElementById('pip');
-    const popoverMount = document.getElementById('popoverMount');
     const resultMount = document.getElementById('resultMount');
-    let attempt = 0;
-    let popover = null;
 
     function setPip(kind) { pip.className = 'action-pip action-pip--show action-pip--' + kind; }
     function clearPip() { pip.className = 'action-pip'; }
-    function closePopover() { if (popover) { popover.remove(); popover = null; } }
 
     function dispatch() {
-      attempt++;
-      closePopover();
       setPip('pending');
       setTimeout(() => {
-        if (attempt === 1) {
-          setPip('failed');  // rigged first-attempt failure
-        } else {
-          setPip('success');
-          const r = document.createElement('div');
-          r.className = 'materialized-result';
-          r.innerHTML = `<div class="materialized-result__kicker">✓ saved on retry · attempt ${attempt} · 4 cards added</div><ol><li>Compute <em>d/dx [(3x² + 1)⁵]</em></li><li>If <em>h(x) = sin(x²)</em>, find <em>h'(x)</em></li><li>Pebble ripple: dA/dt when r = 10 cm</li><li>(f ∘ g ∘ h)' chain decomposition</li></ol>`;
-          resultMount.appendChild(r);
-          setTimeout(clearPip, 1400);
-        }
-      }, 1300 + Math.random() * 500);
+        setPip('success');
+        const r = document.createElement('div');
+        r.className = 'materialized-result';
+        r.innerHTML = `<div class="materialized-result__kicker">✓ saved · 4 cards added to Calculus · Differentiation</div><ol><li>Compute <em>d/dx [(3x² + 1)⁵]</em></li><li>If <em>h(x) = sin(x²)</em>, find <em>h'(x)</em></li><li>Pebble ripple: dA/dt when r = 10 cm, dr/dt = 4 cm/s</li><li>(f ∘ g ∘ h)' chain decomposition</li></ol>`;
+        resultMount.appendChild(r);
+        setTimeout(clearPip, 1400);
+      }, 1500 + Math.random() * 500);
     }
-
-    function onPipClick() {
-      if (!pip.classList.contains('action-pip--failed')) return;
-      if (popover) { closePopover(); return; }
-      popover = document.createElement('div');
-      popover.className = 'failure-popover';
-      popover.innerHTML = `
-        <div class="failure-popover__label">⚠ dispatch failed</div>
-        <p class="failure-popover__reason">Engine returned <code>503 model_unavailable</code> — the upstream model declined the request. Local state preserved; same params can be re-sent.</p>
-        <div class="failure-popover__actions">
-          <button class="btn btn-primary btn--sm" onclick="retry()">↺ retry</button>
-          <button class="btn btn-ghost btn--sm" onclick="dismiss()">dismiss</button>
-        </div>
-      `;
-      popoverMount.appendChild(popover);
-    }
-    function retry() {
-      closePopover();
-      setPip('retrying');
-      setTimeout(dispatch, 500);
-    }
-    function dismiss() { closePopover(); clearPip(); }
   </script>
 </body>
 </html>

@@ -5,171 +5,141 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>1 · Composer queue · async chat interactions</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/motion.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
   <style>
-    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
-    .flow-nav { display: flex; gap: 16px; align-items: center; padding: 10px 24px; background: #0d1117; color: #c9d1d9; border-bottom: 1px solid #30363d; font: 13px/1.4 system-ui; }
-    .flow-nav .pos { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
-    .flow-nav .title { color: #f5f4f0; font-weight: 500; }
-    .flow-nav .crumbs { color: #8b949e; margin-left: auto; }
-    .flow-nav a { color: #6cf; text-decoration: none; padding: 4px 10px; border: 1px solid #30363d; border-radius: 3px; font-size: 12px; }
-    .flow-nav a:hover { border-color: #6cf; }
-
-    .instructions { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); padding: 14px 24px; margin: 0; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-secondary); }
-    .instructions strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
-    .instructions code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; font-style: normal; }
-
-    main.session { max-width: 720px; margin: 0 auto; padding: 32px 48px 260px; }
-    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
-    .session-head h1 { font: 500 italic 26px/1.2 var(--font-display); margin: 0 0 28px; }
-
-    .turn { margin-bottom: 24px; }
-    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; display: flex; gap: 8px; align-items: baseline; }
-    .turn .speaker .when { color: var(--color-text-tertiary); font-weight: 400; }
-    .turn .speaker .streaming { color: var(--color-accent); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
-    .turn .speaker .streaming .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.2s ease-in-out infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 8px; }
-    .turn.tutor p em { font-style: italic; }
-    .turn.tutor .cursor::after { content: "▍"; color: var(--color-accent); animation: blink 0.9s steps(1) infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-    .turn.student { padding-left: 28px; border-left: 2px solid var(--color-accent-muted); }
-    .turn.student p { font: italic 16px/1.65 var(--font-serif); color: var(--color-text-secondary); margin: 0; }
-
-    .turn.queued { padding-left: 28px; border-left: 2px dashed var(--color-border-strong); opacity: 0.62; position: relative; animation: slide-in 240ms ease-out; }
-    @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 0.62; transform: translateY(0); } }
-    .turn.queued .speaker { color: var(--color-text-secondary); display: flex; }
-    .turn.queued .speaker .badge { background: var(--color-bg-tertiary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-full); padding: 2px 8px; font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
-    .turn.queued p { font: italic 16px/1.65 var(--font-serif); color: var(--color-text-secondary); margin: 0; }
-    .turn.queued .actions { margin-top: 6px; display: flex; gap: 12px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
-    .turn.queued .actions button { background: transparent; border: 0; padding: 4px 0; font: inherit; color: var(--color-text-tertiary); cursor: pointer; }
-    .turn.queued .actions button:hover { color: var(--color-text-primary); }
-    .turn.queued .actions button.danger:hover { color: var(--color-danger); }
-    .turn.queued .position { position: absolute; left: -10px; top: -2px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); font: 600 9px/12px var(--font-mono); color: var(--color-text-tertiary); text-align: center; }
-
-    .composer-wrap { position: fixed; left: 0; right: 0; bottom: 0; padding: 16px 0 24px; background: linear-gradient(to bottom, transparent, var(--color-bg-primary) 32px); pointer-events: none; }
-    .composer { max-width: 720px; margin: 0 auto; padding: 0 48px; pointer-events: auto; }
-    .composer-field { display: flex; align-items: flex-end; gap: 10px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 12px 12px 12px 16px; }
-    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 16px/1.55 var(--font-serif); resize: none; outline: none; color: var(--color-text-primary); min-height: 24px; max-height: 8em; }
-    .composer-field textarea::placeholder { color: var(--color-text-tertiary); font-style: italic; }
-    .composer-btn { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 9px 14px; font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; min-width: 76px; justify-content: center; transition: background 100ms ease, border-color 100ms ease; }
-    .composer-btn .glyph { font-family: var(--font-mono); font-size: 13px; }
-    .composer-btn--stop { background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1px solid var(--color-text-primary); }
-    .composer-btn--stop .glyph { color: var(--color-danger); font-size: 11px; }
-    .composer-hints { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 4px 0; display: flex; gap: 16px; justify-content: space-between; }
-    .composer-hints .status { display: inline-flex; gap: 6px; align-items: center; }
-    .composer-hints .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-tertiary); }
-    .composer-hints .status.active { color: var(--color-accent); }
-    .composer-hints .status.active .dot { background: var(--color-accent); animation: pulse 1.2s ease-in-out infinite; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-body); min-height: 100vh; }
+    /* .flow-hybrid chrome — verbatim from ux-ui-principles/shared-chrome-css.md */
+    .flow-hybrid { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+    .flow-hybrid__prev, .flow-hybrid__next { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-hybrid__prev:hover, .flow-hybrid__next:hover { background: #161b22; }
+    .flow-hybrid__crumbs { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+    .flow-hybrid__crumbs a { color: #8b949e; text-decoration: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+    .flow-hybrid__crumbs a:hover { background: #161b22; color: #c9d1d9; }
+    .flow-hybrid__current { background: #1f6feb; color: #fff !important; }
+    .flow-hybrid__future { opacity: 0.6; }
+    .instructions { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); padding: var(--space-3) var(--space-6); font: italic var(--font-size-sm)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); }
+    .instructions strong { font-style: normal; font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+    .instructions code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; font-style: normal; }
+    main { padding: var(--space-8) var(--space-8) 260px; }
+    .session-head__kicker { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-2); }
+    .session-head__kicker__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: var(--font-weight-medium) italic var(--font-size-xl)/var(--line-height-tight) var(--font-display); margin: 0 0 var(--space-6); }
+    .composer-wrap { position: fixed; left: 0; right: 0; bottom: 0; padding: var(--space-4) 0 var(--space-6); background: linear-gradient(to bottom, transparent, var(--color-bg-primary) 32px); pointer-events: none; }
+    .composer-wrap > .chat-surface { padding: 0 var(--space-8); pointer-events: auto; }
+    .reset { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); font: 500 12px/1 var(--font-sans); cursor: pointer; opacity: 0.7; z-index: 50; }
+    .reset:hover { opacity: 1; }
   </style>
 </head>
 <body>
-  <div class="flow-nav">
-    <span class="pos">scenario 1 / 5</span>
-    <span class="title">Composer · queue while streaming</span>
-    <span class="crumbs">async chat interactions</span>
-    <a href="index.html">← index</a>
-    <a href="02-question-submit.html">next →</a>
-  </div>
+  <header class="flow-hybrid">
+    <a href="index.html" class="flow-hybrid__prev">← overview</a>
+    <nav class="flow-hybrid__crumbs">
+      <a href="01-composer-queue.html" aria-current="step" class="flow-hybrid__current">1 Composer queue</a>
+      <a href="02-question-submit.html" class="flow-hybrid__future">2 Question submit</a>
+      <a href="03-action-card-pending.html" class="flow-hybrid__future">3 Action card</a>
+      <a href="04-failed-retry.html" class="flow-hybrid__future">4 Failed + retry</a>
+      <a href="05-strip-escalation.html" class="flow-hybrid__future">5 Strip escalation</a>
+    </nav>
+    <a href="02-question-submit.html" class="flow-hybrid__next">next →</a>
+  </header>
 
   <div class="instructions">
-    <strong>Try it.</strong> Click <code>Start tutor turn</code> in the thread below to see a streaming response. While it's streaming, type a follow-up in the composer and hit <code>⌘↵</code> (or click <code>Send</code>) — your message renders inline as a ghost bubble. Type and send again to add a second to the queue. Hit <code>edit</code> or <code>remove</code> on any queued bubble before it dispatches. The Send button is <code>Stop</code> while a turn is in flight — click it to abort.
+    <strong>Try it.</strong> Click <code>▶ start tutor turn</code> below to see a streaming response. While it's streaming, type a follow-up in the composer and hit <code>⌘↵</code> (or click <code>Send</code>) — your message renders inline as a <code>.chat-turn--queued</code> ghost bubble. Type and send again to queue a second. Click <code>edit</code> or <code>remove</code> on any queued bubble before it dispatches. The Send button is <code>Stop</code> while a turn is in flight — click it to abort.
   </div>
 
-  <main class="session">
-    <header class="session-head">
-      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 · Calculus I</div>
+  <div class="chat-surface chat-surface--wide">
+    <main>
+      <div class="session-head__kicker"><span class="session-head__kicker__dot"></span>Teach · Lesson 3 · Calculus I</div>
       <h1>Why the chain rule actually works</h1>
-    </header>
 
-    <div class="turn student">
-      <div class="speaker">You</div>
-      <p>I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
-    </div>
+      <div class="chat-turn chat-turn--student">
+        <div class="chat-turn__speaker">You</div>
+        <p class="chat-turn__body">I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+      </div>
 
-    <div class="turn tutor" id="seedTurn">
-      <div class="speaker">Tutor <span class="when">· 1 minute ago</span></div>
-      <p>That's the most common starting point — and the one we're going to dismantle.</p>
-      <p><button onclick="startStreaming()" style="background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 12px/1 var(--font-sans); cursor: pointer;">▶ Start tutor turn</button></p>
-    </div>
+      <div class="chat-turn chat-turn--tutor" id="seedTurn">
+        <div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· 1 minute ago</span></div>
+        <p class="chat-turn__body">That's the most common starting point — and the one we're going to dismantle.</p>
+        <p style="margin-top: 12px;"><button class="btn btn-primary btn--sm" onclick="startStreaming()">▶ start tutor turn</button></p>
+      </div>
 
-    <div id="messageList"></div>
-  </main>
+      <div id="messageList"></div>
+    </main>
+  </div>
 
   <div class="composer-wrap">
-    <div class="composer">
-      <div class="composer-field">
-        <textarea id="ta" rows="1" placeholder="answer · or ask the tutor a question"></textarea>
-        <button id="sendBtn" class="composer-btn" onclick="onSendClick()"><span class="glyph">↑</span><span id="sendLabel">Send</span></button>
-      </div>
-      <div class="composer-hints">
-        <span>⌘↵ <span id="kbdHint">send</span> · esc stop · ⌘⇧K sketch</span>
-        <span class="status" id="status"><span class="dot"></span><span id="statusLabel">idle</span></span>
+    <div class="chat-surface chat-surface--wide">
+      <div class="composer">
+        <div class="composer__form">
+          <textarea class="composer__input" id="ta" rows="1" placeholder="answer · or ask the tutor a question"></textarea>
+          <div class="composer__buttons">
+            <button class="composer__send" id="sendBtn" onclick="onSendClick()" aria-label="Send">↑</button>
+          </div>
+        </div>
+        <div class="composer__hints composer__hints--split">
+          <span>⌘↵ <span id="kbdHint">send</span> · esc stop · ⌘⇧K sketch</span>
+          <span class="composer__status" id="status"><span class="composer__status__pip"></span><span id="statusLabel">idle</span></span>
+        </div>
       </div>
     </div>
   </div>
+
+  <button class="reset" onclick="location.reload()">↻ reset</button>
 
   <script>
     const state = { streaming: false, queue: [], nextQueueId: 1 };
-
     const ta = document.getElementById('ta');
     const sendBtn = document.getElementById('sendBtn');
-    const sendLabel = document.getElementById('sendLabel');
     const kbdHint = document.getElementById('kbdHint');
     const status = document.getElementById('status');
     const statusLabel = document.getElementById('statusLabel');
     const messageList = document.getElementById('messageList');
 
+    function escape(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
     function render() {
       messageList.innerHTML = '';
-      // streaming turn
       if (state.streaming) {
         const t = document.createElement('div');
-        t.className = 'turn tutor';
-        t.innerHTML = `<div class="speaker">Tutor <span class="when">· just now</span> <span class="streaming"><span class="pulse"></span>streaming</span></div><p id="streamPara">Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — how fast is the volume changing right then? Let's set up the relationship<span class="cursor"></span></p>`;
+        t.className = 'chat-turn chat-turn--tutor';
+        t.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div><p class="chat-turn__body">Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — how fast is the volume changing right then? Let's set up the relationship first<span class="chat-turn__cursor"></span></p>`;
         messageList.appendChild(t);
       }
-      // queued ghosts
       state.queue.forEach((q, i) => {
         const wrap = document.createElement('div');
-        wrap.className = 'turn queued';
-        wrap.innerHTML = `<span class="position">${i + 1}</span><div class="speaker">You <span class="when">· queued</span> <span class="badge">awaiting tutor turn</span></div><p>${escape(q.text)}</p><div class="actions"><button onclick="editQueued(${q.id})">edit</button><button class="danger" onclick="removeQueued(${q.id})">remove</button></div>`;
+        wrap.className = 'chat-turn chat-turn--queued';
+        wrap.innerHTML = `<span class="chat-turn__position">${i + 1}</span><div class="chat-turn__speaker">You <span class="chat-turn__when">· queued</span> <span class="chat-turn__badge">awaiting tutor turn</span></div><p class="chat-turn__body">${escape(q.text)}</p><div class="chat-turn__actions"><button class="chat-turn__action" onclick="editQueued(${q.id})">edit</button><button class="chat-turn__action chat-turn__action--danger" onclick="removeQueued(${q.id})">remove</button></div>`;
         messageList.appendChild(wrap);
       });
-      // composer state
       if (state.streaming) {
-        sendBtn.classList.add('composer-btn--stop');
-        sendBtn.querySelector('.glyph').textContent = '■';
-        sendLabel.textContent = 'Stop';
+        sendBtn.classList.add('composer__send--stop');
+        sendBtn.textContent = '■';
         ta.placeholder = state.queue.length ? `type next thought · ⌘↵ queues at position ${state.queue.length + 1}` : 'type next thought · ⌘↵ queues behind active turn';
         kbdHint.textContent = 'queue';
-        status.classList.add('active');
+        status.className = 'composer__status composer__status--streaming';
         statusLabel.textContent = state.queue.length ? `tutor responding · ${state.queue.length} queued` : 'tutor responding';
       } else {
-        sendBtn.classList.remove('composer-btn--stop');
-        sendBtn.querySelector('.glyph').textContent = '↑';
-        sendLabel.textContent = 'Send';
+        sendBtn.classList.remove('composer__send--stop');
+        sendBtn.textContent = '↑';
         ta.placeholder = 'answer · or ask the tutor a question';
         kbdHint.textContent = 'send';
-        status.classList.remove('active');
+        status.className = 'composer__status';
         statusLabel.textContent = state.queue.length ? `${state.queue.length} queued · tutor idle` : 'idle';
       }
     }
 
-    function escape(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
     function startStreaming() {
       state.streaming = true;
-      document.getElementById('seedTurn').style.display = 'none';
+      const seed = document.getElementById('seedTurn');
+      if (seed) seed.style.display = 'none';
       render();
-      // simulate stream finishing
       setTimeout(() => {
         state.streaming = false;
-        // dispatch first queued
         if (state.queue.length) {
           const next = state.queue.shift();
           appendSent(next.text);
-          if (state.queue.length) setTimeout(startStreaming, 600); // simulate next round
+          if (state.queue.length) setTimeout(startStreaming, 600);
         }
         render();
       }, 7000);
@@ -177,14 +147,13 @@
 
     function appendSent(text) {
       const wrap = document.createElement('div');
-      wrap.className = 'turn student';
-      wrap.innerHTML = `<div class="speaker">You <span class="when">· just now</span></div><p>${escape(text)}</p>`;
+      wrap.className = 'chat-turn chat-turn--student';
+      wrap.innerHTML = `<div class="chat-turn__speaker">You <span class="chat-turn__when">· just now</span></div><p class="chat-turn__body">${escape(text)}</p>`;
       messageList.appendChild(wrap);
     }
 
     function onSendClick() {
-      if (state.streaming && ta.value.trim() === '' && state.queue.length === 0) {
-        // Stop click while textarea empty: abort
+      if (state.streaming && ta.value.trim() === '') {
         state.streaming = false;
         render();
         return;
@@ -198,7 +167,6 @@
         const text = ta.value.trim();
         ta.value = '';
         appendSent(text);
-        // simulate auto-response
         setTimeout(startStreaming, 200);
         render();
       }
@@ -212,7 +180,6 @@
       state.queue = state.queue.filter(x => x.id !== id);
       render();
     }
-
     function removeQueued(id) {
       state.queue = state.queue.filter(x => x.id !== id);
       render();

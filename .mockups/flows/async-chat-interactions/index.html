@@ -3,112 +3,137 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Async chat interactions · flow · feature-refactor-async-chat-interactions-audit</title>
+  <title>Async chat interactions · flow index · feature-refactor-async-chat-interactions-audit</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/motion.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
   <style>
-    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: 14px/1.55 var(--font-serif); min-height: 100vh; }
-    main { max-width: 920px; margin: 0 auto; padding: 60px 48px; }
-
-    h1 { font: 500 italic 32px/1.15 var(--font-display); margin: 0 0 12px; }
-    .deck { font: italic 18px/1.5 var(--font-serif); color: var(--color-text-secondary); margin: 0 0 32px; max-width: 70ch; }
-    .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-sm)/var(--line-height-base) var(--font-body); min-height: 100vh; }
+    main { max-width: 920px; margin: 0 auto; padding: var(--space-12) var(--space-8); }
+    .kicker { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: var(--space-2); align-items: baseline; margin-bottom: var(--space-2); }
     .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); }
+    h1 { font: var(--font-weight-medium) italic var(--font-size-3xl)/var(--line-height-tight) var(--font-display); margin: 0 0 var(--space-3); }
+    .deck { font: italic var(--font-size-lg)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); margin: 0 0 var(--space-8); max-width: 70ch; }
+    .deck code { font: var(--font-size-sm)/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; font-style: normal; }
 
-    .principle { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 24px; margin: 0 0 40px; }
-    .principle .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
-    .principle p { font: italic 16px/1.55 var(--font-serif); margin: 0; color: var(--color-text-primary); }
+    .principle { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4) var(--space-6); margin: 0 0 var(--space-8); }
+    .principle__label { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: var(--space-2); }
+    .principle p { font: italic var(--font-size-base)/var(--line-height-base) var(--font-body); margin: 0; color: var(--color-text-primary); }
 
-    .topology { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 32px 0 12px; }
+    .topology { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin: var(--space-8) 0 var(--space-3); }
 
-    .steps { display: grid; grid-template-columns: 1fr; gap: 12px; }
-    .step { display: grid; grid-template-columns: 36px 1fr auto; gap: 16px; padding: 18px 20px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); align-items: center; text-decoration: none; color: inherit; cursor: pointer; transition: border-color 120ms ease, transform 120ms ease; }
+    .steps { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+    .step { display: grid; grid-template-columns: 36px 1fr auto; gap: var(--space-4); padding: var(--space-4) var(--space-6); background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); align-items: center; text-decoration: none; color: inherit; cursor: pointer; transition: border-color var(--dur-quick) var(--ease-standard), transform var(--dur-quick) var(--ease-standard); }
     .step:hover { border-color: var(--color-text-primary); transform: translateX(2px); }
-    .step .num { font: 500 italic 22px/1 var(--font-display); color: var(--color-text-tertiary); text-align: center; }
-    .step .body .title { font: 500 italic 18px/1.3 var(--font-display); margin: 0 0 2px; }
-    .step .body .desc { font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); margin: 0; }
-    .step .arrow { font: 18px/1 var(--font-mono); color: var(--color-text-tertiary); }
-    .step:hover .arrow { color: var(--color-accent); }
+    .step__num { font: var(--font-weight-medium) italic var(--font-size-xl)/1 var(--font-display); color: var(--color-text-tertiary); text-align: center; }
+    .step__title { font: var(--font-weight-medium) italic var(--font-size-lg)/var(--line-height-tight) var(--font-display); margin: 0 0 var(--space-1); }
+    .step__desc { font: var(--font-size-sm)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); margin: 0; }
+    .step__desc code { font: 12px/1 var(--font-mono); background: var(--color-bg-primary); padding: 1px var(--space-1); border-radius: 3px; }
+    .step__arrow { font: var(--font-size-lg)/1 var(--font-mono); color: var(--color-text-tertiary); }
+    .step:hover .step__arrow { color: var(--color-accent); }
 
-    .legend { margin-top: 40px; padding: 20px 24px; background: var(--color-bg-tertiary); border-radius: var(--radius-md); border-left: 2px solid var(--color-border-strong); }
-    .legend h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 12px; }
-    .legend dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
-    .legend dt { font: 600 13px/1.4 var(--font-mono); color: var(--color-text-primary); }
-    .legend dd { margin: 0; font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); }
-    .legend dd code { font: 12px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+    .legend { margin-top: var(--space-8); padding: var(--space-4) var(--space-6); background: var(--color-bg-tertiary); border-radius: var(--radius-md); border-left: 2px solid var(--color-border-strong); }
+    .legend h3 { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 var(--space-3); }
+    .legend dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); }
+    .legend dt { font-family: var(--font-mono); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+    .legend dd { margin: 0; font: italic var(--font-size-sm)/var(--line-height-base) var(--font-body); color: var(--color-text-secondary); }
+    .legend dd code { font: 12px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; font-style: normal; }
+
+    .components-used { margin-top: var(--space-8); padding: var(--space-4) var(--space-6); background: var(--color-bg-secondary); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); }
+    .components-used h3 { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 var(--space-3); }
+    .components-used ul { margin: 0; padding-left: var(--space-6); font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+    .components-used li { margin-bottom: var(--space-1); }
+    .components-used code { font: 12px/1 var(--font-mono); background: var(--color-bg-tertiary); padding: 1px var(--space-1); border-radius: 3px; color: var(--color-text-primary); }
   </style>
 </head>
 <body>
   <main>
     <div class="kicker"><span class="dot"></span>flow · async chat interactions</div>
     <h1>How click should <em>feel</em>, after the audit</h1>
-    <p class="deck">Five interactive scenarios demonstrating the optimistic-dispatch + async-error pattern that <code style="font-family: var(--font-mono); font-size: 13px;">feature-refactor-async-chat-interactions-audit</code> will establish across every UI surface that triggers engine work. Each page is clickable — the timing is simulated, but the behavior is faithful.</p>
+    <p class="deck">Five interactive scenarios demonstrating the optimistic-dispatch + async-error pattern that <code>feature-refactor-async-chat-interactions-audit</code> will establish across every UI surface that triggers engine work. Topology: hybrid — walk sequentially via prev/next, or jump to any scenario. Each page is clickable; timing is simulated, behavior is faithful.</p>
 
     <div class="principle">
-      <div class="label">canonical pattern</div>
-      <p>Click fires the action. The originating affordance commits immediately — it does <em>not</em> disable, dim, or change shape. A subtle pending pip appears beside it. If the engine returns success, the pip vanishes and the result lands wherever it lands. If it fails, the pip turns into a warning glyph; one click retries with the same params. If the failure goes unattended, the activity strip picks it up as a persistent banner.</p>
+      <div class="principle__label">canonical pattern</div>
+      <p>Click fires the action. The originating affordance commits immediately — it does <em>not</em> disable, dim, or change shape. A subtle <code style="font-family: var(--font-mono); font-size: 13px;">.action-pip</code> appears beside it. If the engine returns success, the pip vanishes and the result lands wherever it lands. If it fails, the pip turns into <code style="font-family: var(--font-mono); font-size: 13px;">⚠</code>; one click reveals a <code style="font-family: var(--font-mono); font-size: 13px;">.failure-popover</code> with retry that uses the same dispatch params. If the failure goes unattended for ~30s, the <code style="font-family: var(--font-mono); font-size: 13px;">.status-strip</code> picks it up as a persistent banner.</p>
     </div>
 
-    <div class="topology">sequential — walk through · or jump to any scenario</div>
+    <div class="topology">hybrid topology — sequential walk + cross-jumps</div>
 
     <div class="steps">
       <a class="step" href="01-composer-queue.html">
-        <div class="num">1</div>
-        <div class="body">
-          <p class="title">Composer · send while tutor streams</p>
-          <p class="desc">Type and send a follow-up while the tutor is mid-response. The message queues inline as a ghost bubble; the Send button is now Stop. Try editing or removing a queued message before it dispatches.</p>
+        <div class="step__num">1</div>
+        <div>
+          <p class="step__title">Composer · send while tutor streams</p>
+          <p class="step__desc">Type and send a follow-up while the tutor is mid-response. Queues inline as a ghost <code>.chat-turn--queued</code>; Send becomes Stop in place via <code>.composer__send--stop</code>; per-bubble edit/remove before dispatch.</p>
         </div>
-        <div class="arrow">→</div>
+        <div class="step__arrow">→</div>
       </a>
 
       <a class="step" href="02-question-submit.html">
-        <div class="num">2</div>
-        <div class="body">
-          <p class="title">Structured question · submit dismisses immediately</p>
-          <p class="desc">Pick an answer, hit Submit. The card collapses to a chip the moment you click — no greyed-out wait through the round-trip. The tutor's next turn starts streaming behind it.</p>
+        <div class="step__num">2</div>
+        <div>
+          <p class="step__title">Structured question · single + multi-select, submit dismisses immediately</p>
+          <p class="step__desc">Pick an answer, hit Submit. The <code>.inline-question</code> collapses to a <code>.thread-chip</code> the moment you click — no greyed-out wait. Two questions in this scenario: single-select (radio) and multi-select (checkbox + "select all that apply"). Try <code>clarify in chat</code> on the other.</p>
         </div>
-        <div class="arrow">→</div>
+        <div class="step__arrow">→</div>
       </a>
 
-      <a class="step" href="03-materialize-pending.html">
-        <div class="num">3</div>
-        <div class="body">
-          <p class="title">"Materialize" button · pending pip → result lands</p>
-          <p class="desc">An in-chat button that fires an engine job. Click it: the button doesn't disable, a tiny pip appears beside it, and the result eventually arrives in the thread.</p>
+      <a class="step" href="03-action-card-pending.html">
+        <div class="step__num">3</div>
+        <div>
+          <p class="step__title">Action card · "Save as flashcards" → pending pip → result lands</p>
+          <p class="step__desc"><em>The user-initiated commit pattern.</em> The tutor has already produced four practice items; the <code>.action-card</code> offers to materialize them as flashcards in the user's deck. Click commits via <code>.action-pip--pending</code>. Result lands as a confirmation card in the thread. The action button never disables.</p>
         </div>
-        <div class="arrow">→</div>
+        <div class="step__arrow">→</div>
       </a>
 
       <a class="step" href="04-failed-retry.html">
-        <div class="num">4</div>
-        <div class="body">
-          <p class="title">Failed dispatch · inline ⚠ → one-click retry</p>
-          <p class="desc">Same affordance as scenario 3, but the engine fails. Pip turns to ⚠. Click the warning to retry — params were captured at dispatch, no re-input needed.</p>
+        <div class="step__num">4</div>
+        <div>
+          <p class="step__title">Failed dispatch · inline ⚠ → one-click retry</p>
+          <p class="step__desc">Same affordance as scenario 3, but the engine fails. Pip turns to <code>.action-pip--failed</code>; click opens a <code>.failure-popover</code> with retry. Retry uses the params captured at click-time — no re-input needed.</p>
         </div>
-        <div class="arrow">→</div>
+        <div class="step__arrow">→</div>
       </a>
 
       <a class="step" href="05-strip-escalation.html">
-        <div class="num">5</div>
-        <div class="body">
-          <p class="title">Escalation to the activity strip</p>
-          <p class="desc">A failure goes unaddressed for ~30s. The activity strip at the top of the workspace lights up with the failed item, surfacing it persistently. Two-tier so transient failures don't pollute the strip but lingering ones can't be missed.</p>
+        <div class="step__num">5</div>
+        <div>
+          <p class="step__title">Escalation to the activity strip</p>
+          <p class="step__desc">A failure goes unaddressed for ~6s (compressed from production's 30s). The <code>.status-strip--active</code> slides down with the failed item as a persistent banner. Tier 1 (inline) and tier 2 (strip) coexist; resolving either clears that tier independently.</p>
         </div>
-        <div class="arrow">→</div>
+        <div class="step__arrow">→</div>
       </a>
     </div>
 
     <div class="legend">
-      <h3>State glyphs across all scenarios</h3>
+      <h3>State glyphs · same across every affordance</h3>
       <dl>
         <dt><span style="color: var(--color-text-tertiary);">·</span></dt>
-        <dd>pending pip — work dispatched, awaiting result</dd>
+        <dd><code>.action-pip--pending</code> · work dispatched, awaiting result</dd>
         <dt><span style="color: var(--color-success); font-weight: 700;">✓</span></dt>
-        <dd>success — result landed; pip vanishes shortly after</dd>
+        <dd><code>.action-pip--success</code> · result landed; pip fades out shortly after</dd>
         <dt><span style="color: var(--color-danger); font-weight: 700;">⚠</span></dt>
-        <dd>failure — click to <code>retry</code></dd>
+        <dd><code>.action-pip--failed</code> · click to open failure popover with retry</dd>
         <dt><span style="color: var(--color-accent); font-weight: 700;">↺</span></dt>
-        <dd>retrying — pip + retry glyph during a retry dispatch</dd>
+        <dd><code>.action-pip--retrying</code> · same params dispatching again</dd>
       </dl>
+    </div>
+
+    <div class="components-used">
+      <h3>Components composed (see .mockups/design-system/components.css)</h3>
+      <ul>
+        <li><code>.chat-surface</code> + <code>--wide</code> / <code>--medium</code> / <code>--narrow</code> — container-aware chat host; @container queries adapt children</li>
+        <li><code>.chat-turn</code> family — <code>--tutor</code> / <code>--student</code> / <code>--queued</code> / <code>--failed</code> + <code>__streaming</code> / <code>__badge</code> / <code>__position</code> / <code>__actions</code></li>
+        <li><code>.composer</code> + <code>.composer__send--stop</code> modifier · <code>.composer__status</code> + <code>--streaming</code> / <code>--failed</code> · <code>.composer__hints--split</code></li>
+        <li><code>.inline-question</code> + <code>__choice</code> + <code>__indicator--radio</code> / <code>__indicator--check</code> + <code>__free-form</code> + <code>--bare</code> + <code>--dismissed</code></li>
+        <li><code>.inline-question-set</code> + <code>__head</code> · uses existing <code>.tabs</code> + <code>.tab</code> for paging</li>
+        <li><code>.thread-chip</code> + <code>--dismissed</code> · resolved-question summary in chat history</li>
+        <li><code>.action-card</code> + <code>__body</code> + <code>__action</code> · canonical in-chat user-initiated affordance</li>
+        <li><code>.action-pip</code> + <code>--pending</code> / <code>--success</code> / <code>--failed</code> / <code>--retrying</code> · no squash/overshoot per locked motion attitude</li>
+        <li><code>.failure-popover</code> + <code>__label</code> / <code>__reason</code> / <code>__actions</code> · anchored to <code>.action-card__action</code></li>
+        <li><code>.status-strip</code> + <code>--active</code> · escalation tier (mirrors production <code>&lt;StatusStrip&gt;</code>)</li>
+      </ul>
     </div>
   </main>
 </body>

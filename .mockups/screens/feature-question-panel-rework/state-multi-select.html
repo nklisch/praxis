@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Inline question · single-select · feature-question-panel-rework</title>
+  <title>Inline question · multi-select · feature-question-panel-rework</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
   <link rel="stylesheet" href="../../design-system/motion.css">
   <link rel="stylesheet" href="../../design-system/components.css">
@@ -25,8 +25,8 @@
 </head>
 <body>
   <header class="mock-meta">
-    <strong>Inline question · state-single</strong>
-    <span>one question · single-select radio choices · always-visible free-form · Submit + clarify-in-chat</span>
+    <strong>Inline question · state-multi-select</strong>
+    <span>same chassis as single · checkbox indicators · "select all that apply" badge in kicker · multiple selections allowed</span>
     <a href="index.html">← all states</a>
   </header>
 
@@ -39,45 +39,57 @@
 
       <div class="chat-turn chat-turn--tutor">
         <div class="chat-turn__speaker">Tutor · just now</div>
-        <p class="chat-turn__body">Before we work the balloon example, let's check your starting intuition.</p>
+        <p class="chat-turn__body">Let's take stock before pushing on. There are several things that are <em>true</em> about composite derivatives — I want to see which ones you'd nod at and which ones you'd push back on.</p>
       </div>
 
       <div class="inline-question">
-        <div class="inline-question__kicker"><span class="inline-question__kicker__glyph">?</span>tutor asked</div>
-        <p class="inline-question__prompt">If the radius of a balloon grows at <em>2 cm/s</em> when r = 5 cm, what's the <em>first</em> thing you'd compute to find dV/dt?</p>
+        <div class="inline-question__kicker">
+          <span class="inline-question__kicker__glyph">?</span>tutor asked
+          <span class="badge badge--info">select all that apply</span>
+        </div>
+        <p class="inline-question__prompt">Which of the following statements about <em>(f ∘ g)'(x)</em> are correct?</p>
 
         <div class="inline-question__choices">
-          <label class="inline-question__choice">
-            <span class="inline-question__indicator inline-question__indicator--radio"></span>
-            The volume V at r = 5
+          <label class="inline-question__choice inline-question__choice--selected">
+            <span class="inline-question__indicator inline-question__indicator--check"></span>
+            The order matters — <em>(f ∘ g)' ≠ (g ∘ f)'</em> in general
           </label>
           <label class="inline-question__choice inline-question__choice--selected">
-            <span class="inline-question__indicator inline-question__indicator--radio"></span>
-            The derivative dV/dr at r = 5
+            <span class="inline-question__indicator inline-question__indicator--check"></span>
+            <em>f'</em> is evaluated at <em>g(x)</em>, not at <em>x</em>
           </label>
           <label class="inline-question__choice">
-            <span class="inline-question__indicator inline-question__indicator--radio"></span>
-            The time t at which r = 5
+            <span class="inline-question__indicator inline-question__indicator--check"></span>
+            The chain rule is a special case of the product rule
+          </label>
+          <label class="inline-question__choice inline-question__choice--selected">
+            <span class="inline-question__indicator inline-question__indicator--check"></span>
+            It generalizes cleanly to three or more nested functions
           </label>
           <label class="inline-question__choice">
-            <span class="inline-question__indicator inline-question__indicator--radio"></span>
-            The integral of dr/dt from 0 to 5
+            <span class="inline-question__indicator inline-question__indicator--check"></span>
+            It requires <em>g</em> to be monotonic on the relevant interval
           </label>
         </div>
 
         <div class="inline-question__free-form">
           <label class="inline-question__free-form__label">or, in your own words</label>
-          <textarea class="inline-question__free-form__input" placeholder="…something else? sketch the reasoning."></textarea>
+          <textarea class="inline-question__free-form__input" placeholder="…something else? a statement you'd add or quibble with?"></textarea>
         </div>
 
         <div class="inline-question__actions">
           <button class="btn btn-primary">Submit ↵</button>
-          <button class="btn btn-ghost">↑ clarify in chat</button>
+          <span class="badge">3 selected</span>
+          <button class="btn btn-ghost" style="margin-left: auto;">↑ clarify in chat</button>
         </div>
       </div>
 
       <div class="state-note">
-        <strong>State:</strong> single-select inline question. Radio choices stack vertically with one selected (third). The <code>.inline-question__free-form</code> textarea is always visible below the choices — no expand affordance, no Choose/Write toggle. Submit accepts either source; free-form text wins when both are populated (more specific signal). <code>clarify in chat</code> is a <code>.btn-ghost</code> secondary action beside the primary Submit — dismisses the card and signals the agent to resume normal conversation (see <code>state-clarify-in-chat</code>).
+        <strong>State:</strong> multi-select variant of the inline question. <strong>Same chassis</strong> as single-select — only two things differ:
+        <br>(1) the <code>.inline-question__indicator</code> takes the <code>--check</code> modifier instead of <code>--radio</code> (square instead of circle; checkmark fill instead of dot fill);
+        <br>(2) the kicker carries a <code>.badge.badge--info</code> reading <code>select all that apply</code> so the affordance is unambiguous.
+        <br><br>
+        Submit accepts any number of selections (0 + free-form is valid; 5 + free-form is valid). A live <code>N selected</code> badge appears in the actions row when at least one choice is picked. The resolved chip will show all selections joined by " + " (or "N answers" when long).
       </div>
     </main>
   </div>
