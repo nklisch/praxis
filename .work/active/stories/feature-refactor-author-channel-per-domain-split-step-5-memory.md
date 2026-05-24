@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-5-memory
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -72,3 +72,12 @@ export function registerAuthorMemoryHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the four handlers remain in `author-channel.ts`.
+
+## Implementation notes
+- Created `packages/desktop/electron/main/author-memory-channel.ts` (104 lines).
+- Handler bodies copied verbatim from `author-channel.ts` lines 423–496.
+- All 4 handlers: `resetConcept`, `clearMisconception`, `exportMemory`, `deleteAllMemory`.
+- `requireUnlocked` is local (not exported), matching the pattern from other extracted modules.
+- `getStudentId` imported for the 3 handlers that resolve studentId server-side (`resetConcept`, `exportMemory`, `deleteAllMemory`).
+- `author-channel.ts` and `ipc-server.ts` left unmodified per step instructions (Step 7 handles wiring and deletion).
+- `pnpm typecheck` passes (34 test files, 520 tests all green).
