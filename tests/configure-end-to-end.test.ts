@@ -41,8 +41,8 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {
-  courseCreateMode,
   configureMode,
+  courseCreateMode,
   examMode,
   homeworkMode,
   quizMode,

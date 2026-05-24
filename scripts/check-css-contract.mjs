@@ -17,7 +17,7 @@
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, extname, relative } from "node:path";
+import { extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ─── CLI args ────────────────────────────────────────────────────────────────
@@ -64,8 +64,7 @@ const RULES = [
   },
   {
     id: "bare-px-spacing",
-    description:
-      "Bare px value in padding/margin/gap — use var(--space-*) instead",
+    description: "Bare px value in padding/margin/gap — use var(--space-*) instead",
     test(line) {
       const stripped = stripComments(line);
       // Match padding, margin, or gap property declarations anywhere on the line.
@@ -86,8 +85,7 @@ const RULES = [
   },
   {
     id: "cubic-bezier-literal",
-    description:
-      "cubic-bezier() literal — use var(--ease-*) instead",
+    description: "cubic-bezier() literal — use var(--ease-*) instead",
     test(line) {
       const stripped = stripComments(line);
       const match = stripped.match(/cubic-bezier\s*\(/);
@@ -97,12 +95,12 @@ const RULES = [
   },
   {
     id: "bare-duration",
-    description:
-      "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
+    description: "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
     test(line) {
       const stripped = stripComments(line);
       // Match transition/animation property declarations anywhere on the line.
-      const propRe = /(^|[{;\s])(transition|transition-duration|animation|animation-duration)(-\w+)?\s*:/gi;
+      const propRe =
+        /(^|[{;\s])(transition|transition-duration|animation|animation-duration)(-\w+)?\s*:/gi;
       let propMatch;
       while ((propMatch = propRe.exec(stripped)) !== null) {
         const colonIdx = propMatch.index + propMatch[0].length - 1;
@@ -138,7 +136,8 @@ function* walkCssModules(dir) {
  * Regex that matches the start of a transition/animation declaration.
  * Captures the colon position implicitly — the value starts after the `:`.
  */
-const DURATION_PROP_START_RE = /(^|[{;\s])(transition|transition-duration|animation|animation-duration)(-\w+)?\s*:/i;
+const DURATION_PROP_START_RE =
+  /(^|[{;\s])(transition|transition-duration|animation|animation-duration)(-\w+)?\s*:/i;
 
 /**
  * Regex for a bare duration value (no `var(--` prefix).
@@ -211,7 +210,8 @@ function scanFile(filePath) {
             line: lineNo,
             col: strippedLine.indexOf(durMatch[0], colonIdx) + 1,
             rule: "bare-duration",
-            description: "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
+            description:
+              "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
             snippet: line.trim().slice(0, 100),
           });
         }
@@ -242,7 +242,8 @@ function scanFile(filePath) {
                 line: j + 1, // 1-indexed
                 col: contStripped.indexOf(contDurMatch[0]) + 1,
                 rule: "bare-duration",
-                description: "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
+                description:
+                  "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
                 snippet: contLine.trim().slice(0, 100),
               });
             }
@@ -265,14 +266,12 @@ function scanFile(filePath) {
 
 // ─── Export for tests ─────────────────────────────────────────────────────────
 
-export { scanFile, RULES, EXCEPTION_RE };
+export { EXCEPTION_RE, RULES, scanFile };
 
 // ─── Main (only when run directly) ───────────────────────────────────────────
 
 // ESM doesn't have require.main === module, but we can check via import.meta.url
-const isMain =
-  process.argv[1] &&
-  fileURLToPath(import.meta.url) === process.argv[1];
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isMain) {
   const allViolations = [];
@@ -295,7 +294,7 @@ if (isMain) {
   if (allViolations.length > 0) {
     if (!jsonMode) {
       console.error(
-        `\n${allViolations.length} design-system contract violation${allViolations.length === 1 ? "" : "s"} found.`
+        `\n${allViolations.length} design-system contract violation${allViolations.length === 1 ? "" : "s"} found.`,
       );
     }
     process.exit(1);

@@ -105,28 +105,56 @@
  * Components use them via `animation: <name> var(--dur-quick) var(--ease-*)`. */
 
 @keyframes motion-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes motion-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 @keyframes motion-rise-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes motion-rise-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(8px); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 @keyframes motion-skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 @keyframes motion-editorial-ellipsis {
-  0% { width: 0; }
-  100% { width: 1.2em; }
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 1.2em;
+  }
 }
 /* Indeterminate progress — a 30%-wide segment bounces between the
  * container edges. Compose with `animation-direction: alternate` and
@@ -135,6 +163,10 @@
  * (container_width − segment_width) / segment_width × 100% = 233% moves
  * the segment from flush-left to flush-right. */
 @keyframes motion-progress-bounce {
-  0%   { transform: translateX(0%); }
-  100% { transform: translateX(233%); }
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(233%);
+  }
 }

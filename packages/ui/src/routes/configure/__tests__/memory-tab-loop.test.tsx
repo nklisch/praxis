@@ -1,10 +1,10 @@
-import { render, screen, act } from "@testing-library/react";
+import type { PraxisClient } from "@praxis/core/types";
+import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { MemoryTab } from "../memory-tab.js";
 import { usePraxisClient } from "../../../context/client-context.js";
 import { useDirtyState } from "../../../hooks/use-dirty-state.js";
 import { useResource } from "../../../hooks/use-resource.js";
-import type { PraxisClient } from "@praxis/core/types";
+import { MemoryTab } from "../memory-tab.js";
 
 vi.mock("../../../context/client-context.js");
 vi.mock("../../../hooks/use-dirty-state.js");
@@ -37,7 +37,7 @@ describe("MemoryTab Infinite Loop", () => {
 
     // Wait a bit to see if it loops
     await new Promise((r) => setTimeout(r, 500));
-    
+
     console.log("Call count:", episodicSpy.mock.calls.length);
     expect(episodicSpy.mock.calls.length).toBe(1);
   });

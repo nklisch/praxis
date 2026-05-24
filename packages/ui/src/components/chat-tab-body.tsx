@@ -313,9 +313,7 @@ export function TeachChatTabBody({
 
       <div ref={messagesContainerRef} className={styles.messages} onScroll={handleScroll}>
         {showResumedBanner && <ResumedBanner title={tab.title} />}
-        {items.length === 0 && (
-          <EmptyState message="Start a conversation with your tutor." />
-        )}
+        {items.length === 0 && <EmptyState message="Start a conversation with your tutor." />}
         {items.map((item) => {
           if (item.kind === "tool-entry") {
             return (

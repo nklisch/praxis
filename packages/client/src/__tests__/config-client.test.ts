@@ -47,7 +47,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
     const client = new ConfigClient(transport);
 
     // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
-    const malformedPayload1 = { engineId: "claude-code", hasApiKey: false, apiKeyEncrypted: "c29tZWJsb2I=" } as any;
+    const malformedPayload1 = {
+      engineId: "claude-code",
+      hasApiKey: false,
+      apiKeyEncrypted: "c29tZWJsb2I=",
+    } as any;
     await expect(client.setEngineConfig(malformedPayload1)).rejects.toThrow(IpcError);
   });
 
@@ -64,7 +68,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
     const client = new ConfigClient(transport);
 
     // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
-    const malformedPayload2 = { engineId: "claude-code", hasApiKey: false, apiKeyEncrypted: "c29tZWJsb2I=" } as any;
+    const malformedPayload2 = {
+      engineId: "claude-code",
+      hasApiKey: false,
+      apiKeyEncrypted: "c29tZWJsb2I=",
+    } as any;
     let thrown: unknown;
     try {
       await client.setEngineConfig(malformedPayload2);

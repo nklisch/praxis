@@ -50,7 +50,7 @@ function stripIds(items: ChatStreamItem[]): unknown[] {
   return items.map((item) => {
     // Strip id from all kinds — live uses msg-N; replay uses hist-kind-N.
     const { id: _id, ...rest } = item as any;
-    
+
     if (rest.kind === "message") {
       const { streaming: _streaming, ...messageRest } = rest;
       return messageRest;
