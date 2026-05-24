@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition
 kind: feature
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -202,3 +202,15 @@ that specific machine. The composition step (5) does the final cleanup pass.
 ## Children complete (2026-05-24)
 
 All 5 child stories (step-1 through step-5) advanced to `stage: done`. Feature advanced to `stage: review`.
+
+## Review (2026-05-24)
+
+**Verdict: approved — advancing to `done`.**
+
+All verification checks passed:
+
+- **5 child stories**: all at `stage: done` (step-1 through step-5).
+- **4 new sub-hook files**: `use-pending-queue.ts`, `use-streamed-bubbles.ts`, `use-interstitial-lifecycle.ts`, `use-reasoning-blocks.ts` — all present in `packages/ui/src/hooks/`.
+- **Line reduction**: `use-streamed-send.ts` reduced to **336 lines** (from 725), a 54% reduction, within the ≤350 target.
+- **Latent bug caught and fixed**: step-5 identified a stale-closure bug in the `finally` block's pending-replay path; the decomposition surfaced it by making per-turn ref ownership explicit in `usePendingQueue`, and it was fixed as part of that story.
+- **External API preserved**: `useStreamedSend`'s return shape is unchanged; all consumers continue to work without modification.
