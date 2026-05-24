@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -103,3 +103,19 @@ Each step: `pnpm typecheck && pnpm lint && pnpm test` must be green before next.
 - File length: 876 lines after SessionPromoter extract
 - 3 spawnFrom* variants × ~70 lines each = ~210 lines of extractable logic
 - Discovered by autopilot refactor cadence
+
+## Implementation summary
+
+Option A chosen: `SessionSpawner` utility class, mirroring `session-promoter.ts` exactly.
+
+4 sequential stories all complete:
+1. `step-1-spawner-skeleton` (commit `46ac20b`) — skeleton + wiring
+2. `step-2-spawn-from-assignment` (commit `44129ce`) — first method moved
+3. `step-3-spawn-from-note` (commit `9999af2`) — second method moved; `sendMessage` port validated
+4. `step-4-spawn-from-passage` (commit `5961c9e`) — third method moved; `documentScopes` port validated; imports cleaned
+
+Before: `session-service.ts` ~876 lines (post-promoter-extract baseline).
+After: `session-service.ts` 665 lines; `session-spawner.ts` 329 lines.
+Net reduction: ~211 lines from `session-service.ts`; all 1164 core tests pass; typecheck + lint green across all 10 workspace packages.
+
+All preserved invariants confirmed: parent-validation logic verbatim, offset-clamping + `MAX_PASSAGE_LENGTH` cap verbatim, `_persistImmediately: true` on all spawn calls, public `SessionService` interface unchanged, `notifySession` stays in `SessionServiceImpl`.
