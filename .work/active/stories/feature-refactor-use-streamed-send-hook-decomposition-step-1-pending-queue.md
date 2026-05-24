@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-1-pending-queue
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -116,3 +116,17 @@ call-site handoffs.
 
 **Rollback:** Revert the new file and restore the inlined code in
 `use-streamed-send.ts`. No other packages affected.
+
+## Review
+
+**Verdict: done.**
+
+Shape check (commit `e705bec`):
+- `usePendingQueue()` is the sole named export — correct.
+- Per-turn refs (`pendingQueueRef`, `userCancelledRef`, `iteratorRef`) all held via `useRef` — correct.
+- `reset()` not needed here (caller clears `userCancelledRef.current = false` at send-start per design) — design intentionally omits it and the story body confirms this.
+- `setItems` accepted at each call site (`enqueue`, `cancelPending`, `dequeueNext`) — stale-closure-safe — correct.
+- `iteratorRef` typed `MutableRefObject` (not read-only `RefObject`) so `send()` can write `.current` — correct per design note.
+- `dequeueNext` eagerly updates both ref and state before returning — avoids the TOCTOU window where a racing `cancelPending` could re-dequeue the same entry — sound.
+- Deviation from design (step 5 wires `use-streamed-send.ts`, not this step) is noted and intentional.
+- 1711 tests green; typecheck + lint clean.

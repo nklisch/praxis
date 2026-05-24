@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-4-reasoning-blocks
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -124,3 +124,19 @@ hook's approach.
 
 **Rollback:** Revert new file and restore inline reasoning code in
 `use-streamed-send.ts`.
+
+## Review
+
+**Verdict: done.**
+
+Shape check (commit `d4af5d4`):
+- `useReasoningBlocks()` is the sole named export — correct.
+- `currentReasoningId` stored in `useRef<ReasoningState>` — correct, no re-renders on open/close transitions.
+- `reset()` present, clears `currentReasoningId` to `null` — correct.
+- `setItems` accepted at each call site (`onThinking`, `closeReasoningBlock`) — stale-closure-safe — correct.
+- `onThinking` handles both open (new id, append to items) and append (existing id, map+concatenate) branches — mirrors original logic exactly.
+- `closeReasoningBlock` is a no-op when `currentReasoningId === null` — matches original guard.
+- Module-level `reasoningCounter` with `reasoning-` prefix avoids any collision with bubble (`bubble-`) or user-message ids.
+- `SetItems` typed as `React.Dispatch<React.SetStateAction<ChatStreamItem[]>>` — consistent with the rest of the decomposition.
+- `use-streamed-send.ts` left untouched per step-5 wiring constraint — intentional deviation, noted.
+- 1711 tests green; typecheck clean across workspace.

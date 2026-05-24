@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-2-streamed-bubbles
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -154,3 +154,17 @@ Each call site must be updated. The per-turn mutables moving to a ref is safe bu
 requires careful snapshot-at-close semantics (same as current code).
 
 **Rollback:** Revert new file and restore inline helpers in `use-streamed-send.ts`.
+
+## Review
+
+**Verdict: done.**
+
+Shape check (commit `0110741`, final state after step-5 fix `4a212d6`):
+- `useStreamedBubbles(setItems, setThinking)` exported — correct.
+- Per-turn mutable state (`content`, `currentId`, `lastId`) stored in a single `useRef<BubbleRef>` — correct.
+- `reset()` present, zeroes all three fields — correct.
+- `appendContent` and `setContent` accept `setItems` at call time (not captured at construction) — stale-closure-safe — correct.
+- `activeBubbleContentLength`, `currentAssistantId`, `lastAssistantId` exposed as getter properties reading live from `bubbleRef.current` — callers always see current values — correct.
+- `openAssistantBubble(renderables?)` uses renderable arrays passed in; hook never touches external renderable state — coupling removed as designed.
+
+**id-collision fix verified:** The original commit `0110741` used prefix `msg-` in `nextBubbleId()`, which collided with the user-message id prefix in `use-streamed-send.ts`. Step 5 commit `4a212d6` changed this to `bubble-`. The live file at `packages/ui/src/hooks/use-streamed-bubbles.ts` line 71 confirms `return \`bubble-${++bubbleCounter}\`` — bug-free in the integrated state. Verdict is done because the issue was caught and fixed during composition before any story was wired into production.
