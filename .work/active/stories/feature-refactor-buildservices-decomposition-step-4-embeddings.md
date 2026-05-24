@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-4-embeddings
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -131,3 +131,17 @@ verify the packaged-build path still resolves by confirming `pnpm --filter @prax
 produces an unpackaged `.app` that includes the embeddings worker script.
 
 Rollback: revert the new file, restore the module-level constants and inline blocks in `services.ts`.
+
+## Implementation notes
+
+- `services.ts` was **not touched**. The module-level constants (`EMBEDDINGS_MODEL_ID`,
+  `EMBEDDINGS_DIMENSION`, `requireFromHere`, `resolveDistPath`) remain in `services.ts` as
+  duplicates until Step 10 performs the wiring + cleanup pass. TypeScript does not complain
+  about duplicate module-scoped `const` declarations across separate files — no conflict.
+- The `sqlite` parameter type uses `SqliteDatabase` (re-exported from `@praxis/core/db`)
+  rather than a direct `import type Database from "better-sqlite3"`, because
+  `@praxis/desktop` does not have `@types/better-sqlite3` in its devDependencies.
+  `SqliteDatabase` is defined as `Database.Database` in core and re-exported for exactly
+  this cross-package use case.
+- `pnpm typecheck && pnpm --filter @praxis/desktop test` both green (520 tests, 34 files).
+- Biome import ordering was auto-fixed (organizeImports + inline of the tools/runtime import).
