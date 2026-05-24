@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-3-gates-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -80,3 +80,17 @@ are self-contained within `GatesServiceImpl`.
 - Exported `GatesServiceImpl` and `GatesServiceDeps` from `packages/core/src/services/index.ts`.
 - `artifacts-service.ts` left untouched per instructions (Step 6 wires).
 - `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 files / 1164 tests green).
+
+## Review
+
+Verdict: **done** (commit `ff48bed`).
+
+- `GatesServiceImpl` exported from `gates-service.ts` (387 lines, matching story).
+- Constructor takes `{ db, log, masteryReader, gradeReader }` — matches `GatesServiceDeps` interface exactly.
+- All 11 public methods present: `gates`, `gateView`, `evaluateAndPersistGates`, `markGatesViewed`, `newlyUnlockedCount`, `createGate`, `updateGate`, `deleteGate`, `overrideGate`, `getGate`, `upsertGate`.
+- `rowToGate` is module-level function, correctly module-private (not exported) — appropriate since only `GatesServiceImpl` uses it.
+- `overrideGate` and `evaluateAndPersistGates` both use single DB transactions — atomic as required.
+- `gateView` calls `this.gates()` internally (no circular dep); `evaluateAndPersistGates` likewise.
+- `GatesServiceImpl` and `GatesServiceDeps` re-exported from `packages/core/src/services/index.ts`.
+- `loadOrThrow` used correctly after `createGate`, `updateGate`, and `overrideGate`.
+- No logic changes — pure extraction as intended. All patterns followed correctly.

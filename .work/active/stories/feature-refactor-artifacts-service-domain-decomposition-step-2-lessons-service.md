@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-2-lessons-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -81,3 +81,15 @@ single transaction).
 - `LessonsServiceImpl` constructor takes `{ db, log }` only; no MasteryReader or GradeReader needed.
 - Exported `LessonsServiceDeps` and `LessonsServiceImpl` from `packages/core/src/services/index.ts`.
 - `pnpm typecheck` clean; `pnpm --filter @praxis/core test` passed 1164 tests across 96 files.
+
+## Review
+
+Verdict: **done** (commit `cb5dc10`; duplication fixed by step-4 commit `49c8bc3`).
+
+- `LessonsServiceImpl` exported from `lessons-service.ts`; constructor takes only `{ db, log }`.
+- All 8 public methods present in final state: `lessons`, `units`, `getLesson`, `createLesson`, `updateLesson`, `deleteLesson`, `upsertLesson` — and `lessonAssessments` was **removed** by step-4 commit `49c8bc3` into its own `LessonAssessmentsServiceImpl` (`lesson-assessments-service.ts`). Final `lessons-service.ts` contains no `lessonAssessments` method — duplication resolved.
+- Private helper `nextLessonOrderIndex` present; `rowToLesson` at module level (module-private, not exported — correct, as the facade won't need it directly unlike `rowToCourse`).
+- `deleteLesson` retains single-transaction cross-table gate JSON scan without calling `GatesServiceImpl` — correct, no circular dep.
+- `loadOrThrow` used after `createLesson` and `updateLesson`.
+- `LessonsServiceImpl` and `LessonsServiceDeps` re-exported from `packages/core/src/services/index.ts`.
+- All patterns followed correctly.

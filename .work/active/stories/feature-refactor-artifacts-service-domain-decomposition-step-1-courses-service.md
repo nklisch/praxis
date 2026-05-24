@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-1-courses-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -88,3 +88,18 @@ Low — pure extraction, no logic changes.
   `packages/core/src/services/index.ts`.
 - `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 test
   files, 1164 tests).
+
+## Review
+
+Verdict: **done** (commit `b74a14f`).
+
+- `CoursesServiceImpl` exported from `courses-service.ts` (327 lines in full commit; 262 lines of class body matching the story's stated 262-line count).
+- Constructor takes only `{ db, log }` — no cross-service deps.
+- All 8 public methods present: `course`, `courses`, `progress`, `listDocuments`, `concepts`, `updateCourse`, `markLessonStarted`, `markConceptStudied`.
+- Both private helpers present: `findLessonContainingConcept`, `summarizeCourse`.
+- `rowToCourse` exported at module level (needed by facade step 6).
+- `getCourseSummary` correctly omitted (cross-domain aggregation, facade-owned per design).
+- `CoursesServiceImpl`, `CoursesServiceDeps`, and `rowToCourse` all re-exported from `packages/core/src/services/index.ts`.
+- `loadOrThrow` used correctly after `updateCourse`.
+- No logic changes — pure extraction as intended.
+- All patterns followed correctly.
