@@ -129,3 +129,39 @@
   margin: 0.6em 0;
   overflow-x: auto;
 }
+
+/* KaTeX parse-error badge — rendered when throwOnError: false and the
+   LaTeX expression is malformed. KaTeX emits .katex-error on the span;
+   .mathError is the CSS Modules alias used by any React-side wrapper.
+   Both selectors apply the same quiet danger styling: inline badge with
+   muted red background, mono typeface, capped size. */
+.mathError {
+  display: inline-flex;
+  align-items: baseline;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 0.05em 0.3em;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.mathError :global(code) {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+/* Alias for KaTeX's unhashed class — must be :global so the hashed
+   CSS Modules transform does not rename it at build time. */
+:global(.katex-error) {
+  display: inline-flex;
+  align-items: baseline;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 0.05em 0.3em;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}

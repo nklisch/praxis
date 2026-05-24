@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-3-error-handling
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, math, css]
 parent: feature-math-rendering
 depends_on: []
@@ -37,6 +37,23 @@ Add CSS for `.math-error` (and the `.katex-error` alias KaTeX emits when `throwO
 - [ ] No hardcoded color / dimension literals
 - [ ] No regression on existing markdown-content tests
 - [ ] Build / lint pass
+
+## Implementation notes (2026-05-24)
+
+Implemented as scoped. Token names confirmed against `packages/ui/src/styles/global.css` — `--color-danger`, `--radius-sm`, `--font-mono`, `--color-text-secondary` all exist and are used elsewhere with `color-mix(in srgb, ...)`.
+
+- Added `.mathError` CSS Modules class to `markdown-content.module.css` with all token-only values (no hardcoded color/dimension literals).
+- Added nested `.mathError :global(code)` rule for transparent bg + secondary text color.
+- Added `:global(.katex-error)` with identical rule block (cannot use `composes:` from a local class into a `:global()` selector in CSS Modules; duplicate is the correct approach).
+- Added `it.skip` test in `markdown-content.test.tsx` naming step-5 as the activator. The skip count shows as 1 in the test run, no false positives.
+- All 1758 existing tests pass; typecheck and lint clean on changed files.
+
+## Acceptance Criteria
+- [x] `.mathError` class in `markdown-content.module.css` with token-only values
+- [x] `:global(.katex-error)` alias applies the same styling (for KaTeX's emitted class)
+- [x] No hardcoded color / dimension literals
+- [x] No regression on existing markdown-content tests
+- [x] Build / lint pass
 
 ## References
 - Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 3

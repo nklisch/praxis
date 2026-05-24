@@ -130,6 +130,16 @@ describe("MarkdownContent", () => {
     expect(pre?.textContent).toContain("const x = 1;");
   });
 
+  // TODO(step-5): flip .skip to active when throwOnError: false is wired into
+  // the unified() pipeline in markdown-content.tsx. Step-5 is the activator.
+  it.skip("renders malformed LaTeX as a .katex-error badge (requires step-5 throwOnError wiring)", () => {
+    // $\widebar{x}$ uses an undefined KaTeX macro — with throwOnError: false
+    // KaTeX emits a <span class="katex-error"> containing the parse-error
+    // message and raw source instead of throwing.
+    const { container } = renderMd("$\\widebar{x}$");
+    expect(container.querySelector(".katex-error")).not.toBeNull();
+  });
+
   it("returns null citation chip when index is non-numeric", () => {
     // Defensive: the plugin always emits numeric indices, but the renderer
     // guards against malformed properties.
