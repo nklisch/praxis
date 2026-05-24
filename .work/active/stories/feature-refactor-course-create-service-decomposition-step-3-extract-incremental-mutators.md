@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-3-extract-incremental-mutators
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -93,3 +93,9 @@ Rollback: inline the functions back; tests catch regressions immediately.
 - `normalizeConceptName` re-exported from `./helpers.js` for convenience.
 - `course-create-service.ts` was NOT modified per the task instructions — Step 7 handles wiring.
 - `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 files, 1164 tests).
+
+## Review
+
+Verdict: **done**.
+
+`draft-mutators.ts` (379 lines) exports all 9 mutation functions with the designed `(draft: DraftCourseState, input: XxxInput) → XxxResult` signature. Each result type is a proper discriminated union on `ok`. All input/result types are exported for strong typing at Step 7. `uuidv7` is imported directly for ID generation in `addLesson`, `addUnit`, and `addLessonAssessment`. `normalizeConceptName` is imported from `./helpers.js` and additionally re-exported for caller convenience. No DB access, no async, no side effects beyond mutating the passed-in draft (consistent with the design's intent — callers own the lifecycle). The `normalizeConceptName` re-export is a minor deviation from the design (not required) but is benign. `pnpm typecheck` and 1164 core tests pass.
