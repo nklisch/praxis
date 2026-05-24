@@ -1,7 +1,7 @@
 ---
 id: gate-tests-session-list-includeended-and-excludemodeids
 kind: story
-stage: review
+stage: done
 tags: [testing, sessions]
 parent: null
 depends_on: []
