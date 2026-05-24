@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators
 kind: feature
-stage: drafting
+stage: implementing
 tags: [refactor, ui, design-system]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -58,3 +58,174 @@ Soft adjacency with `feature-question-panel-rework` (sibling epic `epic-chat-int
 
 - The renamed `.choice-indicator--radio` / `--check` primitive lives in `components.css`. `feature-question-panel-rework` (sibling epic, will design after this) consumes the renamed primitive from the start IF it designs after this feature ships; OR adopts the renamed primitive in a follow-up edit if it designs in parallel. Either order is fine — coordinate via the feature bodies (this feature locks the name; `feature-question-panel-rework` references it from its design pass).
 - The `correctIndices: number[]` tool result shape change ripples to grading code. Verify grading tests cover both `correctIndex` (single) and `correctIndices` (multi) paths in the same coordinated PR.
+
+## Audit revision (2026-05-24, post-refactor-design)
+
+**The audit revealed the refactor is smaller than the original brief implied.** Two of the design decisions don't apply:
+
+- **Multi-select is ALREADY implemented in production** as `kind: "multi-select"` items via `packages/ui/src/components/item-bodies/multi-select-body.tsx` with `correctOptionIndices: number[]` already in `packages/tools/src/assignment/item-schema.ts` lines 65-73. `AssignmentItemCard` already dispatches to `<MultiSelectBody>` when `item.kind === "multi-select"`. The "add multi-select to assignment-item-card" decision is satisfied — no new schema, no new grader, no new tool result shape. The `correctOptionIndex` / `correctOptionIndices` field names are also more verbose than the design body assumed; honor existing naming.
+
+- **There is no `.inline-question__indicator` class in production CSS.** That name appears only in the mockup at `.mockups/design-system/components.css`. Production uses scattered classes in `packages/ui/src/components/item-bodies/item-body-shared.module.css` (lines 35–51): `.optionInput` (the radio/checkbox itself), `.correct` / `.incorrect` (state classes on `.optionLabel`), `.feedbackGlyph` (the · / ° marker). The refactor is more about *consolidating these scattered fragments into a named primitive* than about *renaming an existing primitive*.
+
+The remaining work, post-audit:
+- Extract `.choice-indicator` + variants from the scattered classes into a single CSS module
+- Add the same primitive to `.mockups/design-system/components.css` (for mock/prod parity)
+- Update `single-choice-body.tsx` and `multi-select-body.tsx` to compose against the primitive
+- Dedupe `assignment-item-card.module.css` which currently duplicates the styling
+
+Tests are semantic-query based (`getByRole("radio")`, `getByRole("checkbox")`) per the audit — zero test-selector updates needed.
+
+## Refactor Overview
+
+Three focused steps, all behavior-preserving:
+
+1. **Define the `.choice-indicator` primitive** — production CSS module + mockup parity
+2. **Refactor body components** — single-choice-body + multi-select-body compose against primitive
+3. **Dedupe assignment-item-card.module.css** — remove duplicated `.optionInput` / `.optionLabel` rules; compose against primitive
+
+Steps 2 and 3 are independent and can run in parallel once step 1 lands.
+
+## Refactor Steps
+
+### Step 1: Define `.choice-indicator` primitive
+**Priority**: High
+**Risk**: Low (additive — new CSS, no existing CSS deleted yet)
+**Files**:
+- `packages/ui/src/components/item-bodies/choice-indicator.module.css` (NEW)
+- `.mockups/design-system/components.css` (extend — add the same primitive for mock parity)
+**Story**: `feature-refactor-shared-choice-indicators-step-1-primitive`
+
+**Current State**: scattered classes in `item-body-shared.module.css` (lines 35-51):
+```css
+.optionInput { accent-color: ...; }      /* the input itself */
+.correct { /* success border / bg / text on .optionLabel */ }
+.incorrect { /* danger border / bg / text on .optionLabel */ }
+.feedbackGlyph { /* · or ° marker */ }
+```
+
+**Target State**: NEW `choice-indicator.module.css` exporting a named primitive:
+```css
+.choiceIndicator { /* base: aligned wrapper for input + state */ }
+.choiceIndicatorRadio { /* radio-specific style — circular shape, ::after for filled center */ }
+.choiceIndicatorCheck { /* check-specific style — square shape, ::after for ✓ */ }
+.choiceIndicatorCorrect { /* success color tokens */ }
+.choiceIndicatorIncorrect { /* danger color tokens */ }
+```
+
+Plus matching `.choice-indicator` (+ `--radio`/`--check`/`--correct`/`--incorrect`) class definitions in `.mockups/design-system/components.css` so mocks stay in lockstep.
+
+**Implementation notes**:
+- Variants compose: `<span class="choiceIndicator choiceIndicatorRadio choiceIndicatorCorrect">` produces a correct-state radio.
+- All tokens (`var(--color-success)`, `var(--color-danger)`, `var(--radius-pill)`, etc.) — never hardcoded values.
+- Keep the existing `.optionInput`, `.correct`, `.incorrect`, `.feedbackGlyph` classes in place during this step — they're consumed by existing code and will be removed in step 2.
+- Variants for `--radio` / `--check` use `::after` for the inner fill (CSS-only, no SVG icons).
+- Mockup parity: the same class names in production CSS modules and in `.mockups/design-system/components.css` (CSS Modules will hash production names; mock copy uses literal class names).
+
+**Acceptance criteria**:
+- [ ] New `choice-indicator.module.css` shipped with the 5 listed classes
+- [ ] All values reference design tokens (no hardcoded colors / dimensions)
+- [ ] Existing `.optionInput` / `.correct` / `.incorrect` / `.feedbackGlyph` classes untouched
+- [ ] Mockup `components.css` has matching `.choice-indicator` family with literal class names
+- [ ] Visual smoke: a temporary test page rendering one of each variant matches mockup reference
+
+**Rollback**: pure-additive — revert the new files; no existing surfaces affected.
+
+---
+
+### Step 2: Refactor body components to use the primitive
+**Priority**: High
+**Risk**: Medium (touches the actual rendering of assignment / quick-check choices)
+**Files**:
+- `packages/ui/src/components/item-bodies/single-choice-body.tsx`
+- `packages/ui/src/components/item-bodies/multi-select-body.tsx`
+**Story**: `feature-refactor-shared-choice-indicators-step-2-body-components`
+
+**Current State** (single-choice-body.tsx, lines ~40-59):
+```tsx
+<input type="radio" className={styles.optionInput} ... />
+<label className={`${styles.optionLabel} ${feedbackClass}`}>
+  {option}
+  {showFeedback && <span className={styles.feedbackGlyph}>{glyph}</span>}
+</label>
+```
+
+(`multi-select-body.tsx` mirrors this with `<input type="checkbox">`.)
+
+**Target State**:
+```tsx
+<span className={`${styles.choiceIndicator} ${styles.choiceIndicatorRadio} ${feedbackClass}`} />
+<input type="radio" className={styles.optionInput} ... />
+<label className={styles.optionLabel}>
+  {option}
+</label>
+```
+
+Where `feedbackClass` is `styles.choiceIndicatorCorrect` or `styles.choiceIndicatorIncorrect` from the new module. The `.feedbackGlyph` can be folded into the indicator's `::after` for correct/incorrect states (CSS-only — see step-1's variants).
+
+**Implementation notes**:
+- Move feedback styling from label to indicator. The label keeps its base styling but loses the state-modifier classes.
+- `import indicatorStyles from "./choice-indicator.module.css"` alongside existing `import styles from "./item-body-shared.module.css"`.
+- Multi-select uses `choiceIndicatorCheck` instead of `choiceIndicatorRadio`; otherwise identical.
+- After this step, `item-body-shared.module.css` still has `.correct` / `.incorrect` / `.feedbackGlyph` but they're unused; remove in this same commit.
+- Verify existing tests pass without modification (they query by role, per audit).
+
+**Acceptance criteria**:
+- [ ] `single-choice-body.tsx` and `multi-select-body.tsx` render via `.choice-indicator*` classes
+- [ ] `.correct` / `.incorrect` / `.feedbackGlyph` removed from `item-body-shared.module.css` (no longer referenced)
+- [ ] All existing tests (`single-choice-body.test.tsx`, `multi-select-body.test.tsx`, `quick-check-card.test.tsx`, `assignment-item-card.test.tsx`) pass unchanged
+- [ ] Visual regression: render same item before and after refactor; visually identical (check via screenshot diff or manual)
+- [ ] Build / typecheck / lint pass
+
+**Rollback**: revert both files + restore the removed CSS classes from item-body-shared.module.css (preserved in git history).
+
+---
+
+### Step 3: Dedupe `assignment-item-card.module.css`
+**Priority**: Medium
+**Risk**: Low (pure deduplication; styling source moves but visual output preserved)
+**Files**:
+- `packages/ui/src/components/assignment-item-card.module.css`
+- `packages/ui/src/components/assignment-item-card.tsx` (small — re-import path for shared input/label styling)
+**Story**: `feature-refactor-shared-choice-indicators-step-3-assignment-card-dedupe`
+
+**Current State**: `assignment-item-card.module.css` duplicates `.optionInput` / `.optionLabel` rules that also exist in `item-body-shared.module.css`. AssignmentItemCard renders bodies (which use item-body-shared) but ALSO carries its own copy of the input/label styles for the card-level layout.
+
+**Target State**: Single source for input/label styling — either import from `item-body-shared` or extract a third shared module if both surfaces need slightly different variants. AssignmentItemCard composes against the shared module + adds only card-specific layout (not duplicated styling).
+
+**Implementation notes**:
+- Inspect both files' `.optionInput` / `.optionLabel` rules side-by-side. If identical → remove from assignment-item-card.module.css; import from item-body-shared.
+- If slight differences → extract differences as variant classes (`.optionLabelCard`, etc.) and keep the base shared.
+- After this step, all radio/check rendering across the app (chat-inline quick-checks AND tab-body assignment items) uses the same `.choice-indicator` primitive AND the same `.optionInput` / `.optionLabel` baselines.
+- No production behavior change — the rendered DOM and visual output stay the same.
+
+**Acceptance criteria**:
+- [ ] No duplicated `.optionInput` / `.optionLabel` rules between `assignment-item-card.module.css` and `item-body-shared.module.css`
+- [ ] Both surfaces compose against the shared CSS module
+- [ ] Visual regression: render assignment-item-card before and after; visually identical
+- [ ] All existing tests pass
+
+**Rollback**: restore the duplicated rules from git history.
+
+---
+
+## Implementation Order
+
+1. **step-1-primitive** (deps: `[]`) — define primitive in both production + mockup CSS
+2. **step-2-body-components** (deps: `[step-1]`) — refactor body components to use primitive
+3. **step-3-assignment-card-dedupe** (deps: `[step-1]`) — dedupe assignment-item-card.module.css
+
+Steps 2 and 3 can run in parallel once step 1 lands. Single coordinated commit per the design decision is at the PR level; each step still commits independently for rollback safety.
+
+## Atomic-step acknowledgment
+
+None of the three steps are inherently atomic — each can be reverted in isolation. The original design decision specified "single coordinated PR", which still holds at the PR-merge level; the steps just decompose work for parallelism + rollback granularity within that PR.
+
+## Risks
+
+- **Visual regression risk**. Even with token-only styling, moving classes from label to indicator could shift pixel alignment by 1-2px. Mitigation: side-by-side visual comparison before merging.
+
+- **CSS Modules class-name interop with mockup**. Mock uses literal `.choice-indicator--radio`; production CSS Modules hashes. The mockup is reference-only — no shared CSS file. Mitigation: document the mapping explicitly in the new module's header comment.
+
+- **`item-body-shared.module.css` still has consumers other than the body components**. Verify by grep before deleting `.correct` / `.incorrect`. If any other component reads them, either update those consumers OR keep the classes as backward-compat aliases. Audit found no other consumers, but double-check at implementation time.
+
+- **Sibling coordination with `feature-question-panel-rework`**. That feature is at drafting in `epic-chat-interaction-ux-overhaul`. When it designs its question chassis, it should compose against the new `.choice-indicator` primitive. The question-panel-rework design pass needs to reference this feature's class names. Document in a comment on the new CSS module that the question-panel-rework feature will adopt these classes when it designs.
