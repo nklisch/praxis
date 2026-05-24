@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-route-unmount-vs-reuse
 kind: story
-stage: review
+stage: done
 tags: [testing, bug, sessions]
 parent: null
 depends_on: []
@@ -93,3 +93,46 @@ to /configure is a fresh session (no sharing across navigations)" — the opposi
 have failed before the fix (session.end was called in cleanup); passes after.
 
 **Verification**: `pnpm typecheck` PASS; `pnpm --filter @praxis/ui test --reporter=basic` 1707/1707 PASS.
+
+## Review
+
+**Verdict: approved (done)**
+
+**Reviewer**: Claude Code (Sonnet 4.6) — 2026-05-23
+
+### What was verified
+
+- `session.end(...)` is fully removed from the unmount cleanup in `configure.tsx` (lines 291–295 of
+  the post-fix file). The cleanup function now only sets `cancelled = true` — no IPC calls.
+- The `handleClearRestart` path at line 310 is the correct and only intentional `session.end` call;
+  it is not in a cleanup and is gated on explicit user confirmation.
+- JSDoc comment updated accurately: describes the long-lived reuse contract and makes explicit that
+  the only way to end the configure session is the "Clear / restart" control.
+- The biome-ignore comment was updated to accurately describe why `session` is omitted from deps
+  (no longer accessed in cleanup at all).
+- Pinning test `"navigating away (unmount) does NOT end the session — reuse contract"` is correct:
+  mounts, waits for `"Configure session active"` text, unmounts, asserts `client.session.end` was
+  NOT called. Would have failed before the fix; passes after.
+- Alignment with `feature-configure-mode-session-hygiene` confirmed: Unit 4 of that feature
+  explicitly specifies `return () => { cancelled = true; }` with no `session.end`, and requires that
+  the only intentional end is `handleClearRestart`. The fix brings the code into exact alignment.
+- Sibling-pattern audit: grepped all UI source files for `session.end`. Only two hits — line 294
+  (comment) and line 310 (`handleClearRestart`). No other route or tab-body component has a
+  `session.end` call in a cleanup path. Pattern is isolated.
+- 1707/1707 tests pass (re-verified in review run).
+
+### Findings
+
+None blocking. One nit noted for completeness:
+
+**Nit**: The feature design (`feature-configure-mode-session-hygiene`) is marked `stage: done` but
+its child story `story-configure-route-reuse-and-reset` acceptance criteria items are still listed
+as unchecked `[ ]` (the feature body was not updated to check them off after the implementation
+landed). Not a correctness issue — the implementation summary at the bottom of the feature body
+confirms they all shipped — but the checklist is stale. Low priority; no follow-up filed.
+
+**No important/blocking findings.** Release note consideration: this is a behavioral bug fix
+(configure sessions were silently ended on every navigation away), but it shipped within the
+`feature-configure-mode-session-hygiene` feature which is already bound to v0.1.4 and has its own
+implementation summary. No separate release note item is warranted — the feature's summary is the
+record.
