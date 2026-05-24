@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-streaming-ipc-channel-helpers-line
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -30,3 +30,6 @@ after the new `sessionActiveSchema`, the `excludeModeIds` addition to
 
 ## Required edit
 Change to: `packages/desktop/electron/main/session-channel.ts:154`
+
+## Implementation notes
+Verified `registerGeneratorStream` for `praxis.session.send` is at line 154 — updated the pattern doc from `:143` to `:154`. Also found and fixed a second stale citation in the same doc: `ingest-channel.ts` was cited at `:154` but the actual line is `:172`; all other citations (activity-channel `:33`, subagent-channel `:31`, course-create-drafts-channel `:27`, quick-check-channel `:69`, memory-channel `:105`) were accurate and left untouched.

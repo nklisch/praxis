@@ -69,7 +69,7 @@ registerSubscriberStream<SubAgentEvent, [parentCallId?: string]>(
 
 ### Example 3: Generator-style stream — session.send turn loop
 
-**File**: `packages/desktop/electron/main/session-channel.ts:143`
+**File**: `packages/desktop/electron/main/session-channel.ts:154`
 
 ```ts
 registerGeneratorStream<unknown, [sessionId: string, message: string]>(
@@ -84,7 +84,7 @@ registerGeneratorStream<unknown, [sessionId: string, message: string]>(
 
 ### Example 4: Generator-style stream — ingestion
 
-**File**: `packages/desktop/electron/main/ingest-channel.ts:154`
+**File**: `packages/desktop/electron/main/ingest-channel.ts:172`
 
 ```ts
 registerGeneratorStream<IngestionEvent, [Omit<IngestionRequest, "studentId">]>(
