@@ -304,15 +304,13 @@ function EngineStep({
 type CoursePath = "algebra" | "biology" | "syllabus";
 
 /**
- * Pre-seed messages injected into the course-create session after `session.start`
- * resolves. null means no pre-seed (syllabus path — user supplies their own
- * context). Pack ids ("algebra-1", "biology") match the canonical JSON
- * manifests in packages/curriculum/packs/.
+ * Pack ids for canonical course paths. These correspond to the top-level `id`
+ * fields in packages/curriculum/packs/{algebra-1,biology}.json and are used as
+ * the `?pack=<packId>` URL param for the /course-create source-picker.
  */
-const PRESEED_MESSAGES: Record<CoursePath, string | null> = {
-  algebra: "Please use the canonical algebra-1 pack to create my course.",
-  biology: "Please use the canonical biology pack to create my course.",
-  syllabus: null,
+const PACK_IDS: Record<"algebra" | "biology", string> = {
+  algebra: "algebra-1",
+  biology: "biology",
 };
 
 function CourseStep({
@@ -324,45 +322,17 @@ function CourseStep({
   onBack: () => void;
   onSkip: () => Promise<void>;
 }): JSX.Element {
-  const client = usePraxisClient();
   const navigate = useNavigate();
-  const [busy, setBusy] = useState<CoursePath | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const handleStart = async (path: CoursePath) => {
-    setBusy(path);
-    setError(null);
-    try {
-      // Order matters: do all session work first, then flip the first-run
-      // flag last. Calling onComplete before session.start unmounts the
-      // OnboardingFlow mid-flight — the user briefly sees the Library before
-      // the chat tab opens, and if session.start throws they're stranded
-      // there with no error and no retry path.
-      const handle = await client.session.start({ modeId: "course-create" });
-
-      const preSeedMessage = PRESEED_MESSAGES[path];
-      if (preSeedMessage !== null) {
-        // Fire-and-forget: start consuming the send stream so the message is
-        // in-flight when the user arrives, but don't block navigation on it.
-        // If the pre-seed fails for any transient reason, we log a warning and
-        // proceed — the user can type the same message themselves.
-        void (async () => {
-          try {
-            for await (const _event of client.session.send(handle.sessionId, preSeedMessage)) {
-              // Drain events; the session service persists them server-side.
-            }
-          } catch (err) {
-            console.warn("[onboarding] pre-seed send failed (non-blocking):", err);
-          }
-        })();
-      }
-
-      const tab = await client.tabs.open({ sessionId: handle.sessionId });
-      await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });
-      await onComplete();
-    } catch {
-      setError(COPY.onboarding.couldNotStart);
-      setBusy(null);
+    // Complete onboarding first so the normal layout mounts, then navigate to
+    // the course-create source-picker. For canonical packs, pass ?pack=<id> so
+    // the source-picker pre-selects and pre-attaches the pack on mount.
+    await onComplete();
+    if (path === "algebra" || path === "biology") {
+      await navigate({ to: "/course-create", search: { pack: PACK_IDS[path] } });
+    } else {
+      await navigate({ to: "/course-create" });
     }
   };
 
@@ -377,46 +347,28 @@ function CourseStep({
           label={COPY.onboarding.courseAlgebraLabel}
           desc={COPY.onboarding.courseAlgebraBody}
           dotVariant="course-create"
-          busy={busy === "algebra"}
-          disabled={busy !== null && busy !== "algebra"}
           onStart={() => handleStart("algebra")}
         />
         <CourseCard
           label={COPY.onboarding.courseBiologyLabel}
           desc={COPY.onboarding.courseBiologyBody}
           dotVariant="course-create"
-          busy={busy === "biology"}
-          disabled={busy !== null && busy !== "biology"}
           onStart={() => handleStart("biology")}
         />
         <CourseCard
           label={COPY.onboarding.courseFromSyllabusLabel}
           desc={COPY.onboarding.courseFromSyllabusBody}
           dotVariant="neutral"
-          busy={busy === "syllabus"}
-          disabled={busy !== null && busy !== "syllabus"}
           onStart={() => handleStart("syllabus")}
         />
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
-
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.backButton}
-          onClick={onBack}
-          disabled={busy !== null}
-        >
+        <button type="button" className={styles.backButton} onClick={onBack}>
           {COPY.onboarding.backLabel}
         </button>
         <span className={styles.actionsSpacer} />
-        <button
-          type="button"
-          className={styles.skipButton}
-          onClick={onSkip}
-          disabled={busy !== null}
-        >
+        <button type="button" className={styles.skipButton} onClick={onSkip}>
           {COPY.onboarding.skipLabel}
         </button>
       </div>
@@ -428,19 +380,15 @@ function CourseCard({
   label,
   desc,
   dotVariant,
-  busy,
-  disabled,
   onStart,
 }: {
   label: string;
   desc: string;
   dotVariant: "course-create" | "neutral";
-  busy: boolean;
-  disabled: boolean;
   onStart: () => void;
 }): JSX.Element {
   return (
-    <button type="button" className={styles.courseCard} onClick={onStart} disabled={disabled}>
+    <button type="button" className={styles.courseCard} onClick={onStart}>
       <span className={styles.courseCardDotCol} aria-hidden="true">
         <span
           className={`${styles.courseCardDot} ${dotVariant === "neutral" ? styles.courseCardDotNeutral : ""}`}
@@ -449,13 +397,10 @@ function CourseCard({
       <span className={styles.courseCardBody}>
         <span className={styles.courseCardLabel}>{label}</span>
         <span className={styles.courseCardDesc}>{desc}</span>
-        {busy && <span className={styles.courseCardCta}>{COPY.loading.starting}</span>}
       </span>
-      {!busy && (
-        <span className={styles.courseCardArrow} aria-hidden="true">
-          ↗
-        </span>
-      )}
+      <span className={styles.courseCardArrow} aria-hidden="true">
+        ↗
+      </span>
     </button>
   );
 }

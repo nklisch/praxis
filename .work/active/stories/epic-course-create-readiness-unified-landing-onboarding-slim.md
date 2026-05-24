@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-onboarding-slim
 kind: story
-stage: implementing
+stage: review
 tags: [ui, onboarding, refactor]
 parent: epic-course-create-readiness-unified-landing
 depends_on: [epic-course-create-readiness-unified-landing-source-picker]
@@ -61,3 +61,29 @@ In `packages/ui/src/components/onboarding-flow.tsx`:
 - Bypass-route rerouting outside onboarding (separate story).
 - /packs route removal (separate story).
 - Redesign of onboarding card shells or step navigation.
+
+## Implementation notes
+
+**Canonical pack ids confirmed** from `packages/curriculum/packs/*.json` top-level `id` fields:
+- Algebra: `"algebra-1"` (file: `algebra-1.json`)
+- Biology: `"biology"` (file: `biology.json`)
+
+**Navigate calls** (`packages/ui/src/components/onboarding-flow.tsx`):
+- Algebra (line ~342): `navigate({ to: "/course-create", search: { pack: "algebra-1" } })`
+- Biology (line ~344): `navigate({ to: "/course-create", search: { pack: "biology" } })`
+- Syllabus (line ~346): `navigate({ to: "/course-create" })`
+
+**`PRESEED_MESSAGES` removed**: constant and all references deleted. The source-picker's pack pre-attachment (via `?pack=<id>` URL param) replaces the pre-seed message pattern entirely.
+
+**`CourseCard` props simplified**: `busy` and `disabled` props removed (no async work in `handleStart` anymore); card is always clickable.
+
+**`client` / `session` / `tabs` not used in `CourseStep`**: no imports removed from module-level (they remain for `EngineStep`), but `CourseStep` itself no longer calls any client methods.
+
+**`onComplete` order**: called first (to flip the first-run flag and switch to normal layout), then `navigate` — reversing the old "session work first" ordering since there is no session work to protect.
+
+**Tests** (`packages/ui/src/__tests__/onboarding-flow.test.tsx`):
+- Removed: pre-seed message tests, session-work-before-onComplete ordering test, startRejects error-display test.
+- Added: `course card navigation` describe block with 3 tests covering algebra/biology/syllabus navigate targets and onComplete call order (onComplete fires before navigate).
+- All 18 tests green; full suite (436 files, 4672 tests) green.
+
+**Verification**: `pnpm typecheck && pnpm biome check <files> && pnpm test` — all clean.

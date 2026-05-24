@@ -7,7 +7,10 @@
  * - Back returns to the previous step.
  * - Skip on any step calls onComplete.
  * - Engine step writes engine config when continuing.
- * - Course-card click marks complete and opens a course-create session.
+ * - Course-card click calls onComplete then navigates to /course-create.
+ * - Algebra card navigates with ?pack=algebra-1.
+ * - Biology card navigates with ?pack=biology.
+ * - Syllabus card navigates without a pack param.
  * - Sign-in button renders only for claude-code engine.
  * - Sign-in button opens ClaudeAuthModal on click.
  * - Button label reflects signed-in state.
@@ -36,22 +39,22 @@ vi.mock("../components/claude-auth-modal.js", () => ({
 
 afterEach(() => cleanup());
 
+// navigate spy shared across tests — reset per test via the factory.
+let navigateSpy = vi.fn(async () => undefined);
+
 // Mock TanStack Router — CourseStep uses useNavigate.
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...actual,
-    useNavigate: () => vi.fn(async () => undefined),
+    useNavigate: () => navigateSpy,
   };
 });
 
 function buildClient(opts?: {
   setEngineConfigSpy?: (cfg: { engineId: string; apiKey?: string }) => Promise<void> | void;
-  startSpy?: (opts: { modeId: string }) => Promise<void> | void;
-  startRejects?: boolean;
   engineId?: string;
   claudeLoggedIn?: boolean;
-  sendSpy?: (sessionId: string, message: string) => void;
 }): PraxisClient {
   return makeFakeClient({
     config: {
@@ -69,27 +72,6 @@ function buildClient(opts?: {
       firstRunCompleted: vi.fn().mockResolvedValue(false),
       markFirstRunComplete: vi.fn(),
     } as unknown as PraxisClient["config"],
-    session: {
-      start: vi.fn(async (input: { modeId: string }) => {
-        if (opts?.startRejects) throw new Error("session start failed");
-        await opts?.startSpy?.(input);
-        return { sessionId: "sess-1" };
-      }),
-      send: vi.fn((sessionId: string, message: string) => {
-        opts?.sendSpy?.(sessionId, message);
-        // Return an async iterable that completes immediately.
-        return {
-          [Symbol.asyncIterator]() {
-            return {
-              next: async () => ({ value: undefined as never, done: true as const }),
-            };
-          },
-        };
-      }),
-    } as unknown as PraxisClient["session"],
-    tabs: {
-      open: vi.fn(async () => ({ id: "tab-1" })),
-    } as unknown as PraxisClient["tabs"],
     claudeAuth: {
       status: vi.fn().mockResolvedValue({ loggedIn: opts?.claudeLoggedIn ?? false }),
       login: vi.fn(),
@@ -98,6 +80,7 @@ function buildClient(opts?: {
 }
 
 function renderFlow(opts?: { onComplete?: () => Promise<void>; client?: PraxisClient }) {
+  navigateSpy = vi.fn(async () => undefined);
   const client = opts?.client ?? buildClient();
   const onComplete = opts?.onComplete ?? vi.fn(async () => undefined);
   render(
@@ -170,138 +153,63 @@ describe("OnboardingFlow", () => {
     await waitFor(() => expect(setEngineConfigSpy).toHaveBeenCalledTimes(1));
   });
 
-  it("course card click marks complete and opens a course-create session", async () => {
-    const startSpy = vi.fn();
-    const onComplete = vi.fn(async () => undefined);
-    const client = buildClient({ startSpy });
+  async function goToCourseStep(opts?: {
+    client?: PraxisClient;
+    onComplete?: () => Promise<void>;
+  }) {
+    const onComplete = opts?.onComplete ?? vi.fn(async () => undefined);
+    const client = opts?.client ?? buildClient();
     renderFlow({ client, onComplete });
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
     await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
     await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
+    return { client, onComplete };
+  }
 
-    fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
-    await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(startSpy).toHaveBeenCalledWith({ modeId: "course-create" });
-  });
-
-  // Regression guard: calling onComplete BEFORE session.start unmounts the
-  // OnboardingFlow (RootLayout swaps to main layout because isFirstRun flips
-  // false), so the user briefly sees the Library between the onboarding
-  // closing and the chat tab appearing. Worse, if session.start fails the
-  // user is stranded in the Library with no error and no retry. Session work
-  // must complete first; onComplete fires last.
-  it("course card runs session work before onComplete (no library flash)", async () => {
-    const callOrder: string[] = [];
-    const onComplete = vi.fn(async () => {
-      callOrder.push("onComplete");
-    });
-    const client = makeFakeClient({
-      config: {
-        engineConfig: vi.fn().mockResolvedValue({ engineId: "direct.anthropic" }),
-        setEngineConfig: vi.fn(),
-        firstRunCompleted: vi.fn().mockResolvedValue(false),
-        markFirstRunComplete: vi.fn(),
-      } as unknown as PraxisClient["config"],
-      session: {
-        start: vi.fn(async () => {
-          callOrder.push("session.start");
-          return { sessionId: "sess-1" };
-        }),
-        send: vi.fn(() => ({
-          [Symbol.asyncIterator]() {
-            return { next: async () => ({ value: undefined as never, done: true as const }) };
-          },
-        })),
-      } as unknown as PraxisClient["session"],
-      tabs: {
-        open: vi.fn(async () => {
-          callOrder.push("tabs.open");
-          return { id: "tab-1" };
-        }),
-      } as unknown as PraxisClient["tabs"],
-      claudeAuth: {
-        status: vi.fn().mockResolvedValue({ loggedIn: false }),
-      } as unknown as PraxisClient["claudeAuth"],
-    });
-
-    renderFlow({ client, onComplete });
-    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
-    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
-
-    fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
-    await waitFor(() => expect(onComplete).toHaveBeenCalled());
-
-    expect(callOrder).toEqual(["session.start", "tabs.open", "onComplete"]);
-  });
-
-  // Regression guard: if session.start throws, the user must remain in
-  // onboarding with the error visible so they can retry — onComplete must
-  // not have fired (otherwise the onboarding has already unmounted).
-  it("course card does not mark complete if session.start fails", async () => {
-    const onComplete = vi.fn(async () => undefined);
-    const client = buildClient({ startRejects: true });
-    renderFlow({ client, onComplete });
-    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
-    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
-
-    fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
-    await waitFor(() => expect(screen.getByText(COPY.onboarding.couldNotStart)).toBeDefined());
-    expect(onComplete).not.toHaveBeenCalled();
-  });
-
-  describe("pre-seed messages on canonical course cards", () => {
-    async function goToCourseStep(client: PraxisClient) {
-      const onComplete = vi.fn(async () => undefined);
-      renderFlow({ client, onComplete });
-      fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-      await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
-      fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-      await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
-      return { onComplete };
-    }
-
-    it("Algebra card pre-seeds canonical algebra-1 pack message", async () => {
-      const sendSpy = vi.fn();
-      const client = buildClient({ sendSpy });
-      await goToCourseStep(client);
+  describe("course card navigation", () => {
+    it("Algebra card calls onComplete then navigates to /course-create?pack=algebra-1", async () => {
+      const callOrder: string[] = [];
+      const onComplete = vi.fn(async () => {
+        callOrder.push("onComplete");
+      });
+      await goToCourseStep({ onComplete });
 
       fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
-      await waitFor(() =>
-        expect(sendSpy).toHaveBeenCalledWith(
-          "sess-1",
-          "Please use the canonical algebra-1 pack to create my course.",
-        ),
-      );
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalled());
+
+      expect(onComplete).toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith({
+        to: "/course-create",
+        search: { pack: "algebra-1" },
+      });
+      // onComplete fires before navigate.
+      expect(callOrder[0]).toBe("onComplete");
     });
 
-    it("Biology card pre-seeds canonical biology pack message", async () => {
-      const sendSpy = vi.fn();
-      const client = buildClient({ sendSpy });
-      await goToCourseStep(client);
+    it("Biology card calls onComplete then navigates to /course-create?pack=biology", async () => {
+      const onComplete = vi.fn(async () => undefined);
+      await goToCourseStep({ onComplete });
 
       fireEvent.click(screen.getByText(COPY.onboarding.courseBiologyLabel));
-      await waitFor(() =>
-        expect(sendSpy).toHaveBeenCalledWith(
-          "sess-1",
-          "Please use the canonical biology pack to create my course.",
-        ),
-      );
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalled());
+
+      expect(onComplete).toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith({
+        to: "/course-create",
+        search: { pack: "biology" },
+      });
     });
 
-    it("Syllabus card does not call session.send", async () => {
-      const sendSpy = vi.fn();
-      const client = buildClient({ sendSpy });
-      await goToCourseStep(client);
+    it("Syllabus card calls onComplete then navigates to /course-create without pack", async () => {
+      const onComplete = vi.fn(async () => undefined);
+      await goToCourseStep({ onComplete });
 
       fireEvent.click(screen.getByText(COPY.onboarding.courseFromSyllabusLabel));
-      // Allow async work to settle before asserting absence.
-      await waitFor(() => expect(client.tabs.open).toHaveBeenCalled());
-      expect(sendSpy).not.toHaveBeenCalled();
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalled());
+
+      expect(onComplete).toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith({ to: "/course-create" });
     });
   });
 
