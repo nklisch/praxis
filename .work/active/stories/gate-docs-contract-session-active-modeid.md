@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-session-active-modeid
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -38,3 +38,6 @@ active(opts?: { modeId?: string }): Promise<SessionHandle | null>;
 Add a single-line JSDoc above noting that when `modeId` is provided,
 the most-recent open session of that mode is returned (used by the
 configure-route to reuse one configure session per student).
+
+## Implementation notes
+Updated `docs/CONTRACT.md` line 855: replaced the bare `active()` signature with `active(opts?: { modeId?: string })` and added a 2-line JSDoc describing the mode-filter behavior, matching the prose style of the adjacent `spawnFromAssignment` and `spawnFromNote` JSDoc blocks. Confirmed `packages/core/src/types/session-client.ts:23` matched the story's claimed signature exactly. `pnpm typecheck` passed with no new errors.

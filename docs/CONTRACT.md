@@ -852,7 +852,12 @@ interface SessionService {
   start(opts: { courseId: CourseId; modeId: string }): Promise<SessionHandle>;
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionSummary>;
-  active(): Promise<SessionHandle | null>;
+  /**
+   * Returns the most-recent open session for the student. When `modeId` is
+   * provided, only sessions of that mode are considered — used by the
+   * configure-route to reuse one configure session per student.
+   */
+  active(opts?: { modeId?: string }): Promise<SessionHandle | null>;
   /**
    * Phase 16: open a child session bound to an assignment, deriving the mode
    * from the assignment's kind. The child session's parentSessionId is set so
