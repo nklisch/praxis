@@ -1,6 +1,6 @@
-import type { PraxisDb } from "@praxis/core/db";
+import { termFirstOccurrences } from "@praxis/memory/schema";
 import { and, eq } from "drizzle-orm";
-import { termFirstOccurrences } from "./schema.js";
+import type { PraxisDb } from "../db/index.js";
 
 export interface TermFirstOccurrencesService {
   /**

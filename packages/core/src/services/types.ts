@@ -1,5 +1,4 @@
 import type { z } from "zod";
-import type { TermFirstOccurrencesService } from "@praxis/memory";
 import type { EngineConfig } from "../config/index.js";
 import type { PraxisDb } from "../db/index.js";
 import type {
@@ -39,6 +38,7 @@ import type {
 } from "../types/index.js";
 import type { PromptCustomizationService } from "./prompt-customization-service.js";
 import type { SessionPromotionRegistry } from "./session/session-promotion-registry.js";
+import type { TermFirstOccurrencesService } from "./term-first-occurrences-service.js";
 
 export interface ServiceDeps {
   db: PraxisDb;

@@ -175,6 +175,9 @@ export { getOrCreateDefaultStudentId } from "./student.js";
 // Phase 14: Tabs service
 export type { TabsServiceDeps } from "./tabs-service.js";
 export { TabsServiceImpl } from "./tabs-service.js";
+// Content-renderer step 5: first-introduction term tracking
+export type { TermFirstOccurrencesService } from "./term-first-occurrences-service.js";
+export { createTermFirstOccurrencesService } from "./term-first-occurrences-service.js";
 export type { ServiceDeps } from "./types.js";
 // Phase 19: Update check (manual-download flow)
 export {

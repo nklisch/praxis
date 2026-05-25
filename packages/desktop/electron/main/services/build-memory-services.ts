@@ -1,7 +1,6 @@
 import type { PraxisDb } from "@praxis/core/db";
-import { MemoryServiceImpl } from "@praxis/core/services";
-import { createTermFirstOccurrencesService } from "@praxis/memory";
-import type { TermFirstOccurrencesService } from "@praxis/memory";
+import type { TermFirstOccurrencesService } from "@praxis/core/services";
+import { createTermFirstOccurrencesService, MemoryServiceImpl } from "@praxis/core/services";
 import type { MainLogger } from "../logger.js";
 
 export interface MemoryServiceDeps {

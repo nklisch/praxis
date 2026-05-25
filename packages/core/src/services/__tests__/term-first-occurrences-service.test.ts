@@ -1,7 +1,7 @@
 import { openDb } from "@praxis/core/db";
 import { describe, expect, it } from "vitest";
-import { useTempDb } from "../../../../tests/helpers/db-setup.js";
-import { createTermFirstOccurrencesService } from "../term-first-occurrences.js";
+import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import { createTermFirstOccurrencesService } from "../term-first-occurrences-service.js";
 
 const dbCtx = useTempDb();
 

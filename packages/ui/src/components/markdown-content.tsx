@@ -103,7 +103,7 @@ function extractDefinitionTerms(content: string): string[] {
 //
 // ## Implementation discovery (2026-05-24)
 //
-// `TermFirstOccurrencesService` exists in `@praxis/memory` and is registered
+// `TermFirstOccurrencesService` exists in `@praxis/core/services` and is registered
 // in `ServiceDeps`, but the IPC channel exposing `hasSeenTerm`/`markTermSeen`
 // to the renderer — and its `PraxisClient` binding — have not been implemented
 // yet.  Rather than block step-8 on that plumbing:
