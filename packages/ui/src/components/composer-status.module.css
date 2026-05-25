@@ -1,0 +1,44 @@
+/* ── ComposerStatus ────────────────────────────────────────────────────────── */
+/* Mirrors the .composer__status family in .mockups/design-system/components.css.
+ * Token-only values. */
+
+.composerStatus {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.composerStatusFailed {
+  color: var(--color-danger);
+}
+
+.composerStatusStreaming {
+  color: var(--color-accent);
+}
+
+/* Animated pip — appears in the streaming variant. */
+.composerStatusPip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: composerStatusPulse var(--dur-pulse) var(--ease-linear) infinite;
+}
+
+@keyframes composerStatusPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composerStatusPip {
+    animation: none;
+  }
+}

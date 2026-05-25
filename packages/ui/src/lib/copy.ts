@@ -75,6 +75,11 @@ export const COPY = {
     sketchToggleAriaLabel: "Open sketch input",
     sketchSubmitButton: "Submit sketch",
     sketchCancelButton: "Cancel",
+    status: {
+      failed: (n: number): string => `${n} failed · retry inline`,
+      streaming: "Tutor is responding",
+      queued: (n: number): string => `${n} queued behind active turn`,
+    },
   },
   sketch: {
     noVision: "Vision isn't available with the current engine. Switch to one that supports vision.",

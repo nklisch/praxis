@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-3-status-row
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: []
@@ -44,3 +44,11 @@ New pure presentational component that renders the status row beneath the compos
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 3
 - Mockup: `.mockups/screens/feature-composer-async-behavior/state-*.html`
 - Components.css: `.composer__status` family
+
+## Implementation notes (2026-05-24)
+
+- Created `packages/ui/src/components/composer-status.tsx` — pure functional component, no state/effects, returns `JSX.Element | null`.
+- Created `packages/ui/src/components/composer-status.module.css` — mirrors `.composer__status` family from mockup; token-only values; includes `composerStatusPip` with `prefers-reduced-motion` opt-out.
+- Extended `packages/ui/src/lib/copy.ts` with `COPY.composer.status.{failed, streaming, queued}` for the three displayable strings.
+- Created `packages/ui/src/__tests__/composer-status.test.tsx` — 10 tests covering all variants, priority ladder (failed > streaming > queued > null), and pip element presence in streaming variant. All pass.
+- Pre-existing typecheck failure in `@praxis/desktop` (missing `@praxis/curriculum/modes/fragments/dev-mode`) and lint errors in `.mockups/` files are unrelated to this story.
