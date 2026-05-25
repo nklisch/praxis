@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-8-pipeline-wiring
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, ui]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-1-mode-render-toggles, feature-content-renderer-pipeline-step-4-callout-figure-components, feature-content-renderer-pipeline-step-5-definition-tracking, feature-content-renderer-pipeline-step-6-concept-glossary-components, feature-content-renderer-pipeline-step-7-post-render-passes]
@@ -52,6 +52,36 @@ The merge story. Extend `MarkdownContent` props with `renderToggles` + `studentI
 - [ ] Mode-toggle test: `definitions: false` mode emits no `.definition` classes
 - [ ] All existing `markdown-content.test.tsx` tests still pass
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+
+## Implementation notes (2026-05-24)
+
+### What shipped
+All acceptance criteria met. Key implementation decisions and discoveries:
+
+**Plugin architecture — `remarkDirective` excluded from base**
+The spec listed `remarkDirective` in `REMARK_BASE`. It was removed because of a fundamental conflict: `remark-directive` registers a `:term` syntax extension that parses the `:derivative` inside `[[def:derivative]]` as an inline `textDirective` node, silently eating the term content. The MDAST output was `[[def]]` with an empty directive child — the `[[def:…]]` pattern was effectively broken. Resolution: `remarkDirective` is excluded entirely. `remarkAdmonitions` does not need it — it creates MDAST nodes directly from `blockquote` elements and uses `data.hName` / `data.hProperties` to guide remark-rehype. Future resolution path documented in code comment (would require rewriting the `[[def:term]]` pattern to use directive syntax, or excluding remark-directive from the definitions-on code path).
+
+**`data.hName` / `data.hProperties` required on custom MDAST nodes**
+Both `remarkAdmonitions` and `remarkDefinitions` were updated to set `node.data.hName` and `node.data.hProperties`. Without this, remark-rehype converts unknown MDAST nodes to generic `<div>` elements and components map (`admonition`, `definition-term`) do not fire.
+
+**`concept:` URL sanitization**
+`react-markdown`'s `defaultUrlTransform` only allows `https?|ircs?|mailto|xmpp` schemes. `concept:chain-rule` was sanitized to `""` before reaching the `a` component override. Fixed with `urlTransform={urlTransformWithConcept}` that passes `concept:` URLs through unchanged and delegates everything else to `defaultUrlTransform`.
+
+**`useFirstOccurrence` IPC gap (interim approach)**
+The `hasSeenTerm` / `markTermSeen` IPC channels do not exist in the client yet (a gap in the prerequisite step-5 story). The `useFirstOccurrence` hook therefore uses NOOP stubs (`NOOP_HAS_SEEN` always returns `false`, `NOOP_MARK_SEEN` is a no-op). Consequence: `isFirstOccurrence` is always `false`, so `<Definition>` renders as a plain `<dfn>` without the first-occurrence highlight styling. This is acceptable as an interim state — when the IPC channels land, swap the stubs for real client calls.
+
+**CSS module class vs literal class for `rehypeUnits`**
+`rehypeUnits` emits the literal class `"units"` (not a CSS module hashed name). Tests must query with `.units` (literal), not `.${styles.units}` (which is the hashed form).
+
+**Files changed**
+- `packages/ui/src/components/markdown-content.tsx` — full rewrite; new props, conditional plugin arrays, all component overrides
+- `packages/ui/src/components/message.tsx` — new props forwarded to `MarkdownContent`
+- `packages/ui/src/components/chat-tab-body.tsx` — `resolveRenderToggles` wired; `renderToggles`, `sessionId`, `recordDefinitionOccurrence` passed to `MessageBubble`
+- `packages/ui/src/lib/markdown-plugins/remark-admonitions.ts` — added `data.hName` / `data.hProperties` to emitted nodes
+- `packages/ui/src/lib/markdown-plugins/remark-definitions.ts` — added `data.hName` / `data.hProperties` to emitted nodes
+- `packages/ui/src/__tests__/markdown-content.test.tsx` — kitchen-sink and mode-toggle describe blocks added
+
+**Test results**: 1939 tests, 1 skipped, all pass. Lint clean. Typecheck shows only pre-existing Drizzle ORM duplicate-module error unrelated to this story.
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 8

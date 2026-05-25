@@ -1,4 +1,10 @@
-import type { Note, ProposedCourse, Rating, RetrievalCitation } from "@praxis/core/types";
+import type {
+  Note,
+  ProposedCourse,
+  Rating,
+  RenderToggles,
+  RetrievalCitation,
+} from "@praxis/core/types";
 import { useEasedStream } from "../hooks/use-eased-stream.js";
 import { DraftCard } from "./draft-card.js";
 import type { ReviewCard } from "./flashcard-review.js";
@@ -31,6 +37,19 @@ export interface MessageBubbleProps {
   onViewPage?: (documentId: string, page: number) => void;
   /** Handler for rating a due card from the inline review surface. */
   onRateCard?: (flashcardId: string, rating: Rating) => Promise<void>;
+  /** Content-type feature toggles forwarded to `MarkdownContent`. */
+  renderToggles?: Required<RenderToggles>;
+  /** Student ID forwarded to `MarkdownContent` for first-occurrence tracking. */
+  studentId?: string;
+  /** Session ID forwarded to `MarkdownContent` for first-occurrence recording. */
+  sessionId?: string;
+  /** Concept-ref click handler forwarded to `MarkdownContent`. */
+  conceptOpen?: (slug: string) => void;
+  /**
+   * When true, the currently-streaming message will record first-occurrence
+   * term sightings. Forwarded to `MarkdownContent`.
+   */
+  recordDefinitionOccurrence?: boolean;
 }
 
 export function MessageBubble({
@@ -44,6 +63,11 @@ export function MessageBubble({
   dueCards,
   onViewPage,
   onRateCard,
+  renderToggles,
+  studentId,
+  sessionId,
+  conceptOpen,
+  recordDefinitionOccurrence,
 }: MessageBubbleProps) {
   // Use rawContent (falling back to content) as the source for eased release
   // while the message is streaming. The hook returns raw immediately when
@@ -67,6 +91,11 @@ export function MessageBubble({
           content={displayContent}
           {...(citations !== undefined && { citationCount: citations.length })}
           onCitationClick={handleCitationClick}
+          {...(renderToggles !== undefined && { renderToggles })}
+          {...(studentId !== undefined && { studentId })}
+          {...(sessionId !== undefined && { sessionId })}
+          {...(conceptOpen !== undefined && { conceptOpen })}
+          {...(recordDefinitionOccurrence !== undefined && { recordDefinitionOccurrence })}
         />
       ) : (
         <p className={styles.content}>{displayContent}</p>

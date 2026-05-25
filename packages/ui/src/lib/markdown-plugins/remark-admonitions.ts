@@ -13,12 +13,20 @@ export type AdmonitionType = "theorem" | "lemma" | "hint" | "warning" | "steps";
  * adding `mdast-util-directive` as a direct dep solely for this one type
  * (following the same pattern as the `RehypePlugin` alias in the rehype
  * plugins in this directory).
+ *
+ * The `data` field is part of mdast's `Data` interface and carries
+ * `hName`/`hProperties` which `remark-rehype` uses to produce custom HAST
+ * elements. We set these so react-markdown renders `<admonition type="...">`.
  */
 interface ContainerDirective {
   type: "containerDirective";
   name: string;
   attributes: Record<string, string>;
   children: Paragraph[];
+  data?: {
+    hName?: string;
+    hProperties?: Record<string, unknown>;
+  };
 }
 
 const ADMONITION_RE = /^\s*\[!(theorem|lemma|hint|warning|steps)\]\s*\n?/;
@@ -94,6 +102,13 @@ export const remarkAdmonitions: () => (tree: Root) => void = () => (tree) => {
       name: "admonition",
       attributes: { type },
       children: newChildren,
+      // remark-rehype reads data.hName / data.hProperties to produce custom
+      // HAST element names and attributes. Without these, the unknown
+      // containerDirective node is emitted as a plain <div>.
+      data: {
+        hName: "admonition",
+        hProperties: { type },
+      },
     };
 
     replacements.push({ parent, index, newNode: directive });

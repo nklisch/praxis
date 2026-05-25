@@ -1,3 +1,4 @@
+import type { RenderToggles } from "@praxis/core/types";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MarkdownContent } from "../components/markdown-content.js";
@@ -317,5 +318,181 @@ describe("markdown-content.module.css — content-type class presence", () => {
       </span>,
     );
     expect(container.querySelector("span")).not.toBeNull();
+  });
+});
+
+/* ── Kitchen-sink integration: all primitives ────────────────────────────────
+ * Renders a message that exercises one of every content-type primitive. Each
+ * assertion checks a structural landmark rather than CSS computed values (tests
+ * run in jsdom which has no CSSOM).
+ * ────────────────────────────────────────────────────────────────────────── */
+describe("MarkdownContent — kitchen-sink (all primitives enabled)", () => {
+  afterEach(() => cleanup());
+
+  // The kitchen-sink markdown exercises:
+  //  - Heading (h1 → h2 kicker)
+  //  - Definition marker [[def:derivative]] → <dfn>
+  //  - Citation chip [1] → chip button
+  //  - Callout > [!hint] → <aside .callout>
+  //  - Concept-ref link concept: scheme → .conceptRef anchor
+  //  - Fenced code block (js)
+  //  - Unit auto-detection (9.8 m/s² → .units)
+  //
+  // NOTE: Raw HTML `<abbr>` is intentionally excluded — react-markdown
+  // sanitizes raw HTML by default. The `abbr` component override handles
+  // `<abbr>` HAST elements produced by a future glossary remark plugin;
+  // testing it end-to-end requires that plugin to exist first.
+  const KITCHEN_SINK = `# Heading
+
+A [[def:derivative]] is the rate of change. See [1].
+
+> [!hint]
+> Try the [chain rule](concept:chain-rule).
+
+\`\`\`js
+const x = 5;
+\`\`\`
+
+Speed = 9.8 m/s².
+`;
+
+  it("renders a heading", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    // h1 is remapped to h2 by the heading override
+    const heading = container.querySelector("h2");
+    expect(heading).not.toBeNull();
+    expect(heading?.textContent).toContain("Heading");
+  });
+
+  it("renders definition marker as <dfn>", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    const dfn = container.querySelector("dfn");
+    expect(dfn).not.toBeNull();
+    expect(dfn?.getAttribute("title")).toBe("derivative");
+  });
+
+  it("renders citation chip [1]", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    const chip = container.querySelector("button");
+    expect(chip).not.toBeNull();
+    expect(chip?.textContent).toBe("[1]");
+  });
+
+  it("renders callout as <aside> with .callout class", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    const aside = container.querySelector("aside");
+    expect(aside).not.toBeNull();
+    expect(aside?.className).toContain(styles.callout);
+    // Callout icon should show the type label
+    const icon = aside?.querySelector(`.${styles.calloutIcon}`);
+    expect(icon?.textContent?.toLowerCase()).toContain("hint");
+  });
+
+  it("renders concept: link as .conceptRef anchor", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    const anchor = container.querySelector(`.${styles.conceptRef}`);
+    expect(anchor).not.toBeNull();
+    expect(anchor?.textContent).toContain("chain rule");
+  });
+
+  it("invokes conceptOpen when a concept: link is clicked", () => {
+    const conceptOpen = vi.fn();
+    const { container } = render(
+      <MarkdownContent content={KITCHEN_SINK} conceptOpen={conceptOpen} />,
+    );
+    const anchor = container.querySelector<HTMLAnchorElement>(`.${styles.conceptRef}`);
+    expect(anchor).not.toBeNull();
+    anchor?.click();
+    expect(conceptOpen).toHaveBeenCalledWith("chain-rule");
+  });
+
+  it("renders fenced js code block", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    const pre = container.querySelector("pre");
+    expect(pre).not.toBeNull();
+    expect(pre?.textContent).toContain("const x = 5;");
+  });
+
+  it("renders unit 9.8 m/s² as .units span", () => {
+    const { container } = render(<MarkdownContent content={KITCHEN_SINK} />);
+    // rehypeUnits emits literal class name "units" (not the CSS-module hash);
+    // query by the raw class name, not styles.units.
+    const unitSpan = container.querySelector(".units");
+    expect(unitSpan).not.toBeNull();
+    expect(unitSpan?.textContent).toContain("9.8");
+  });
+
+  // abbr/.glossary: raw HTML <abbr> is sanitized by react-markdown by default.
+  // The `abbr` component override is for future use when a glossary remark
+  // plugin emits <abbr> HAST elements. Tested via the CSS presence smoke tests.
+});
+
+/* ── Mode-toggle integration: disabled features emit no class markers ────────
+ * Render the same content with specific toggles OFF and assert the
+ * corresponding elements / classes are absent.
+ * ────────────────────────────────────────────────────────────────────────── */
+describe("MarkdownContent — mode-toggle integration", () => {
+  afterEach(() => cleanup());
+
+  const ALL_OFF_TOGGLES: Required<RenderToggles> = {
+    callouts: false,
+    figures: false,
+    definitions: false,
+    conceptRefs: true, // concept: links are in the `a` override, not a plugin
+    glossary: true,
+    bareGlyphMath: true,
+    unitAutoDetect: false,
+    filePathAutoDetect: false,
+  };
+
+  const TOGGLE_MD = `A [[def:derivative]] is useful. See 9.8 m/s².
+
+> [!hint]
+> Try it.
+`;
+
+  it("definitions: false — no <dfn> elements rendered", () => {
+    const { container } = render(
+      <MarkdownContent content={TOGGLE_MD} renderToggles={ALL_OFF_TOGGLES} />,
+    );
+    // With definitions off, [[def:derivative]] stays as literal text (no <dfn>)
+    expect(container.querySelector("dfn")).toBeNull();
+    // The raw marker text is present (remark did not transform it)
+    expect(container.textContent).toContain("[[def:derivative]]");
+  });
+
+  it("callouts: false — no <aside> with .callout rendered", () => {
+    const { container } = render(
+      <MarkdownContent content={TOGGLE_MD} renderToggles={ALL_OFF_TOGGLES} />,
+    );
+    expect(container.querySelector("aside")).toBeNull();
+    // Blockquote falls back to plain blockquote
+    expect(container.querySelector("blockquote")).not.toBeNull();
+  });
+
+  it("unitAutoDetect: false — no .units spans for 9.8 m/s²", () => {
+    const { container } = render(
+      <MarkdownContent content={TOGGLE_MD} renderToggles={ALL_OFF_TOGGLES} />,
+    );
+    // rehypeUnits emits literal class name "units"; query by raw class name.
+    expect(container.querySelector(".units")).toBeNull();
+  });
+
+  it("all defaults on — features render normally (baseline check)", () => {
+    const ALL_ON: Required<RenderToggles> = {
+      callouts: true,
+      figures: true,
+      definitions: true,
+      conceptRefs: true,
+      glossary: true,
+      bareGlyphMath: true,
+      unitAutoDetect: true,
+      filePathAutoDetect: true,
+    };
+    const { container } = render(<MarkdownContent content={TOGGLE_MD} renderToggles={ALL_ON} />);
+    expect(container.querySelector("dfn")).not.toBeNull();
+    expect(container.querySelector("aside")).not.toBeNull();
+    // rehypeUnits emits literal class name "units"; query by raw class name.
+    expect(container.querySelector(".units")).not.toBeNull();
   });
 });

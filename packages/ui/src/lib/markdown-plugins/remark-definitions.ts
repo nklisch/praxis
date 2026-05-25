@@ -5,11 +5,19 @@ import { visitParents } from "unist-util-visit-parents";
  * Minimal inline type for the custom `definition` MDAST node produced by this
  * plugin. Declaring locally avoids pulling in a third-party package solely for
  * this type (following the local-alias precedent in `remark-admonitions.ts`).
+ *
+ * The `data` field mirrors the mdast `Data` interface and carries
+ * `hName`/`hProperties` which `remark-rehype` uses to produce custom HAST
+ * elements — so react-markdown renders `<definition-term term="...">`.
  */
 interface DefinitionNode {
   type: "definition-term";
   term: string;
   children: [Text];
+  data?: {
+    hName?: string;
+    hProperties?: Record<string, unknown>;
+  };
 }
 
 /** Matches `[[def:term text]]` markers anywhere in a text node. */
@@ -80,6 +88,15 @@ export const remarkDefinitions: () => (tree: Root) => void = () => (tree) => {
         type: "definition-term",
         term,
         children: [{ type: "text", value: term }],
+        // remark-rehype reads data.hName / data.hProperties to produce custom
+        // HAST element names and attributes. Without these, the unknown
+        // MDAST node is emitted as a plain <div>. We want react-markdown to
+        // see <definition-term term="..."> so the components map can dispatch
+        // to <Definition>.
+        data: {
+          hName: "definition-term",
+          hProperties: { term },
+        },
       };
       newNodes.push(defNode);
       last = m.index + m[0].length;

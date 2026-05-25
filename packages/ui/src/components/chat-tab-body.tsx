@@ -7,9 +7,10 @@ import type {
   TabSummary,
   Timestamp,
 } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import { brandId, resolveRenderToggles } from "@praxis/core/types";
+import { getMode } from "@praxis/curriculum/modes";
 import { getToolLabel } from "@praxis/tools/labels";
-import { type JSX, useCallback, useEffect, useRef, useState } from "react";
+import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthStatus } from "../context/auth-context.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useParentChildOptional } from "../context/parent-child-context.js";
@@ -129,6 +130,14 @@ export function TeachChatTabBody({
   const { items, isStreaming, thinking, lastError, send, cancel, cancelPending, loadHistory } =
     useStreamedSend(client, { onSystemNote });
   const { flagAuthRequired } = useAuthStatus();
+
+  // Resolve content-type render toggles from the session's mode. `getMode`
+  // returns undefined for unknown mode ids; we fall back to an empty object
+  // which resolveRenderToggles coerces to DEFAULT_RENDER_TOGGLES.
+  const renderToggles = useMemo(
+    () => resolveRenderToggles(getMode(tab.modeId) ?? {}),
+    [tab.modeId],
+  );
 
   // Load the persisted transcript on first mount (or when this tab body is
   // reused for a different session — keyed on tab.sessionId). Without this,
@@ -410,6 +419,9 @@ export function TeachChatTabBody({
                 // biome-ignore lint/suspicious/noExplicitAny: FlashcardId branded cast
                 await client.flashcards.review({ flashcardId: flashcardId as any, rating });
               }}
+              renderToggles={renderToggles}
+              sessionId={tab.sessionId}
+              recordDefinitionOccurrence={item.streaming === true}
             />
           );
         })}
