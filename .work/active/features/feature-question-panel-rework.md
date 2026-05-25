@@ -1,7 +1,7 @@
 ---
 id: feature-question-panel-rework
 kind: feature
-stage: implementing
+stage: done
 tags: [ui, ux]
 parent: epic-chat-interaction-ux-overhaul
 depends_on: [feature-mode-aware-question-constraints]
@@ -180,3 +180,25 @@ The three stories are independent — none blocks the others. They can run in pa
 - **Multi-select indicator name will change** once `feature-refactor-shared-choice-indicators` lands (production CSS will use `.choice-indicator--radio` / `--check`). This feature should be aware of that rename and adopt the new primitive in the same PR (or follow-up). Mitigation: when implementing, check whether the choice-indicator refactor has shipped — if yes, use the new primitive; if no, use the old class names and queue a small follow-up.
 
 - **Free-form input + answer precedence**: submit logic "prefer free-form when populated" could surprise a user who typed in free-form then clicked a structured choice. Mitigation: visual cue (e.g., free-form textarea border highlights when text is present, structured choices grey slightly to communicate "free-form will win"). Add to UX polish during implementation.
+
+## Implementation summary + Review (2026-05-24)
+
+**All 3 child stories shipped via consolidated bundle commit (`48c11ebb`)** — 2039 LoC across 17 files, 1 typecheck follow-up fix (`41d7c196`):
+
+- `story-fix-user-question-no-dismiss-on-submit` — `<ThreadChip>` (NEW, 11 tests) replaces greyed-out post-submit card; immediate dismiss + fire-and-forget tool_result; click-to-expand returns to read-only.
+- `story-questions-tabbed-display` — `<InlineQuestionSet>` chassis (NEW, 18 tests) with tab strip + progress counter + nav. Built and ready; **wiring deferred** — `idea-wire-inline-question-set-in-chat-tab-body` parked for the N>1 detection logic.
+- `story-question-free-answer-and-cancel-path` — always-visible free-form `<textarea>` below choices; "clarify in chat" → `{ kind: "abandoned" }` envelope; Zod `.refine()` on `ask_student_question` options rejects 7 chat-deflection patterns (5 new schema tests).
+
+**Cross-cutting deviation**: `<InlineQuestionSet>` integration into `chat-tab-body.tsx` deferred to a follow-up (parked). The component is complete and tested; the detection+dispatch logic for N>1 pending items belongs in a small follow-on. `StructuredQuestionCard` already handles 1-4 questions per call via fieldset-per-question; the chassis is for the rare N separate-tool-calls case.
+
+**Typecheck fix**: one `noUncheckedIndexedAccess` violation in `structured-question-card.tsx` line 145 (chip-summary multi-question count) fixed post-bundle.
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: 1 follow-up parked (`idea-wire-inline-question-set-in-chat-tab-body`) — chassis built but unwired
+**Nits**: none
+
+**Notes**: All 3 stories' acceptance criteria met at the component layer. The deferred wiring is a known gap that doesn't block shipping the feature — the existing N=1 path through `StructuredQuestionCard` is unchanged + improved with dismiss-on-submit, and the wiring story is sized as ~100-200 LoC follow-up. Parent epic `epic-chat-interaction-ux-overhaul` still active (2 sibling features still implementing) → feature stays in `.work/active/`.
+
+What's now possible: structured questions dismiss immediately on submit and condense to a `<ThreadChip>` summary in chat history (no greyed-out wait). Free-form textarea + clarify-in-chat give the user real escape hatches when structured choices don't fit. Tool schema actively prevents the agent from suggesting "tell me in chat" as a structured choice — the cancel control owns that path.
