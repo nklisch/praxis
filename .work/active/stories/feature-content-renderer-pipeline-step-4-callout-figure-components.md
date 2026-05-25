@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-4-callout-figure-components
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, ui]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-2-remark-plugins, feature-content-renderer-pipeline-step-3-css-primitives]
@@ -57,3 +57,11 @@ React components rendered via react-markdown's `components` map for the custom H
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 4
 - Depends on step-2 (HAST element emission) and step-3 (CSS classes)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Two presentational components shipped via the bundle-agent. `Callout` uses `role="note"` + type-modifier class + `aria-hidden` icon span (correct — screen readers don't double-announce); `Figure` always renders body, conditionally caption + verdict (with `role="img"` + `aria-label` on verdict span — Biome `useAriaPropsSupportedByRole`). `?? ""` fallbacks on CSS module key access satisfy `noUncheckedIndexedAccess`. 11 + 17 tests cover all callout types, both figure shapes, accessibility attributes.

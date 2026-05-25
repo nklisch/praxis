@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-5-definition-tracking
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, memory, cross-package]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-3-css-primitives]
@@ -77,3 +77,11 @@ All acceptance criteria landed and verified:
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 5
 - Patterns: `.claude/skills/patterns/temp-db-test-helper.md`, `.claude/skills/patterns/builder-module-composition.md`
 - Files: `packages/memory/src/schema.ts`, `packages/ui/src/lib/rehype-citation-chips.ts` (template)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Cross-package work landed cleanly. Memory layer: schema + Drizzle migration `0027_faulty_random.sql` + `TermFirstOccurrencesService` (PK lookup + `onConflictDoNothing` insert) + `normalizeTerm` helper. Service exported, wired into `ServiceDeps` via `build-memory-services.ts`. `tsconfig.electron.json` path alias for `@praxis/memory` added (Bundler-resolution requirement). Created `packages/memory/vitest.config.ts` so root workspace discovers the package. Renderer: `remarkDefinitions` plugin (MDAST `code`/`inlineCode` are Literals → no ancestor guard needed; correct insight); `<Definition>` component with `<dfn title=...>`; `useFirstOccurrence` hook uses `useRef` for map (no re-render on populate) + single effect for hasSeenTerm/markTermSeen sequence. 33 tests across all 4 surfaces. Heaviest story this wave; well-executed.

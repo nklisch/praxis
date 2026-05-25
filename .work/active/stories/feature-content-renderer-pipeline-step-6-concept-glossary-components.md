@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-6-concept-glossary-components
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, ui]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-3-css-primitives]
@@ -50,3 +50,11 @@ Two small additions: a `concept:` link-scheme handler that renders `<ConceptRef>
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 6
 - Depends on step-3 CSS
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 9 LoC `ConceptRef` component — `<a href="#" onClick>` with `e.preventDefault()` + safe-optional `onOpen?.(slug)`. `biome-ignore lint/a11y/useValidAnchor` justified inline (intentional in-app anchor per design contract). The `concept:` href detection wiring + `abbr` glossary override are correctly deferred to step-8 per scope. 9 tests cover render, click, slug, no-op-without-handler, rich children.

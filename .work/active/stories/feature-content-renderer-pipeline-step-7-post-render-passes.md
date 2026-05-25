@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-7-post-render-passes
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, markdown]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-3-css-primitives]
@@ -77,3 +77,11 @@ Two rehype post-render plugins that walk text nodes and wrap matches in CSS-clas
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 7
 - Template: `packages/ui/src/lib/rehype-citation-chips.ts`
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Two rehype plugins shipped, both mirroring `rehype-math-glyph-wrap.ts` collect-then-splice pattern. File-paths: regex requires slash + 1-8-char extension; skips code/pre/kbd/samp/a. Units: 58-entry `UNIT_TABLE` (multi-char only; single-letter J/N/W/V/A/g/m/s excluded for false-positive prevention); longer compounds ordered first to prevent prefix shadowing; lookahead boundary `(?=[\s.,;:!?)]|$)` instead of `\b` to handle `m/s²` (ends in non-word `²`) — sharp design discovery. Wraps `<span class="units"><span class="num">N</span><span class="unit">U</span></span>`. 14 + 20 tests. Both plugins unwired (step-8 territory).
