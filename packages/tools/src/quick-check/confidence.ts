@@ -7,9 +7,22 @@
  * A dedicated confidence item kind can be introduced in a later phase if the
  * UI needs distinct treatment (e.g. slider instead of radio buttons).
  */
-import type { SingleChoiceItem, ToolDefinition } from "@praxis/core/types";
+import type { QuestionConstraints, SingleChoiceItem, ToolDefinition } from "@praxis/core/types";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
+import { validateQuestionConstraints } from "../dialog/validate-question-constraints.js";
+
+/**
+ * Inline fallback constraints used when ctx.questionConstraints is absent.
+ * Mirrors FALLBACK_QUESTION_CONSTRAINTS in @praxis/curriculum, which
+ * @praxis/tools cannot import at runtime per the dependency direction rules.
+ */
+const INLINE_FALLBACK_CONSTRAINTS: Required<QuestionConstraints> = {
+  promptMaxWords: 60,
+  choiceMaxWords: 25,
+  choiceCount: 5,
+  multiSelectCap: 6,
+};
 
 const RATING_LABELS: Record<"1-4" | "1-5", string[]> = {
   "1-4": ["1 — guessing", "2 — unsure", "3 — confident", "4 — sure"],
@@ -48,6 +61,20 @@ export const quickCheckConfidenceTool: ToolDefinition<typeof InputSchema, typeof
   tier: "model-derived",
   effects: [],
   async handler(args, ctx) {
+    // confidence choices are domain-fixed rating labels; validate prompt only
+    // (empty options array means choiceCount and choiceMaxWords checks are
+    // vacuously satisfied — the model doesn't author the rating labels).
+    const constraints = ctx.questionConstraints ?? INLINE_FALLBACK_CONSTRAINTS;
+    const modeLabel = ctx.modeId ?? "current";
+    const validation = validateQuestionConstraints(
+      { prompt: args.prompt, options: [] },
+      constraints,
+      modeLabel,
+    );
+    if (!validation.ok) {
+      throw new Error(validation.message);
+    }
+
     const callId = uuidv7();
     const options = RATING_LABELS[args.scale];
 

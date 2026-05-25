@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-6-quick-check-wire
 kind: story
-stage: implementing
+stage: review
 tags: [content, tool-schema]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-2-toolcontext-threading, feature-mode-aware-question-constraints-step-3-validation-helper]
@@ -33,11 +33,23 @@ Apply the same constraint-validation pattern to every `quick_check` variant: sin
   - Within-cap success preserved (existing tests)
 
 ## Acceptance Criteria
-- [ ] All 5 quick_check variants validate against `ctx.questionConstraints`
-- [ ] Each variant returns descriptive failure tool-result on over-cap
-- [ ] Tests cover each variant's failure path
-- [ ] Within-cap behavior unchanged across all variants
-- [ ] Existing quick-check tests pass
+- [x] All 5 quick_check variants validate against `ctx.questionConstraints`
+- [x] Each variant returns descriptive failure tool-result on over-cap
+- [x] Tests cover each variant's failure path
+- [x] Within-cap behavior unchanged across all variants
+- [x] Existing quick-check tests pass
+
+## Implementation notes (2026-05-24)
+
+All 5 quick_check variants wired. Pattern mirrors step-5 (`ask-student-question`): read `ctx.questionConstraints ?? INLINE_FALLBACK_CONSTRAINTS`, call `validateQuestionConstraints`, throw on failure (caught by registry → `ok:false` tool result).
+
+**Fallback constant**: Each variant file defines its own `INLINE_FALLBACK_CONSTRAINTS` inline (same as step-5's approach in `ask-student-question.ts`). This avoids creating a shared module that might become a maintenance hazard.
+
+**Matching variant**: Two-pass validation — (1) validate prompt + left-column item texts, (2) validate right-column item texts with a sentinel `" "` prompt (0 words, always passes the prompt check). The `choiceCount` cap applies to each column independently (e.g., ≤5 left items, ≤5 right items in teach mode). This is the cleanest decomposition without extending the helper's API.
+
+**short-answer and confidence**: Validated with `options: []` — no option-count or option-word checks fire; only the prompt word-count check applies. This is correct since short-answer has no model-authored options, and confidence choices are domain-fixed rating labels.
+
+**Tests**: 15 new tests added to `quick-check-tools.test.ts` — one over-cap-prompt and one over-cap-choice (where applicable) per variant, plus one within-cap success assertion per variant. All 38 tests pass (23 pre-existing + 15 new).
 
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 6

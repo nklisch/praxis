@@ -290,6 +290,268 @@ describe("quickCheckConfidenceTool", () => {
   });
 });
 
+// ── Constraint validation ────────────────────────────────────────────────────
+
+/**
+ * Tight constraints used across constraint-validation tests.
+ * promptMaxWords:3 means anything > 3 words fails.
+ * choiceMaxWords:2 means any option text > 2 words fails.
+ * choiceCount:2 means more than 2 options fails.
+ */
+const TIGHT_CONSTRAINTS = {
+  promptMaxWords: 3,
+  choiceMaxWords: 2,
+  choiceCount: 2,
+  multiSelectCap: 6,
+} as const;
+
+describe("quick_check constraint validation", () => {
+  // Helper: make a quickCheck service that should never be called if validation fires.
+  function makeNeverCalledService(): QuickCheckService {
+    return {
+      await: vi.fn().mockRejectedValue(new Error("should not be called")),
+      resolve: vi.fn(),
+      cancel: vi.fn(),
+      subscribe: vi.fn().mockReturnValue(() => {}),
+    };
+  }
+
+  // ── single_choice ────────────────────────────────────────────────────────────
+
+  describe("single_choice", () => {
+    it("throws when prompt exceeds promptMaxWords", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      await expect(
+        quickCheckSingleChoiceTool.handler(
+          { prompt: "This prompt has too many words for the cap", options: ["A", "B"] },
+          ctx,
+        ),
+      ).rejects.toThrow(/prompt too long.*teach/i);
+    });
+
+    it("throws when options exceed choiceCount", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      await expect(
+        quickCheckSingleChoiceTool.handler(
+          { prompt: "Short", options: ["A", "B", "C"] }, // 3 options, cap is 2
+          ctx,
+        ),
+      ).rejects.toThrow(/too many choices.*teach/i);
+    });
+
+    it("succeeds within cap (within-cap behavior unchanged)", async () => {
+      const quickCheck = makeQuickCheckService({ kind: "single-choice", selectedIndex: 0 });
+      const ctx = makeToolContext({
+        services: { quickCheck },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      const result = await quickCheckSingleChoiceTool.handler(
+        { prompt: "Short", options: ["A", "B"] },
+        ctx,
+      );
+      expect(result.selectedIndex).toBe(0);
+    });
+  });
+
+  // ── multi_select ─────────────────────────────────────────────────────────────
+
+  describe("multi_select", () => {
+    it("throws when prompt exceeds promptMaxWords", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "quiz",
+      });
+      await expect(
+        quickCheckMultiSelectTool.handler(
+          { prompt: "This prompt is far too long for the word cap set here", options: ["A", "B"] },
+          ctx,
+        ),
+      ).rejects.toThrow(/prompt too long.*quiz/i);
+    });
+
+    it("throws when options exceed choiceCount", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "quiz",
+      });
+      await expect(
+        quickCheckMultiSelectTool.handler(
+          { prompt: "Pick all", options: ["A", "B", "C"] }, // 3 options, cap is 2
+          ctx,
+        ),
+      ).rejects.toThrow(/too many choices.*quiz/i);
+    });
+
+    it("succeeds within cap (within-cap behavior unchanged)", async () => {
+      const quickCheck = makeQuickCheckService({ kind: "multi-select", selectedIndices: [0] });
+      const ctx = makeToolContext({
+        services: { quickCheck },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "quiz",
+      });
+      const result = await quickCheckMultiSelectTool.handler(
+        { prompt: "Select", options: ["A", "B"] },
+        ctx,
+      );
+      expect(result.selectedIndices).toEqual([0]);
+    });
+  });
+
+  // ── short_answer ─────────────────────────────────────────────────────────────
+
+  describe("short_answer", () => {
+    it("throws when prompt exceeds promptMaxWords", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      await expect(
+        quickCheckShortAnswerTool.handler(
+          { prompt: "This prompt is way too long to pass the word cap" },
+          ctx,
+        ),
+      ).rejects.toThrow(/prompt too long.*teach/i);
+    });
+
+    it("succeeds within cap (within-cap behavior unchanged)", async () => {
+      const quickCheck = makeQuickCheckService({ kind: "short-answer", text: "ok" });
+      const ctx = makeToolContext({
+        services: { quickCheck },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      const result = await quickCheckShortAnswerTool.handler({ prompt: "Explain it" }, ctx);
+      expect(result.text).toBe("ok");
+    });
+  });
+
+  // ── matching ─────────────────────────────────────────────────────────────────
+
+  describe("matching", () => {
+    it("throws when prompt exceeds promptMaxWords", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      await expect(
+        quickCheckMatchingTool.handler(
+          {
+            prompt: "This matching prompt is far too long for the cap",
+            left: [
+              { id: "l1", text: "A" },
+              { id: "l2", text: "B" },
+            ],
+            right: [
+              { id: "r1", text: "X" },
+              { id: "r2", text: "Y" },
+            ],
+          },
+          ctx,
+        ),
+      ).rejects.toThrow(/prompt too long.*teach/i);
+    });
+
+    it("throws when a column item text exceeds choiceMaxWords", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        // choiceMaxWords:2 — "A very long label" = 4 words
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      await expect(
+        quickCheckMatchingTool.handler(
+          {
+            prompt: "Match each",
+            left: [
+              { id: "l1", text: "A very long label that violates the cap" },
+              { id: "l2", text: "B" },
+            ],
+            right: [
+              { id: "r1", text: "X" },
+              { id: "r2", text: "Y" },
+            ],
+          },
+          ctx,
+        ),
+      ).rejects.toThrow(/choice.*too long.*teach/i);
+    });
+
+    it("succeeds within cap (within-cap behavior unchanged)", async () => {
+      const quickCheck = makeQuickCheckService({
+        kind: "matching",
+        pairs: [{ leftId: "l1", rightId: "r1" }],
+      });
+      const ctx = makeToolContext({
+        services: { quickCheck },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      const result = await quickCheckMatchingTool.handler(
+        {
+          prompt: "Match each",
+          left: [
+            { id: "l1", text: "A" },
+            { id: "l2", text: "B" },
+          ],
+          right: [
+            { id: "r1", text: "X" },
+            { id: "r2", text: "Y" },
+          ],
+        },
+        ctx,
+      );
+      expect(result.pairs).toHaveLength(1);
+    });
+  });
+
+  // ── confidence ────────────────────────────────────────────────────────────────
+
+  describe("confidence", () => {
+    it("throws when prompt exceeds promptMaxWords", async () => {
+      const ctx = makeToolContext({
+        services: { quickCheck: makeNeverCalledService() },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      await expect(
+        quickCheckConfidenceTool.handler(
+          { prompt: "How confident are you in your answer today?", scale: "1-4" },
+          ctx,
+        ),
+      ).rejects.toThrow(/prompt too long.*teach/i);
+    });
+
+    it("succeeds within cap (within-cap behavior unchanged)", async () => {
+      const quickCheck = makeQuickCheckService({ kind: "single-choice", selectedIndex: 2 });
+      const ctx = makeToolContext({
+        services: { quickCheck },
+        questionConstraints: TIGHT_CONSTRAINTS,
+        modeId: "teach",
+      });
+      // Default prompt "How confident are you in your answer?" = 7 words — would fail
+      // TIGHT_CONSTRAINTS; use a short custom prompt instead.
+      const result = await quickCheckConfidenceTool.handler(
+        { prompt: "Confidence level?", scale: "1-4" },
+        ctx,
+      );
+      expect(result.rating).toBe(3);
+    });
+  });
+});
+
 // ── Integration: dispatch through InProcessToolRegistry ──────────────────────
 
 function makeRegistry(quickCheck: QuickCheckService) {

@@ -5,9 +5,22 @@
  * keyboard fallback). If correctPairs is provided, `correct` is true only
  * when every pair matches exactly.
  */
-import type { MatchingItem, ToolDefinition } from "@praxis/core/types";
+import type { MatchingItem, QuestionConstraints, ToolDefinition } from "@praxis/core/types";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
+import { validateQuestionConstraints } from "../dialog/validate-question-constraints.js";
+
+/**
+ * Inline fallback constraints used when ctx.questionConstraints is absent.
+ * Mirrors FALLBACK_QUESTION_CONSTRAINTS in @praxis/curriculum, which
+ * @praxis/tools cannot import at runtime per the dependency direction rules.
+ */
+const INLINE_FALLBACK_CONSTRAINTS: Required<QuestionConstraints> = {
+  promptMaxWords: 60,
+  choiceMaxWords: 25,
+  choiceCount: 5,
+  multiSelectCap: 6,
+};
 
 const ColumnItemSchema = z.object({
   id: z.string().min(1),
@@ -61,6 +74,36 @@ export const quickCheckMatchingTool: ToolDefinition<typeof InputSchema, typeof O
   tier: "model-derived",
   effects: [],
   async handler(args, ctx) {
+    // matching has two labelled columns rather than a flat options list.
+    // Validation strategy:
+    //   1. Validate prompt + left-column texts — catches prompt word overflow and
+    //      per-item word overflow in the left column. choiceCount applies to each
+    //      column independently (e.g. ≤5 left items in teach mode).
+    //   2. Validate right-column texts only (prompt sentinel " " → 0 words, always
+    //      passes the prompt check so we only exercise the choice checks).
+    // This approach reuses validateQuestionConstraints without extending its API.
+    const constraints = ctx.questionConstraints ?? INLINE_FALLBACK_CONSTRAINTS;
+    const modeLabel = ctx.modeId ?? "current";
+
+    const leftValidation = validateQuestionConstraints(
+      { prompt: args.prompt, options: args.left.map((i) => i.text) },
+      constraints,
+      modeLabel,
+    );
+    if (!leftValidation.ok) {
+      throw new Error(leftValidation.message);
+    }
+
+    // Use a single-space prompt so the prompt check fires 0 words (always passes).
+    const rightValidation = validateQuestionConstraints(
+      { prompt: " ", options: args.right.map((i) => i.text) },
+      constraints,
+      modeLabel,
+    );
+    if (!rightValidation.ok) {
+      throw new Error(rightValidation.message);
+    }
+
     const callId = uuidv7();
     const item: MatchingItem = {
       kind: "matching",

@@ -5,9 +5,22 @@
  * student's text and reacts qualitatively. The student's response is captured
  * in the tool result so the model can reference it directly.
  */
-import type { ShortAnswerItem, ToolDefinition } from "@praxis/core/types";
+import type { QuestionConstraints, ShortAnswerItem, ToolDefinition } from "@praxis/core/types";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
+import { validateQuestionConstraints } from "../dialog/validate-question-constraints.js";
+
+/**
+ * Inline fallback constraints used when ctx.questionConstraints is absent.
+ * Mirrors FALLBACK_QUESTION_CONSTRAINTS in @praxis/curriculum, which
+ * @praxis/tools cannot import at runtime per the dependency direction rules.
+ */
+const INLINE_FALLBACK_CONSTRAINTS: Required<QuestionConstraints> = {
+  promptMaxWords: 60,
+  choiceMaxWords: 25,
+  choiceCount: 5,
+  multiSelectCap: 6,
+};
 
 const InputSchema = z.object({
   prompt: z.string().min(1).describe("The question or prompt to show the student."),
@@ -26,6 +39,19 @@ export const quickCheckShortAnswerTool: ToolDefinition<typeof InputSchema, typeo
   tier: "model-derived",
   effects: [],
   async handler(args, ctx) {
+    // short-answer has no choice options; validate prompt only (empty options array
+    // means choiceCount and choiceMaxWords checks are vacuously satisfied).
+    const constraints = ctx.questionConstraints ?? INLINE_FALLBACK_CONSTRAINTS;
+    const modeLabel = ctx.modeId ?? "current";
+    const validation = validateQuestionConstraints(
+      { prompt: args.prompt, options: [] },
+      constraints,
+      modeLabel,
+    );
+    if (!validation.ok) {
+      throw new Error(validation.message);
+    }
+
     const callId = uuidv7();
     const item: ShortAnswerItem = {
       kind: "short-answer",

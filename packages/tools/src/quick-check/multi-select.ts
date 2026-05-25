@@ -6,9 +6,22 @@
  * exactly matches (order-independent). Partial credit is not returned here —
  * the model reads selectedIndices and reacts qualitatively.
  */
-import type { MultiSelectItem, ToolDefinition } from "@praxis/core/types";
+import type { MultiSelectItem, QuestionConstraints, ToolDefinition } from "@praxis/core/types";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
+import { validateQuestionConstraints } from "../dialog/validate-question-constraints.js";
+
+/**
+ * Inline fallback constraints used when ctx.questionConstraints is absent.
+ * Mirrors FALLBACK_QUESTION_CONSTRAINTS in @praxis/curriculum, which
+ * @praxis/tools cannot import at runtime per the dependency direction rules.
+ */
+const INLINE_FALLBACK_CONSTRAINTS: Required<QuestionConstraints> = {
+  promptMaxWords: 60,
+  choiceMaxWords: 25,
+  choiceCount: 5,
+  multiSelectCap: 6,
+};
 
 const InputSchema = z.object({
   prompt: z.string().min(1).describe("The question to ask the student."),
@@ -42,6 +55,17 @@ export const quickCheckMultiSelectTool: ToolDefinition<typeof InputSchema, typeo
   tier: "model-derived",
   effects: [],
   async handler(args, ctx) {
+    const constraints = ctx.questionConstraints ?? INLINE_FALLBACK_CONSTRAINTS;
+    const modeLabel = ctx.modeId ?? "current";
+    const validation = validateQuestionConstraints(
+      { prompt: args.prompt, options: args.options, multiSelect: true },
+      constraints,
+      modeLabel,
+    );
+    if (!validation.ok) {
+      throw new Error(validation.message);
+    }
+
     const callId = uuidv7();
     const item: MultiSelectItem = {
       kind: "multi-select",
