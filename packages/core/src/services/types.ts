@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { TermFirstOccurrencesService } from "@praxis/memory";
 import type { EngineConfig } from "../config/index.js";
 import type { PraxisDb } from "../db/index.js";
 import type {
@@ -99,6 +100,13 @@ export interface ServiceDeps {
      * the course-create path don't have to wire it.
      */
     courseCreateConfigResolver?: () => { maxSteps: number };
+    /**
+     * Content-renderer step 5: first-introduction term tracking.
+     * Tracks which terms a student has already seen so the renderer can
+     * conditionally apply definition styling only on first occurrence.
+     * Optional so tests that don't exercise definition rendering stay unaffected.
+     */
+    termFirstOccurrences?: TermFirstOccurrencesService;
     /**
      * Phase 17: in-process human-in-the-loop quick check dispatch.
      * Tool handlers call `quickCheck.await(...)` to pend an inline question.

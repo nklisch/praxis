@@ -293,6 +293,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       // Lazy-read the user-set course-create budget so UI changes apply to the
       // next run without restarting the desktop app.
       courseCreateConfigResolver: () => readCourseCreateConfig(db),
+      termFirstOccurrences: memory.termFirstOccurrences, // ← content-renderer step 5
       quickCheck: infra.quickCheckService, // ← Phase 17
       subAgent: infra.subAgentRegistry,
       ...(IS_DEV && { devReportsWriter: createDevReportsWriter() }),

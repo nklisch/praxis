@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-5-definition-tracking
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, memory, cross-package]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-3-css-primitives]
@@ -58,6 +58,20 @@ Adds the `term_first_occurrences` projection in `@praxis/memory` with `hasSeenTe
 - [ ] `useFirstOccurrence` per-turn cache: second occurrence of same term returns false
 - [ ] Integration test: three definitions, two repeated → exactly the unique-first occurrences get `.definition`
 - [ ] All tests pass (`pnpm test`)
+
+## Implementation notes (2026-05-24)
+
+All acceptance criteria landed and verified:
+
+- **Schema**: `term_first_occurrences` table added to `packages/memory/src/schema.ts` with composite PK `(student_id, term_normalized)`. Migration generated as `drizzle/0027_faulty_random.sql`; `pnpm db:reset` succeeds.
+- **Service**: `packages/memory/src/term-first-occurrences.ts` — `TermFirstOccurrencesService` with `hasSeenTerm` (sync `.get()`) and `markTermSeen` (`insert().onConflictDoNothing().run()`). `normalizeTerm` strips punctuation, lowercases, and collapses whitespace.
+- **Wiring**: Exported from `@praxis/memory` index; `TermFirstOccurrencesService` added as optional `toolServices.termFirstOccurrences` on `ServiceDeps` in `@praxis/core`; instantiated in `packages/desktop/electron/main/services/build-memory-services.ts` and wired in `services.ts`.
+- **`vitest.config.ts`**: Created for `@praxis/memory` so `packages/*` glob in root vitest config discovers the package.
+- **`tsconfig.electron.json`**: Added `@praxis/memory` and `@praxis/memory/*` path aliases so the Bundler-resolution electron tsconfig can resolve the package without `dist/`.
+- **Remark plugin**: `packages/ui/src/lib/markdown-plugins/remark-definitions.ts` — `visitParents` on `"text"` nodes; collects `[[def:term]]` matches; splices in `definition-term` MDAST nodes; collect-then-splice pattern (mirrors `remark-admonitions.ts`). Note: `code`/`inlineCode` in MDAST are Literals, not Parents, so text inside them is never visited — no ancestor guard needed.
+- **Component**: `packages/ui/src/components/markdown/definition.tsx` — `<dfn title={term} className={isFirst ? styles.definition : undefined}>`. Pure presentational.
+- **Hook**: `packages/ui/src/hooks/use-first-occurrence.ts` — `useRef` for map (no re-render on populate); single `useEffect` that clears map, populates via `hasSeenTerm`, then records via `markTermSeen` in sequence. `terms` array is a direct dep (no hash intermediary) — biome exhaustive-deps compliant.
+- **Tests**: 6 memory tests, 13 remark plugin tests, 6 component tests, 8 hook tests — all pass.
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 5

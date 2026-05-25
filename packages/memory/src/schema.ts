@@ -268,6 +268,25 @@ export const sketches = sqliteTable(
   }),
 );
 
+/** Content-renderer step 5: first-introduction term tracking.
+ *
+ * Records the session in which each normalized term was first introduced to
+ * a student. `markTermSeen` uses ON CONFLICT DO NOTHING so the first-seen
+ * session is never overwritten; subsequent mentions are silently ignored.
+ */
+export const termFirstOccurrences = sqliteTable(
+  "term_first_occurrences",
+  {
+    studentId: text("student_id").notNull(),
+    termNormalized: text("term_normalized").notNull(),
+    firstSeenSessionId: text("first_seen_session_id").notNull(),
+    firstSeenAt: integer("first_seen_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.studentId, t.termNormalized] }),
+  }),
+);
+
 export const memorySchema = {
   sessions,
   episodicEvents,
@@ -279,4 +298,5 @@ export const memorySchema = {
   conceptMaps,
   conceptMapVersions,
   sketches,
+  termFirstOccurrences,
 };
