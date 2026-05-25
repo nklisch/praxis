@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-2-remark-plugins
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, markdown]
 parent: feature-content-renderer-pipeline
 depends_on: []
@@ -31,12 +31,21 @@ Hand-rolled `remarkAdmonitions` plugin that parses GitHub-style `> [!hint]` bloc
 - Smoke verify `remark-directive` is installed correctly: write a minimal test that runs a `unified().use(remarkParse).use(remarkDirective).process("::: figure :::")` and asserts the directive node is parsed.
 
 ## Acceptance Criteria
-- [ ] `remarkAdmonitions` plugin parses all 5 admonition types into containerDirective nodes
-- [ ] Plugin skips non-`[!type]` blockquotes
-- [ ] `remark-directive` added to `packages/ui/package.json` dependencies; lockfile updated
-- [ ] Smoke test confirms `remark-directive` parses `::: figure :::` correctly
-- [ ] Plugin tests cover each type + nested markdown preservation
-- [ ] No regression on existing markdown render tests
+- [x] `remarkAdmonitions` plugin parses all 5 admonition types into containerDirective nodes
+- [x] Plugin skips non-`[!type]` blockquotes
+- [x] `remark-directive` added to `packages/ui/package.json` dependencies; lockfile updated
+- [x] Smoke test confirms `remark-directive` parses `::: figure :::` correctly
+- [x] Plugin tests cover each type + nested markdown preservation
+- [x] No regression on existing markdown render tests
+
+## Implementation notes (2026-05-24)
+
+- `remarkAdmonitions` implemented at `packages/ui/src/lib/markdown-plugins/remark-admonitions.ts`. Follows the collect-replacements-then-splice pattern from `rehype-citation-chips.ts`. Uses `unist-util-visit` (added as direct prod dep alongside `unist-util-visit-parents`) to walk `blockquote` nodes.
+- `ContainerDirective` typed locally (inline interface) to avoid adding `mdast-util-directive` as a direct dep — the same approach as the `RehypePlugin` alias in the other plugins.
+- `@types/mdast ^4.0.4` added as devDep so the `Blockquote`, `Paragraph`, `Text`, `Root` imports resolve under `tsgo`.
+- Test helpers import `unified`, `remark-parse`, `remark-stringify` (added as devDeps) and call `processor.runSync(tree)` after `processor.parse(md)` — `.parse()` alone does not run transformer plugins.
+- `remark-directive ^4.0.0` (latest stable) is compatible with the project's `remark-math ^6.0.0` / `react-markdown ^10.1.0` (both target mdast 4.x).
+- 21 tests, all passing. No regressions across the 166-file UI test suite.
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 2
