@@ -77,29 +77,64 @@
   line-height: 1.55;
 }
 
-/* highlight.js token classes — restrained palette built on project CSS
-   variables instead of importing a prebuilt theme stylesheet. */
+/* ── Studio Quiet highlight.js theme ─────────────────────────────────────────
+   All token colors map to project design tokens.  No prebuilt hljs theme
+   stylesheet is imported; this block is the sole source for hljs styling. */
+
+/* default text inside a highlighted block */
+.root :global(.hljs) {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+}
+
+/* keywords + built-ins → accent (muted brick / dark-mode coral) */
 .root :global(.hljs-keyword),
 .root :global(.hljs-selector-tag),
-.root :global(.hljs-built_in) {
+.root :global(.hljs-built_in),
+.root :global(.hljs-type),
+.root :global(.hljs-meta) {
   color: var(--color-accent);
 }
+
+/* strings + regexps + template literals → success (forest green / sage) */
 .root :global(.hljs-string),
+.root :global(.hljs-regexp),
+.root :global(.hljs-template-string),
 .root :global(.hljs-attr) {
-  color: #b4d28d; /* intentional literal: syntax highlight — muted sage green, stable across themes */
+  color: var(--color-success);
 }
-.root :global(.hljs-number),
-.root :global(.hljs-literal) {
-  color: #d8a37b; /* intentional literal: syntax highlight — warm amber/rust, stable across themes */
+
+/* function / method names → info (slate blue) */
+.root :global(.hljs-title.function_),
+.root :global(.hljs-function),
+.root :global(.hljs-title) {
+  color: var(--color-info);
 }
-.root :global(.hljs-comment) {
-  color: var(--color-text-secondary);
-  font-style: italic;
-}
-.root :global(.hljs-title),
+
+/* section headings (Markdown hljs, etc.) → primary, slightly weighted */
 .root :global(.hljs-section) {
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* numbers + literals — kept as intentional literals: tabular amber/rust tones
+   that sit between accent and success and remain stable across light/dark. */
+.root :global(.hljs-number),
+.root :global(.hljs-literal) {
+  color: #c48a50; /* intentional literal: syntax number — warm amber, perceptually mid-weight */
+}
+
+/* comments → tertiary, italic */
+.root :global(.hljs-comment) {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* variable + symbol references */
+.root :global(.hljs-variable),
+.root :global(.hljs-name),
+.root :global(.hljs-symbol) {
+  color: var(--color-text-secondary);
 }
 
 /* GFM tables */
@@ -164,4 +199,329 @@
   padding: 0.05em 0.3em;
   font-family: var(--font-mono);
   font-size: 0.85em;
+}
+
+/* ── Content-type primitives ─────────────────────────────────────────────────
+   Promoted from .mockups/design-system/content-types.html (2026-05-24).
+   Naming: CSS Modules camelCase — .calloutTheorem not .callout--theorem.
+   All values reference design tokens; no hardcoded colors or spacing. */
+
+/* ── Code: inline + block refinements ─────────────────────────────────────── */
+
+/* Inline code — slightly tighter background, token-driven color. */
+.codeInline {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--color-bg-tertiary);
+  padding: 1px var(--space-1);
+  border-radius: 3px;
+  color: var(--color-text-primary);
+}
+
+/* Code block — left rule distinguishes it from plain pre; token-driven. */
+.codeBlock {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  background: var(--color-bg-tertiary);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  overflow-x: auto;
+  margin: var(--space-3) 0;
+}
+
+/* Inline token classes for hand-rolled / non-hljs code spans. */
+.tokKeyword { color: var(--color-accent); }
+.tokString  { color: var(--color-success); }
+.tokComment { color: var(--color-text-tertiary); font-style: italic; }
+.tokFn      { color: var(--color-info); }
+
+/* ── File path ─────────────────────────────────────────────────────────────── */
+
+/* Distinct from inline code: signals "this is a navigable path". */
+.filePath {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--color-text-secondary);
+  border-bottom: 1px dotted var(--color-border-strong);
+}
+
+/* ── Math glyph ────────────────────────────────────────────────────────────── */
+
+/* Defensive treatment for bare unicode math chars the model forgot to wrap in
+   LaTeX.  Applied by feature-math-rendering's post-pass — defined here as the
+   canonical home.  Quiet typographic shift to math font; no color change. */
+.mathGlyph {
+  font-family:
+    "STIX Two Math", "Cambria Math", "Latin Modern Math",
+    "Iowan Old Style", serif;
+  letter-spacing: 0.02em;
+  color: var(--color-text-primary);
+}
+
+/* ── Definition ────────────────────────────────────────────────────────────── */
+
+/* First introduction of a term: semibold + accent underline.  Subsequent
+   mentions revert to plain prose. */
+.definition {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-accent);
+}
+
+/* ── Concept reference ─────────────────────────────────────────────────────── */
+
+/* Link to a concept-map node: italic, dashed underline, § sigil via ::after. */
+.conceptRef {
+  font-style: italic;
+  color: var(--color-text-link);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--color-text-link);
+}
+.conceptRef::after {
+  content: " §";
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+  font-size: 0.85em;
+  vertical-align: 0.1em;
+}
+
+/* ── Glossary term ─────────────────────────────────────────────────────────── */
+
+/* Hover for definition popover.  Dotted tertiary underline + cursor: help. */
+.glossary {
+  border-bottom: 1px dotted var(--color-text-tertiary);
+  cursor: help;
+}
+
+/* ── Passage (block-quote with attribution) ───────────────────────────────── */
+
+/* Sourced passage: display serif, italic, left rule, editorial register. */
+.passage {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-loose);
+  color: var(--color-text-primary);
+  padding: var(--space-3) var(--space-6);
+  border-left: 2px solid var(--color-border-strong);
+  margin: var(--space-4) 0;
+}
+
+/* Attribution line below the passage. */
+.passageCite {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-3);
+}
+.passageCite::before {
+  content: "— ";
+}
+
+/* ── Callout (theorem / lemma / hint / warning) ───────────────────────────── */
+
+/* Base callout — grid with icon label + body text. */
+.callout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  margin: var(--space-3) 0;
+  align-items: start;
+}
+
+/* Icon column: mono kicker label. */
+.calloutIcon {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  padding-top: 2px;
+  min-width: 6ch;
+}
+
+/* Body column. */
+.calloutBody {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+}
+
+/* Strong in body acts as the callout heading: display italic. */
+.calloutBody strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+/* Theorem — dark border, secondary surface, primary icon. */
+.calloutTheorem {
+  background: var(--color-bg-secondary);
+  border-left: 3px solid var(--color-text-primary);
+}
+.calloutTheorem .calloutIcon {
+  color: var(--color-text-primary);
+}
+
+/* Lemma — subdued background, thinner border, secondary icon. */
+.calloutLemma {
+  background: var(--color-bg-tertiary);
+  border-left: 2px solid var(--color-text-secondary);
+}
+.calloutLemma .calloutIcon {
+  color: var(--color-text-secondary);
+}
+
+/* Hint — amber tint, warning border, warning icon. */
+.calloutHint {
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-secondary));
+  border-left: 3px solid var(--color-warning);
+}
+.calloutHint .calloutIcon {
+  color: var(--color-warning);
+}
+
+/* Warning — red tint, danger border, danger icon. */
+.calloutWarning {
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-secondary));
+  border-left: 3px solid var(--color-danger);
+}
+.calloutWarning .calloutIcon {
+  color: var(--color-danger);
+}
+
+/* ── Figure (worked example) ──────────────────────────────────────────────── */
+
+/* Outer card. */
+.figure {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-6);
+  margin: var(--space-4) 0;
+}
+
+/* Caption: mono kicker with figure number. */
+.figureCaption {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+/* Body: regular body prose. */
+.figureBody {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+}
+.figureBody p {
+  margin: 0 0 var(--space-2);
+}
+
+/* Verdict line: mono kicker; success or danger coloring. */
+.figureVerdict {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-success);
+  margin-top: var(--space-2);
+}
+
+/* .figureVerdictOk — explicit success variant (semantic alias). */
+.figureVerdictOk {
+  color: var(--color-success);
+}
+
+/* .figureVerdictCheck — checkmark / confirmed variant (same success register). */
+.figureVerdictCheck {
+  color: var(--color-success);
+}
+
+/* ── Procedural steps ─────────────────────────────────────────────────────── */
+
+/* Numbered step list.  Block layout so inline content inside each step (math,
+   <em>, <sup>) flows as prose rather than fragmenting into grid items. */
+.procedure {
+  counter-reset: step;
+  padding: 0;
+  margin: var(--space-3) 0;
+  list-style: none;
+}
+
+.procedure li {
+  counter-increment: step;
+  display: block;
+  position: relative;
+  padding: var(--space-3) 0 var(--space-3) calc(28px + var(--space-3));
+  border-bottom: 1px solid var(--color-border);
+  line-height: var(--line-height-loose);
+}
+
+.procedure li:last-child {
+  border-bottom: 0;
+}
+
+.procedure li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: calc(var(--space-3) + 0.35em);
+  width: 28px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-tertiary);
+}
+
+/* ── Units ────────────────────────────────────────────────────────────────── */
+
+/* Number + unit pair.  Tabular figures on the outer span; unit child gets
+   sans-serif inflection at 0.88em + primary color.  No font-variant-caps. */
+.units {
+  font-feature-settings: "tnum" on;
+}
+
+.unit {
+  font-family: var(--font-sans);
+  font-size: 0.88em;
+  color: var(--color-text-primary);
+  margin-left: 0.25em;
+  font-style: normal;
+}
+
+/* ── Reduced-motion: suppress any decorative transitions ──────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .callout,
+  .figure,
+  .passage,
+  .conceptRef,
+  .glossary {
+    transition: none;
+  }
 }

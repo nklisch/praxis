@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MarkdownContent } from "../components/markdown-content.js";
+import styles from "../components/markdown-content.module.css";
 
 afterEach(() => cleanup());
 
@@ -152,5 +153,169 @@ describe("MarkdownContent", () => {
     const para = container.querySelector("p");
     expect(para?.textContent).toBe("alpha [1] beta [2] gamma");
     expect(container.querySelectorAll("button")).toHaveLength(2);
+  });
+});
+
+/* ── CSS-presence smoke tests ───────────────────────────────────────────────
+ * These tests verify that each content-type class name is exported from the
+ * CSS module (i.e. the class exists and is non-empty after Vite/CSS-Modules
+ * hashing in the test environment).  They render a minimal div with the class
+ * applied and confirm the element mounts without error.  They do NOT assert
+ * pixel-level styling — that's the visual smoke described in the story.
+ * ────────────────────────────────────────────────────────────────────────── */
+describe("markdown-content.module.css — content-type class presence", () => {
+  afterEach(() => cleanup());
+
+  function renderWithClass(className: string) {
+    const { container } = render(<div className={className}>x</div>);
+    return container.firstElementChild as HTMLElement;
+  }
+
+  it("exports .codeInline", () => {
+    expect(styles.codeInline).toBeTruthy();
+    const el = renderWithClass(styles.codeInline);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .codeBlock", () => {
+    expect(styles.codeBlock).toBeTruthy();
+    const el = renderWithClass(styles.codeBlock);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .tokKeyword", () => {
+    expect(styles.tokKeyword).toBeTruthy();
+  });
+
+  it("exports .tokString", () => {
+    expect(styles.tokString).toBeTruthy();
+  });
+
+  it("exports .tokComment", () => {
+    expect(styles.tokComment).toBeTruthy();
+  });
+
+  it("exports .tokFn", () => {
+    expect(styles.tokFn).toBeTruthy();
+  });
+
+  it("exports .filePath", () => {
+    expect(styles.filePath).toBeTruthy();
+    const el = renderWithClass(styles.filePath);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .mathGlyph", () => {
+    expect(styles.mathGlyph).toBeTruthy();
+    const el = renderWithClass(styles.mathGlyph);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .definition", () => {
+    expect(styles.definition).toBeTruthy();
+    const el = renderWithClass(styles.definition);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .conceptRef", () => {
+    expect(styles.conceptRef).toBeTruthy();
+    const el = renderWithClass(styles.conceptRef);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .glossary", () => {
+    expect(styles.glossary).toBeTruthy();
+    const el = renderWithClass(styles.glossary);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .passage", () => {
+    expect(styles.passage).toBeTruthy();
+    const el = renderWithClass(styles.passage);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .passageCite", () => {
+    expect(styles.passageCite).toBeTruthy();
+    const el = renderWithClass(styles.passageCite);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .callout", () => {
+    expect(styles.callout).toBeTruthy();
+    const el = renderWithClass(styles.callout);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .calloutIcon", () => {
+    expect(styles.calloutIcon).toBeTruthy();
+  });
+
+  it("exports .calloutBody", () => {
+    expect(styles.calloutBody).toBeTruthy();
+  });
+
+  it("exports .calloutTheorem", () => {
+    expect(styles.calloutTheorem).toBeTruthy();
+  });
+
+  it("exports .calloutLemma", () => {
+    expect(styles.calloutLemma).toBeTruthy();
+  });
+
+  it("exports .calloutHint", () => {
+    expect(styles.calloutHint).toBeTruthy();
+  });
+
+  it("exports .calloutWarning", () => {
+    expect(styles.calloutWarning).toBeTruthy();
+  });
+
+  it("exports .figure", () => {
+    expect(styles.figure).toBeTruthy();
+    const el = renderWithClass(styles.figure);
+    expect(el).not.toBeNull();
+  });
+
+  it("exports .figureCaption", () => {
+    expect(styles.figureCaption).toBeTruthy();
+  });
+
+  it("exports .figureBody", () => {
+    expect(styles.figureBody).toBeTruthy();
+  });
+
+  it("exports .figureVerdict", () => {
+    expect(styles.figureVerdict).toBeTruthy();
+  });
+
+  it("exports .figureVerdictOk", () => {
+    expect(styles.figureVerdictOk).toBeTruthy();
+  });
+
+  it("exports .figureVerdictCheck", () => {
+    expect(styles.figureVerdictCheck).toBeTruthy();
+  });
+
+  it("exports .procedure", () => {
+    expect(styles.procedure).toBeTruthy();
+    const { container } = render(
+      <ol className={styles.procedure}>
+        <li>Step one</li>
+        <li>Step two</li>
+      </ol>,
+    );
+    expect(container.querySelectorAll("li")).toHaveLength(2);
+  });
+
+  it("exports .units and .unit", () => {
+    expect(styles.units).toBeTruthy();
+    expect(styles.unit).toBeTruthy();
+    const { container } = render(
+      <span className={styles.units}>
+        <span>5</span> <span className={styles.unit}>cm/s</span>
+      </span>,
+    );
+    expect(container.querySelector("span")).not.toBeNull();
   });
 });
