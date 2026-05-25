@@ -142,7 +142,7 @@ export function StructuredQuestionCard({
 
     // Multiple questions: count answered
     const answeredCount = item.questions.filter(
-      (_, i) => (freeFormValues[i]?.trim().length ?? 0) > 0 || selections[i]?.size > 0,
+      (_, i) => (freeFormValues[i]?.trim().length ?? 0) > 0 || (selections[i]?.size ?? 0) > 0,
     ).length;
     return { verb: `you answered ${answeredCount} of ${totalQuestions}`, answer: undefined };
   };
