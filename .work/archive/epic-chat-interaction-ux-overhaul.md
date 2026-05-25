@@ -1,14 +1,14 @@
 ---
 id: epic-chat-interaction-ux-overhaul
 kind: epic
-stage: implementing
+stage: done
 tags: [ui, ux]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Chat-interaction UX overhaul: never block waiting on the chat round-trip
@@ -57,3 +57,39 @@ These cut across the three child features and are pinned at the epic level so ea
 - `.mockups/design-system/components.css` § Tier-2 chat-surface — every chat primitive, single source of truth
 - `.mockups/design-system/streaming.html` — interactive standardized showcase of the streaming pattern (with the chosen direction marked at top)
 - `.mockups/design-system/components.html` § Chat surface — every chat component in every state, rendered with motion live
+
+## Implementation summary + Review (2026-05-25)
+
+**All 3 child features shipped to done:**
+
+1. `feature-composer-async-behavior` (7 stories) — Composer Send↔Stop morph + queue failure-state in `usePendingQueue` + `<QueuedMessageBubble>` + send-error wiring + `useFailedEscalation` hook + per-tab-body integration + examLockdown gate. 1 follow-up parked (`idea-resolve-composer-queue-vs-stop-affordance-conflict` — Enter-during-streaming-as-noop tension).
+
+2. `feature-question-panel-rework` (3 stories) — `<ThreadChip>` (dismiss-on-submit) + `<InlineQuestionSet>` paged chassis + free-form textarea + clarify-in-chat cancel + tool-description guardrail rejecting 7 chat-deflection patterns. 1 follow-up parked (`idea-wire-inline-question-set-in-chat-tab-body` — N>1 detection routing deferred).
+
+3. `feature-refactor-async-chat-interactions-audit` (8 stories) — `.action-card`/`.action-pip`/`.failure-popover` canonical primitives + `useOptimisticAction` hook + `useActionEscalation` hook + 12 surfaces converted to optimistic dispatch (assignment-submit, course-materialize, document-attach, selection-bar, author mutations) + `optimistic-dispatch` pattern doc codified.
+
+**Epic-level lenses** (per review skill Phase 5):
+
+- **Design alignment**: realized decomposition matches the epic brief — composer + question-card + cross-cutting audit. The audit feature shipped the foundational primitives that the composer + question-card features could have used (but those features ran in parallel and built their own escalation hooks). Documented follow-up: `useFailedEscalation` (composer) can become a thin wrapper over `useActionEscalation` (audit) — small cleanup, non-blocking.
+
+- **Foundation-doc alignment**: `docs/UX.md` rolled forward as planned in the scope commit — "Chat round-trips never gate user input" principle now enforced across every catalogued surface.
+
+- **Breaking changes**: `disabled` prop removed from `<Composer>`; existing callers updated in-tree. Optimistic-dispatch primitives are additive.
+
+- **Capability completeness end-to-end**: 12+ UI surfaces no longer block on chat / IPC round-trips. Composer never disables during streaming. Questions dismiss to chips immediately on submit. Assignment submits stay interactive with pip feedback. Document attaches optimistically. Selection actions surface failures via strip after threshold. Author mutations show inline pips. The "UI never blocks" principle is now structurally enforced via the optimistic-dispatch pattern.
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: 3 follow-ups parked across child features (all in backlog):
+- `idea-resolve-composer-queue-vs-stop-affordance-conflict` (composer)
+- `idea-wire-inline-question-set-in-chat-tab-body` (question-panel)
+- (implicit) `useFailedEscalation` → `useActionEscalation` cleanup (composer ↔ audit hook unification)
+
+**Nits**: none
+
+**Notes**: Epic delivered as briefed. 18 child stories shipped across 3 features. The optimistic-dispatch pattern is now codified at `.claude/skills/patterns/optimistic-dispatch.md` and the index updated — future agents working on async-dispatch surfaces have a clean reference.
+
+What's now possible: the chat-interaction UX overhaul is complete. Every catalogued UI surface that triggers chat / IPC work follows the optimistic-dispatch pattern. The "UI never blocks" principle is structurally enforced, not just documented. The pattern can be applied to any future surface via `useOptimisticAction` + `<ActionPip>` + `useActionEscalation`.
+
+**No release_binding** + **parent: null** → epic archives on advance per Phase 8.
