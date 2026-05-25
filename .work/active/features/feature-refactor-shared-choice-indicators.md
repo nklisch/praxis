@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, ui, design-system]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -229,3 +229,19 @@ None of the three steps are inherently atomic — each can be reverted in isolat
 - **`item-body-shared.module.css` still has consumers other than the body components**. Verify by grep before deleting `.correct` / `.incorrect`. If any other component reads them, either update those consumers OR keep the classes as backward-compat aliases. Audit found no other consumers, but double-check at implementation time.
 
 - **Sibling coordination with `feature-question-panel-rework`**. That feature is at drafting in `epic-chat-interaction-ux-overhaul`. When it designs its question chassis, it should compose against the new `.choice-indicator` primitive. The question-panel-rework design pass needs to reference this feature's class names. Document in a comment on the new CSS module that the question-panel-rework feature will adopt these classes when it designs.
+
+## Implementation summary (2026-05-24)
+
+All 3 child stories landed under implement-orchestrator:
+
+- `step-1-primitive` (commit `a844fa1`) — new `choice-indicator.module.css` with 5 classes; state-driven by `data-selected="true"` attribute (not `:checked` peer-selector) so the indicator is self-contained. Local CSS custom-property pivots (`--_indicator-fill`, `--_indicator-border-color`) keep feedback-variant overrides DRY. Added matching `.choice-indicator` family to `.mockups/design-system/components.css`. 14 tests covering 6 state combinations + module resolution + variant exclusivity.
+
+- `step-2-body-components` (commit `2dd55bd`) — `single-choice-body.tsx` and `multi-select-body.tsx` refactored to render via the new primitive (`choiceIndicator + choiceIndicatorRadio|Check + [choiceIndicatorCorrect|choiceIndicatorIncorrect]`). `.feedbackGlyph` removed. **Important deviation**: the audit's "no other consumers" claim was incorrect — `.correct`/`.incorrect` are still imported by `ordering-body.tsx` and `matching-body.tsx`. Agent correctly preserved those classes rather than breaking the other components. Those body types will be addressed in a follow-on refactor when their families are unified.
+
+- `step-3-assignment-card-dedupe` (commit `84d3a76`) — pure dead-code removal. `assignment-item-card.tsx` never directly referenced its module's `.optionLabel` / `.optionInput` / `.options` — the card dispatches choice rendering through the body components. Removed 35 lines of unreferenced CSS. No tsx changes.
+
+Verification at advance time: full workspace typecheck green; `pnpm --filter @praxis/ui test` — 1803 passed, 1 skipped (the math-step-3 placeholder).
+
+What's now possible: the shared `.choice-indicator` primitive ships in production. Single-choice and multi-select body components compose against it consistently. Sibling feature `feature-question-panel-rework` can now adopt the same primitive when designing its question chassis, sharing the visual language across chat-inline questions and tab-body assignment items.
+
+Follow-on noted: extracting `.correct` / `.incorrect` out of `item-body-shared.module.css` is incomplete until `ordering-body.tsx` and `matching-body.tsx` also adopt the new primitive. Not blocking — flag as a future refactor candidate.
