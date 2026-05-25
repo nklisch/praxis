@@ -1,4 +1,4 @@
-import type { ToolContext, ToolServices } from "@praxis/core/types";
+import type { QuestionConstraints, ToolContext, ToolServices } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { vi } from "vitest";
 
@@ -51,6 +51,12 @@ export interface MakeToolContextOptions {
    * Used by dev.report_issue to embed mode context in reports.
    */
   modeId?: ToolContext["modeId"];
+  /**
+   * feature-mode-aware-question-constraints: resolved per-mode question
+   * constraints. When set, tools that validate question payloads (ask_student_question,
+   * quick_check.*) use these limits instead of their inline fallback.
+   */
+  questionConstraints?: Required<QuestionConstraints>;
 }
 
 export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext {
@@ -71,6 +77,9 @@ export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext 
     ...(opts.draftId !== undefined && { draftId: opts.draftId }),
     ...(opts.parentSessionId !== undefined && { parentSessionId: opts.parentSessionId }),
     ...(opts.modeId !== undefined && { modeId: opts.modeId }),
+    ...(opts.questionConstraints !== undefined && {
+      questionConstraints: opts.questionConstraints,
+    }),
     log:
       opts.log ??
       (() => {

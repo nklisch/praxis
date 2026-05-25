@@ -9,9 +9,27 @@
  * quick_check.* tools for formative checks that inform the tutor's understanding
  * of the student's knowledge.
  */
-import type { StructuredQuestionItem, ToolDefinition } from "@praxis/core/types";
+import type {
+  QuestionConstraints,
+  StructuredQuestionItem,
+  ToolDefinition,
+} from "@praxis/core/types";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
+import { validateQuestionConstraints } from "./validate-question-constraints.js";
+
+/**
+ * Inline fallback constraints used when ctx.questionConstraints is absent.
+ * These values mirror FALLBACK_QUESTION_CONSTRAINTS in @praxis/curriculum, which
+ * @praxis/tools cannot import at runtime per the dependency direction rules.
+ * If the curriculum fallback values change, update this constant too.
+ */
+const INLINE_FALLBACK_CONSTRAINTS: Required<QuestionConstraints> = {
+  promptMaxWords: 60,
+  choiceMaxWords: 25,
+  choiceCount: 5,
+  multiSelectCap: 6,
+};
 
 const InputSchema = z.object({
   questions: z
@@ -68,6 +86,17 @@ export const askStudentQuestionTool: ToolDefinition<typeof InputSchema, typeof O
   tier: "model-derived",
   effects: [],
   async handler(args, ctx) {
+    // Validate all questions upfront before any side effect. Short-circuits on
+    // first failure — no partial enqueue possible.
+    const constraints = ctx.questionConstraints ?? INLINE_FALLBACK_CONSTRAINTS;
+    const modeLabel = ctx.modeId ?? "current";
+    for (const q of args.questions) {
+      const result = validateQuestionConstraints(q, constraints, modeLabel);
+      if (!result.ok) {
+        throw new Error(result.message);
+      }
+    }
+
     const callId = uuidv7();
     const item: StructuredQuestionItem = {
       kind: "structured-question",

@@ -224,6 +224,151 @@ describe("askStudentQuestionTool — handler", () => {
   });
 });
 
+// ── Constraint validation ─────────────────────────────────────────────────────
+
+describe("askStudentQuestionTool — constraint validation", () => {
+  const tightConstraints = {
+    promptMaxWords: 3,
+    choiceMaxWords: 2,
+    choiceCount: 2,
+    multiSelectCap: 2,
+  };
+
+  it("fails with descriptive message when prompt exceeds cap", async () => {
+    const ctx = makeToolContext({
+      services: {},
+      modeId: "teach",
+      questionConstraints: tightConstraints,
+    });
+    await expect(
+      askStudentQuestionTool.handler(
+        {
+          questions: [
+            {
+              header: "Source",
+              prompt: "Which source should we use today?", // 6 words, cap is 3
+              multiSelect: false,
+              options: [{ label: "Pack" }, { label: "Book" }],
+            },
+          ],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(/teach mode/);
+  });
+
+  it("fails with descriptive message including choice index when choice text exceeds cap", async () => {
+    const ctx = makeToolContext({
+      services: {},
+      modeId: "teach",
+      questionConstraints: tightConstraints,
+    });
+    await expect(
+      askStudentQuestionTool.handler(
+        {
+          questions: [
+            {
+              header: "Method",
+              prompt: "Pick one", // 2 words, within cap
+              multiSelect: false,
+              options: [
+                { label: "A" }, // 1 word, within cap
+                { label: "Canonical textbook edition" }, // 3 words, cap is 2
+              ],
+            },
+          ],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(/Choice 2.*teach mode/);
+  });
+
+  it("fails when choice count exceeds cap", async () => {
+    const ctx = makeToolContext({
+      services: {},
+      modeId: "teach",
+      questionConstraints: tightConstraints,
+    });
+    await expect(
+      askStudentQuestionTool.handler(
+        {
+          questions: [
+            {
+              header: "Method",
+              prompt: "Pick one", // 2 words, within cap
+              multiSelect: false,
+              options: [{ label: "A" }, { label: "B" }, { label: "C" }], // 3 options, cap is 2
+            },
+          ],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(/Too many choices.*teach mode/);
+  });
+
+  it("succeeds without calling quickCheck when within caps", async () => {
+    const quickCheck = makeQuickCheckService({
+      kind: "structured-question",
+      answers: [{ questionIndex: 0, selectedIndices: [0] }],
+    });
+    const ctx = makeToolContext({
+      services: { quickCheck },
+      modeId: "teach",
+      questionConstraints: tightConstraints,
+    });
+    const result = await askStudentQuestionTool.handler(
+      {
+        questions: [
+          {
+            header: "Src",
+            prompt: "Pick one", // 2 words, within cap of 3
+            multiSelect: false,
+            options: [{ label: "A" }, { label: "B" }], // 2 options, at cap
+          },
+        ],
+      },
+      ctx,
+    );
+    expect(result.answers).toHaveLength(1);
+    expect(quickCheck.await).toHaveBeenCalledOnce();
+  });
+
+  it("short-circuits on first invalid question without enqueuing any", async () => {
+    // First question: valid. Second: prompt over cap. quickCheck must NOT be called.
+    const quickCheck = makeQuickCheckService({
+      kind: "structured-question",
+      answers: [],
+    });
+    const ctx = makeToolContext({
+      services: { quickCheck },
+      modeId: "teach",
+      questionConstraints: tightConstraints,
+    });
+    await expect(
+      askStudentQuestionTool.handler(
+        {
+          questions: [
+            {
+              header: "Q1",
+              prompt: "Pick one", // 2 words, ok
+              multiSelect: false,
+              options: [{ label: "A" }, { label: "B" }],
+            },
+            {
+              header: "Q2",
+              prompt: "Which source should we use today?", // 6 words, cap 3 — invalid
+              multiSelect: false,
+              options: [{ label: "A" }, { label: "B" }],
+            },
+          ],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(/teach mode/);
+    expect(quickCheck.await).not.toHaveBeenCalled();
+  });
+});
+
 // ── Registry integration ──────────────────────────────────────────────────────
 
 describe("DIALOG_TOOLS registry integration", () => {

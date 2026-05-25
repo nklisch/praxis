@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-5-ask-student-question-wire
 kind: story
-stage: implementing
+stage: review
 tags: [content, tool-schema]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-2-toolcontext-threading, feature-mode-aware-question-constraints-step-3-validation-helper]
@@ -29,12 +29,34 @@ Add per-mode constraint validation to `ask_student_question`. Validates upfront 
   - Mixed valid-then-invalid questions array: fails on first invalid, no partial enqueue
 
 ## Acceptance Criteria
-- [ ] Handler validates every question upfront
-- [ ] Over-cap returns failure tool-result with descriptive message
-- [ ] Within-cap behavior unchanged
-- [ ] Short-circuits on first failure (no partial side effects)
-- [ ] Tests cover prompt over-cap, choice text over-cap, choice count over-cap, mixed
-- [ ] Existing tests still pass
+- [x] Handler validates every question upfront
+- [x] Over-cap returns failure tool-result with descriptive message
+- [x] Within-cap behavior unchanged
+- [x] Short-circuits on first failure (no partial side effects)
+- [x] Tests cover prompt over-cap, choice text over-cap, choice count over-cap, mixed
+- [x] Existing tests still pass
+
+## Implementation notes (2026-05-24)
+
+### Dependency boundary — inline fallback instead of importing from `@praxis/curriculum`
+
+`FALLBACK_QUESTION_CONSTRAINTS` lives in `@praxis/curriculum`, which `@praxis/tools` cannot import at runtime per the dependency direction rules (`@praxis/tools` is a peer of `@praxis/curriculum`, both depending only on type-only `@praxis/core/types`). Defined `INLINE_FALLBACK_CONSTRAINTS` inline in `ask-student-question.ts` mirroring the curriculum values (`promptMaxWords: 60, choiceMaxWords: 25, choiceCount: 5, multiSelectCap: 6`). A comment marks the values as intentionally duplicated and notes where to update if they drift.
+
+### Error surface — throw, not return
+
+The existing handler error path uses `throw new Error(...)` (see the `unexpected answer kind` throw). The registry catches all handler throws and wraps them as `{ ok: false, error: { code: "tool.handler_threw", message, ... } }`. Using the same mechanism for constraint violations keeps one consistent error-surface contract. No new error type was introduced.
+
+### modeLabel — `ctx.modeId ?? "current"`
+
+`ToolContext` only carries `modeId`, not the display name. Using `ctx.modeId` directly produces clear agent-facing messages: "Question prompt too long for teach mode (...)". A future polish pass could resolve the pretty display name from curriculum, but `modeId` reads naturally in the error message without additional work.
+
+### `makeToolContext` — added `questionConstraints` support
+
+`tests/helpers/tool-context.ts` did not yet expose `questionConstraints` (step-2 threaded it through the session service but hadn't wired it into the test helper). Added `questionConstraints?: Required<QuestionConstraints>` to `MakeToolContextOptions` and the spread in the returned object so test cases can exercise both the constrained and unconstrained paths.
+
+### Loop style — `for...of` avoids `noNonNullAssertion`
+
+`noUncheckedIndexedAccess` requires a non-null assertion on `args.questions[i]`, which Biome's `noNonNullAssertion` rule rejects. Switched to `for...of` which satisfies both rules cleanly.
 
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 5
