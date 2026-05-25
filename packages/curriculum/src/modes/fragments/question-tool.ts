@@ -1,6 +1,63 @@
 import type { PromptFragment, QuestionConstraints } from "@praxis/core/types";
 
 /**
+ * Mirror of `KATEX_MACRO_DOCS` from `packages/ui/src/lib/katex-macros.ts`.
+ * Intentionally duplicated to respect the dep boundary: `@praxis/curriculum`
+ * must not import `@praxis/ui` at runtime. If macros drift, update both places.
+ * Source of truth: packages/ui/src/lib/katex-macros.ts
+ */
+const KATEX_MACRO_DOCS_INLINE: ReadonlyArray<{
+  shortcut: string;
+  expansion: string;
+  meaning: string;
+}> = [
+  { shortcut: "\\R", expansion: "\\mathbb{R}", meaning: "real numbers ℝ" },
+  { shortcut: "\\Z", expansion: "\\mathbb{Z}", meaning: "integers ℤ" },
+  { shortcut: "\\N", expansion: "\\mathbb{N}", meaning: "naturals ℕ" },
+  { shortcut: "\\Q", expansion: "\\mathbb{Q}", meaning: "rationals ℚ" },
+  { shortcut: "\\C", expansion: "\\mathbb{C}", meaning: "complex ℂ" },
+  {
+    shortcut: "\\pdv",
+    expansion: "\\frac{\\partial #1}{\\partial #2}",
+    meaning: "partial derivative",
+  },
+  {
+    shortcut: "\\dv",
+    expansion: "\\frac{d#1}{d#2}",
+    meaning: "derivative",
+  },
+  {
+    shortcut: "\\norm",
+    expansion: "\\lVert #1 \\rVert",
+    meaning: "norm ‖x‖",
+  },
+  {
+    shortcut: "\\abs",
+    expansion: "\\lvert #1 \\rvert",
+    meaning: "absolute value |x|",
+  },
+  {
+    shortcut: "\\set",
+    expansion: "\\{ #1 \\}",
+    meaning: "set braces",
+  },
+  { shortcut: "\\given", expansion: "\\mid", meaning: '"given" bar in conditionals' },
+];
+
+function buildMacrosTable(): string {
+  const rows = KATEX_MACRO_DOCS_INLINE.map(
+    (d) => `| \`${d.shortcut}\` | \`${d.expansion}\` | ${d.meaning} |`,
+  );
+  return [
+    "Available LaTeX macros (shortcuts you can use in $...$ and $$...$$):",
+    "",
+    "| Shortcut | Expansion | Meaning |",
+    "|---|---|---|",
+    ...rows,
+  ].join("\n");
+}
+
+/**
  * Builds the unified question-tool prompt fragment for a given mode.
  * Carries per-mode question caps PLUS all cross-cutting markup conventions
  * (math, citations, definitions, callouts, concept refs, figures).
@@ -31,6 +88,8 @@ Over-cap calls fail with a descriptive error you can correct from. Compress to t
 - Inline: \`$f(x) = x^2$\`
 - Display: \`$$\\frac{dV}{dt} = ...$$\`
 - Bare unicode glyphs (∂, ∫, π, α, etc.) are auto-styled but use LaTeX for full typesetting
+
+${buildMacrosTable()}
 
 ### Citations
 Call the \`citation\` tool with \`source_id\` and \`passage\`. Do NOT inline-write \`[Stewart §3.5]\` markup — the tool emits the chip.

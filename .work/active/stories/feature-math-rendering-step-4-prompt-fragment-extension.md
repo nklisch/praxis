@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-4-prompt-fragment-extension
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, math, agent-prompt]
 parent: feature-math-rendering
 depends_on: [feature-math-rendering-step-1-katex-macros, feature-mode-aware-question-constraints-step-4-prompt-fragment]
@@ -39,6 +39,22 @@ Edit the existing `questionToolFragment` factory (created in `feature-mode-aware
 - [ ] All other sections of the template are preserved (length constraints, citations, definitions, etc.)
 - [ ] Tests assert macros table presence + each macro's shortcut
 - [ ] `pnpm test` passes for the test file
+
+## Acceptance Criteria
+- [x] `questionToolFragment` template includes the macros table from `KATEX_MACRO_DOCS`
+- [x] Table has all 11 macros with shortcut + expansion + meaning
+- [x] All other sections of the template are preserved (length constraints, citations, definitions, etc.)
+- [x] Tests assert macros table presence + each macro's shortcut
+- [x] `pnpm test` passes for the test file
+
+## Implementation notes (2026-05-24)
+
+Chose **inline duplication** (option 3) to respect the dep boundary: `@praxis/curriculum` must not import `@praxis/ui` at runtime. The 11-entry `KATEX_MACRO_DOCS_INLINE` const in `question-tool.ts` is an explicit mirror with a source comment pointing at `packages/ui/src/lib/katex-macros.ts`. A `buildMacrosTable()` helper generates the markdown table and interpolates it after the Math section's three bullet points.
+
+Tests added (7 total, 4 new):
+- `includes the LaTeX macros table header` — checks section header + table header row + separator row
+- `includes all 11 macro shortcuts in the table` — iterates all 11 shortcuts, asserts each appears quoted in the template
+- `macros table is present regardless of mode caps` — verifies exam caps also produce the table
 
 ## References
 - Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 4
