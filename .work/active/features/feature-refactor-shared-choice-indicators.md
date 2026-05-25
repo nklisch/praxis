@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators
 kind: feature
-stage: review
+stage: done
 tags: [refactor, ui, design-system]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -245,3 +245,13 @@ Verification at advance time: full workspace typecheck green; `pnpm --filter @pr
 What's now possible: the shared `.choice-indicator` primitive ships in production. Single-choice and multi-select body components compose against it consistently. Sibling feature `feature-question-panel-rework` can now adopt the same primitive when designing its question chassis, sharing the visual language across chat-inline questions and tab-body assignment items.
 
 Follow-on noted: extracting `.correct` / `.incorrect` out of `item-body-shared.module.css` is incomplete until `ordering-body.tsx` and `matching-body.tsx` also adopt the new primitive. Not blocking — flag as a future refactor candidate.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: All 3 child stories individually reviewed + approved. Feature-level capability check: shared `.choice-indicator` primitive shipped with design-token-only CSS; `single-choice-body` + `multi-select-body` compose against it via `data-selected` attribute contract; dead-code removed from `assignment-item-card.module.css`. Important honest deviation from step-2 (audit missed `.correct`/`.incorrect` consumers in `ordering-body.tsx` and `matching-body.tsx`) handled correctly — classes preserved, follow-on flagged. No regressions; 1803 tests pass. Parent epic `epic-educational-content-rendering` still active (3 sibling features still implementing) — feature stays in `.work/active/` per substrate stage-discipline (active parent means children don't archive yet).
+
+What's now possible: the shared `.choice-indicator` primitive is available for `feature-question-panel-rework` to adopt when its question chassis lands. Single-choice and multi-select assignment items share the same visual primitive across all surfaces. Follow-on flagged: extracting `.correct`/`.incorrect` out of `item-body-shared.module.css` becomes a candidate refactor once `ordering-body.tsx` and `matching-body.tsx` also adopt the primitive.
