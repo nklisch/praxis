@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool-step-3-prompt-fragment-injection
 kind: story
-stage: review
+stage: done
 tags: [dev, observability, dx, agent-prompt]
 parent: feature-dev-mode-agent-feedback-tool
 depends_on: []
@@ -45,3 +45,13 @@ Create `devModeFragment` (a static `PromptFragment` at position `postamble`) and
 - Parent feature: `.work/active/features/feature-dev-mode-agent-feedback-tool.md` § Unit 3
 - File: `packages/core/src/services/session/engine-session-manager.ts:284-312`
 - Reference: `packages/core/src/types/mode.ts` (PromptFragment interface)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: `devModeFragment` at `position: "postamble"`, `customizable: false`, frozen export. Injection at `engine-session-manager.ts:306` is conditional on `process.env.PRAXIS_DEV === "true"`, placed LAST in additionalFragments so it sits at the trailing postamble slot regardless of other fragments. 249-line test file across 3 describe blocks: fragment shape (id/position/customizable/template content), compose integration (composes correctly through `composeSystemPromptWithAttribution`), and gate behavior (on/off env handling). Builds and curriculum dist rebuild required (`pnpm --filter @praxis/curriculum build`) — known workflow step, documented.
