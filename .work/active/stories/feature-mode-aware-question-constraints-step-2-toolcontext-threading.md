@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-2-toolcontext-threading
 kind: story
-stage: review
+stage: done
 tags: [content, tool-schema, core]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults]
@@ -50,3 +50,11 @@ Extend `ToolContext` with `questionConstraints?: Required<QuestionConstraints>` 
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 2
 - Files: `packages/core/src/types/tool.ts`, `packages/core/src/services/session-service.ts`
 - Depends on step-1 types
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 11 LoC tool.ts field + 12 LoC engine-session-manager wiring + 289 LoC integration tests (resolver path A + dispatch-roundtrip path B). Smart test approach: sentinel-tool dispatch through the actual ToolRegistry captures `ctx.questionConstraints` at handler time, verifying end-to-end threading without mucking with private registry internals. Discovery + fix of pre-existing `noUncheckedIndexedAccess` violations in mode files (left by step-7's parallel-running agent) was clean cross-cutting maintenance — same fix both agents converged on. `resolveQuestionConstraints` always returns `Required<>` so unconditional spread is correct (no exactOptionalPropertyTypes friction).

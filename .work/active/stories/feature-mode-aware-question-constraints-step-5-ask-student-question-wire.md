@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-5-ask-student-question-wire
 kind: story
-stage: review
+stage: done
 tags: [content, tool-schema]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-2-toolcontext-threading, feature-mode-aware-question-constraints-step-3-validation-helper]
@@ -61,3 +61,11 @@ The existing handler error path uses `throw new Error(...)` (see the `unexpected
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 5
 - Depends on step-2 (ToolContext field) and step-3 (validation helper)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 31 LoC handler change + 145 LoC tests + 11 LoC test-helper extension. Inline `INLINE_FALLBACK_CONSTRAINTS` is the correct call given `@praxis/tools` can't import `@praxis/curriculum` at runtime per dep direction rules — duplication acknowledged + commented for future drift detection. Throw-on-failure matches existing handler error contract (the registry catches and wraps as `{ok: false, error}` tool result); no new error mechanism introduced. `for...of` over indexed loop avoids the `noNonNullAssertion` / `noUncheckedIndexedAccess` clash cleanly. `modeLabel = ctx.modeId ?? "current"` reads naturally in agent messages. Test helper extension (`makeToolContext.questionConstraints`) was a necessary supporting change. 5 new constraint-violation tests + within-cap success preserved + mixed-array short-circuit assertion (no partial enqueue).

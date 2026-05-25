@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-6-quick-check-wire
 kind: story
-stage: review
+stage: done
 tags: [content, tool-schema]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-2-toolcontext-threading, feature-mode-aware-question-constraints-step-3-validation-helper]
@@ -54,3 +54,11 @@ All 5 quick_check variants wired. Pattern mirrors step-5 (`ask-student-question`
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 6
 - Depends on step-2 (ToolContext field) and step-3 (validation helper)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: All 5 quick_check variants wired with the same pattern step-5 established (inline FALLBACK, throw on failure, `ctx.modeId` modeLabel). 262 LoC tests across 15 new cases covering per-variant over-cap prompt + over-cap choice (where applicable) + within-cap success. Smart matching-variant decomposition: two-pass validation (prompt + left column, then right column with sentinel `" "` prompt) keeps `choiceCount` cap per-column without extending the helper API. Short-answer and confidence correctly skip option validation (empty options array passed). Pattern parity with step-5 = consistent error surface across all 6 question tools.

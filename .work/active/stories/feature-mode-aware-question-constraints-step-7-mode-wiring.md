@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-7-mode-wiring
 kind: story
-stage: review
+stage: done
 tags: [content, agent-prompt, curriculum]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults, feature-mode-aware-question-constraints-step-4-prompt-fragment]
@@ -54,3 +54,11 @@ Wire `questionToolFragment` into every mode that uses question tools. Backfill `
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 7
 - Pattern: `.claude/skills/patterns/mode-prompt-fragment-composition.md`
 - Depends on step-1 (types) and step-4 (fragment factory)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 6 modes wired with `questionToolFragment(DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[id] ?? FALLBACK)`. `configure` correctly excluded (configurator-facing, no `quick_check.*`). Choice of approach (a) — pass defaults table inline rather than computing from mode object — is the simpler/right call given the mode-literal scope at definition time. 22 new integration tests + 3 existing fragment-count tests updated cleanly (acknowledged exact counts shifted by +1 per mode). `noUncheckedIndexedAccess` violation that surfaced from parallel-running step-2 was caught + fixed in the same wave — clean convergence between the two agents.
