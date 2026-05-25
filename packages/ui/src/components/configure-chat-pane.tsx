@@ -3,7 +3,6 @@ import { AuthoringChatPane } from "./authoring-chat-pane.js";
 
 export interface ConfigureChatPaneProps {
   sessionId: SessionId | null;
-  disabled?: boolean;
 }
 
 /**
@@ -13,6 +12,6 @@ export interface ConfigureChatPaneProps {
  *
  * Left panel in the split-pane layout of each configure tab.
  */
-export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChatPaneProps) {
-  return <AuthoringChatPane mode="configure" sessionId={sessionId} disabled={disabled} />;
+export function ConfigureChatPane({ sessionId }: ConfigureChatPaneProps) {
+  return <AuthoringChatPane mode="configure" sessionId={sessionId} />;
 }

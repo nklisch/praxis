@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-1-pending-message-failure-state
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: []
@@ -42,3 +42,17 @@ Extend the `PendingMessageItem` type with status / errorReason / failedAt fields
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 1
 - Pattern: `.claude/skills/patterns/hook-decomposition-setitems-callback.md`
 - Existing file: `packages/ui/src/hooks/use-pending-queue.ts`
+
+## Implementation notes (2026-05-24)
+
+### Files changed
+- `packages/ui/src/hooks/use-streamed-send.ts` — Extended `PendingMessageItem` with `status: PendingMessageStatus`, `errorReason?: string`, `failedAt?: number`. Renamed `content → text` field. Added `PendingMessageStatus` type export. Added `failedCount` to `UseStreamedSendResult`. Imported and delegated to `derivePendingCounts` for the `pendingCount`/`failedCount` return values.
+- `packages/ui/src/hooks/use-pending-queue.ts` — Renamed `PendingMessage.content → text`. Added `failedItemsRef` (a `Map<id, {text, sketchId?}>`) for synchronous `retryFailed` returns. Added `markDispatching`, `markFailed`, `retryFailed`, `editPending`, `removeFailed` methods. Added `derivePendingCounts` pure function. All transitions go through `setItems` callback; illegal states warn-log via `console.warn`.
+- `packages/ui/src/components/chat-tab-body.tsx` — Updated `item.content → item.text` in pending-message render path.
+- `packages/ui/src/__tests__/use-pending-queue.test.tsx` — NEW: 25 tests covering every transition, every warn path, and `derivePendingCounts`.
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx` — Updated assertion from `content`/`role` to `text`/`status`.
+
+### Design decisions / discoveries
+- **`retryFailed` synchronous return**: The `setItems` updater runs asynchronously (batched by React 18), so capturing a value inside it and returning it synchronously doesn't work. Fixed via `failedItemsRef` — `markFailed` populates it synchronously inside the updater (which runs within `act()`), and `retryFailed` reads from it before calling `setItems`.
+- **`pendingCount` vs `failedCount`**: `usePendingQueue.pendingCount` reflects only the raw queue (pre-dispatch items). The accurate `pendingCount` (queued+dispatching) and `failedCount` (failed) are derived from the live `items` array via `derivePendingCounts` in `useStreamedSend` — no state duplication, no Strict Mode double-invocation bugs.
+- **Field rename `content → text`**: Per design spec. Updated all consumers (chat-tab-body, use-pending-queue internals, use-streamed-send). The `role: "user"` field was also removed from `PendingMessageItem` as it's not in the spec and was unused in rendering.

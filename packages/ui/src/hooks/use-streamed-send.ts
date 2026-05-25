@@ -12,7 +12,7 @@ import type { ReviewCard } from "../components/flashcard-review.js";
 import { episodicToItems } from "./episodic-to-messages.js";
 import { useInterstitialLifecycle } from "./use-interstitial-lifecycle.js";
 import type { PendingMessage } from "./use-pending-queue.js";
-import { usePendingQueue } from "./use-pending-queue.js";
+import { derivePendingCounts, usePendingQueue } from "./use-pending-queue.js";
 import { useReasoningBlocks } from "./use-reasoning-blocks.js";
 import { useStreamedBubbles } from "./use-streamed-bubbles.js";
 
@@ -106,6 +106,9 @@ export interface SubAgentSpawn {
   errored?: boolean;
 }
 
+/** Lifecycle status of a queued message. */
+export type PendingMessageStatus = "queued" | "dispatching" | "failed";
+
 /**
  * A message that has been submitted while the engine is streaming and is
  * waiting in the queue. Renders inline as a faded "pending" bubble. Never
@@ -114,9 +117,15 @@ export interface SubAgentSpawn {
 export interface PendingMessageItem {
   kind: "pending-message";
   id: string;
-  role: "user";
-  content: string;
+  /** Message body — renamed from `content` for clarity in the queue lifecycle. */
+  text: string;
   sketchId?: string;
+  /** Lifecycle status. Default is `"queued"` on enqueue. */
+  status: PendingMessageStatus;
+  /** Error message set when `status === "failed"`. */
+  errorReason?: string;
+  /** `Date.now()` at the moment the item transitioned to `"failed"`. */
+  failedAt?: number;
 }
 
 /**
@@ -161,8 +170,16 @@ export interface UseStreamedSendResult {
    * No-op if the id is not found.
    */
   cancelPending: (pendingId: string) => void;
-  /** Number of messages currently waiting in the queue (0 when nothing pending). */
+  /**
+   * Number of pending messages with status `queued` or `dispatching` (excludes failed).
+   * Derived from the items array on every render.
+   */
   pendingCount: number;
+  /**
+   * Number of pending messages with status `failed`.
+   * Derived from the items array on every render.
+   */
+  failedCount: number;
   clearMessages: () => void;
   /**
    * Load the persisted transcript for an existing session and replace the
@@ -204,7 +221,7 @@ export function useStreamedSend(
   const send = async (sessionId: SessionId, message: string, sketchId?: string): Promise<void> => {
     if (isStreaming) {
       const pendingId = nextId();
-      const entry: PendingMessage = { id: pendingId, content: message };
+      const entry: PendingMessage = { id: pendingId, text: message };
       if (sketchId !== undefined) entry.sketchId = sketchId;
       queue.enqueue(entry, setItems);
       return;
@@ -292,7 +309,7 @@ export function useStreamedSend(
       const next = queue.dequeueNext(setItems);
       if (next !== null) {
         setTimeout(() => {
-          void send(sessionId, next.content, next.sketchId);
+          void send(sessionId, next.text, next.sketchId);
         }, 0);
       }
       queue.userCancelledRef.current = false;
@@ -329,7 +346,7 @@ export function useStreamedSend(
     send,
     cancel: queue.cancel,
     cancelPending,
-    pendingCount: queue.pendingCount,
+    ...derivePendingCounts(items),
     clearMessages,
     loadHistory,
   };

@@ -75,6 +75,8 @@ export const COPY = {
     sketchToggleAriaLabel: "Open sketch input",
     sketchSubmitButton: "Submit sketch",
     sketchCancelButton: "Cancel",
+    stopAriaLabel: "Stop tutor turn",
+    sendAriaLabel: "Send",
     status: {
       failed: (n: number): string => `${n} failed · retry inline`,
       streaming: "Tutor is responding",

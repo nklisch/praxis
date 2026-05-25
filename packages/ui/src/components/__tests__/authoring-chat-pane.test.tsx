@@ -197,7 +197,10 @@ describe("AuthoringChatPane", () => {
     expect(container.textContent).toContain("Steer the draft");
   });
 
-  it("disables the composer when sessionId is null", () => {
+  it("composer textarea is never disabled (even when sessionId is null)", () => {
+    // The composer no longer accepts a `disabled` prop — it is always interactive.
+    // When sessionId is null the user can type; the send action is a no-op until
+    // a session is established.
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>
@@ -206,10 +209,10 @@ describe("AuthoringChatPane", () => {
     );
     const textarea = container.querySelector("textarea");
     expect(textarea).not.toBeNull();
-    expect(textarea?.disabled).toBe(true);
+    expect(textarea?.disabled).toBe(false);
   });
 
-  it("enables the composer when sessionId is present and not streaming", () => {
+  it("composer textarea is not disabled when sessionId is present and not streaming", () => {
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>
@@ -233,15 +236,17 @@ describe("ConfigureChatPane", () => {
     expect(container.textContent).toContain("Configure assistant");
   });
 
-  it("forwards disabled prop to authoring pane", () => {
+  it("composer textarea is never disabled (disabled prop removed)", () => {
+    // ConfigureChatPane no longer accepts a `disabled` prop — the composer is
+    // always interactive per the composer-async-behavior design.
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>
-        <ConfigureChatPane sessionId={SESSION_ID} disabled={true} />
+        <ConfigureChatPane sessionId={SESSION_ID} />
       </Wrapper>,
     );
     const textarea = container.querySelector("textarea");
-    expect(textarea?.disabled).toBe(true);
+    expect(textarea?.disabled).toBe(false);
   });
 
   it("renders 'Starting session…' when sessionId is null", () => {

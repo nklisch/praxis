@@ -1484,8 +1484,8 @@ describe("useStreamedSend", () => {
     // A pending-message item should appear in the thread.
     const pendingItems = result.current.items.filter((i) => i.kind === "pending-message");
     expect(pendingItems).toHaveLength(1);
-    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].content).toBe("second");
-    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].role).toBe("user");
+    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].text).toBe("second");
+    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].status).toBe("queued");
 
     // The original stream should be unaffected (still streaming).
     expect(result.current.isStreaming).toBe(true);

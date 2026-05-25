@@ -45,7 +45,7 @@ export function SidekickPanel({
   width,
 }: SidekickPanelProps): JSX.Element {
   const client = usePraxisClient();
-  const { items, isStreaming, lastError, send } = useStreamedSend(client);
+  const { items, isStreaming, lastError, send, cancel } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -159,7 +159,8 @@ export function SidekickPanel({
             setComposerValue("");
             await handleSend(msg);
           }}
-          disabled={isStreaming}
+          isStreaming={isStreaming}
+          onCancel={cancel}
           sketchEnabled={false}
         />
       </div>

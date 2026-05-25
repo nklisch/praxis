@@ -390,7 +390,7 @@ export function TeachChatTabBody({
           if (item.kind === "pending-message") {
             return (
               <div key={item.id} className={styles.pendingBubble}>
-                <span className={styles.pendingContent}>{item.content}</span>
+                <span className={styles.pendingContent}>{item.text}</span>
                 <span className={styles.pendingChip}>▶ PENDING</span>
                 <button
                   type="button"
@@ -472,18 +472,6 @@ export function TeachChatTabBody({
           {...(onNoteOpen !== undefined && { onNoteOpen })}
           {...(hasSessionNote !== undefined && { hasSessionNote })}
         />
-        {isStreaming && (
-          <div className={styles.stopRow}>
-            <button
-              type="button"
-              className={styles.stopButton}
-              onClick={cancel}
-              aria-label="Stop generating"
-            >
-              Stop
-            </button>
-          </div>
-        )}
         <Composer
           ref={composerTextareaRef}
           value={composerValue}
@@ -492,7 +480,8 @@ export function TeachChatTabBody({
             setComposerValue("");
             await handleSendWithSketch(msg, sketchId);
           }}
-          disabled={examLockdown}
+          isStreaming={isStreaming}
+          onCancel={cancel}
           sketchEnabled={true}
         />
       </AuthGate>

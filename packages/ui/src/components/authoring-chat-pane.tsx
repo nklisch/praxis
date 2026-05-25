@@ -30,8 +30,6 @@ export interface AuthoringChatPaneProps {
   mode: AuthoringModeId;
   /** The session id to load history for and send messages to. */
   sessionId: SessionId | null;
-  /** When true, the composer is disabled even if a session is active. */
-  disabled?: boolean;
   /**
    * When set, this message is sent to the session as soon as the session is
    * active and the pane is not already streaming. Used by CourseCreateTabBody's
@@ -53,12 +51,11 @@ export interface AuthoringChatPaneProps {
 export function AuthoringChatPane({
   mode,
   sessionId,
-  disabled = false,
   prefillMessage,
   onPrefillSent,
 }: AuthoringChatPaneProps) {
   const client = usePraxisClient();
-  const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
+  const { items, isStreaming, lastError, send, cancel, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
 
   // Subscribe to ask_student_question quick-check events for this session.
@@ -312,7 +309,8 @@ export function AuthoringChatPane({
           setComposerValue("");
           await handleSend(msg);
         }}
-        disabled={!sessionId || isStreaming || disabled}
+        isStreaming={isStreaming}
+        onCancel={cancel}
       />
     </div>
   );
