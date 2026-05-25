@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool-step-4-production-safety-test
 kind: story
-stage: review
+stage: done
 tags: [dev, observability, dx, test]
 parent: feature-dev-mode-agent-feedback-tool
 depends_on: [feature-dev-mode-agent-feedback-tool-step-2-tool-registration-gating, feature-dev-mode-agent-feedback-tool-step-3-prompt-fragment-injection]
@@ -52,3 +52,13 @@ Three describe blocks:
 Key design decision: the `@praxis/curriculum/brief` sub-export is used (not the root `@praxis/curriculum`) because that's where `composeSystemPromptWithAttribution` lives, matching the pattern from `dev-mode-injection.test.ts`.
 
 All 10 tests pass; biome lint clean; typecheck clean.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Test-only change (138 LoC, new file). The dedicated production-safety canary is exactly what was specified. Two-tier coverage: (1) gate-off canary across all 7 modes asserts no dev surface leaks; (2) gate-on sanity proves the canary isn't vacuous — would catch a regression where the fragment text or DEV_TOOLS composition silently broke. Agent caught the spec typo (`.systemPrompt` vs actual `.prompt` on `ComposedSystemPromptWithAttribution`). Env var save/restore in beforeEach/afterEach prevents host-env leak between tests. This story closes the dev-mode feature implementation chain.
