@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool-step-4-production-safety-test
 kind: story
-stage: implementing
+stage: review
 tags: [dev, observability, dx, test]
 parent: feature-dev-mode-agent-feedback-tool
 depends_on: [feature-dev-mode-agent-feedback-tool-step-2-tool-registration-gating, feature-dev-mode-agent-feedback-tool-step-3-prompt-fragment-injection]
@@ -36,3 +36,19 @@ Single dedicated test file that asserts zero `dev.*` tools registered AND zero d
 ## References
 - Parent feature: `.work/active/features/feature-dev-mode-agent-feedback-tool.md` § Unit 4
 - Depends on step-2 (tool gating) and step-3 (fragment gating)
+
+## Implementation notes (2026-05-24)
+
+Test file: `packages/desktop/electron/main/__tests__/dev-mode-production-safety.test.ts`
+
+Three describe blocks:
+
+1. **Gate-off canary** (`dev-mode production safety (gate-off canary)`): Two assertions with `PRAXIS_DEV` unset via `beforeEach`/`afterEach` save/restore.
+   - Tool registration: inlines the `IS_DEV = process.env.PRAXIS_DEV === "true"` predicate from `services.ts` and confirms zero `dev.*` tools assembled.
+   - Prompt composition: parameterized over all 7 modes (teach, quiz, homework, exam, course-create, configure, study-skills) — each confirms `composeSystemPromptWithAttribution` with an empty `additionalFragments` array (the gate is off) produces a prompt free of "Dev mode" and "dev.report_issue".
+
+2. **Gate-on sanity** (`dev-mode gate-on sanity (PRAXIS_DEV=true)`): Proves the canary would actually catch a regression — sets `PRAXIS_DEV=true` and confirms the dev content IS present. Without this block, the canary would pass vacuously if the fragment content changed.
+
+Key design decision: the `@praxis/curriculum/brief` sub-export is used (not the root `@praxis/curriculum`) because that's where `composeSystemPromptWithAttribution` lives, matching the pattern from `dev-mode-injection.test.ts`.
+
+All 10 tests pass; biome lint clean; typecheck clean.
