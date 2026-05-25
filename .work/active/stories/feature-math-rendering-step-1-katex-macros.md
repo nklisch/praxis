@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-1-katex-macros
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, math]
 parent: feature-math-rendering
 depends_on: []
@@ -47,3 +47,11 @@ Define the curated 11-macro set (the design's locked starter set: `\R`, `\Z`, `\
 
 ### Deviations
 None. All 11 macros rendered without KaTeX error. No design-flaw escape hatch triggered.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: All 11 macros declared with `Object.freeze` + `Readonly<Record<string, string>>`. `MacroDoc` array stays in sync via validation test asserting set equality between `KATEX_MACROS` keys and `KATEX_MACRO_DOCS` shortcuts. Per-macro KaTeX render assertions use `throwOnError: true` (correct — failing macros should surface in tests, not be silently substituted). 17 tests covering sync validation, immutability, per-macro render, HTML output spot-check. Clean.

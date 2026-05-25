@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-2-bare-glyph-plugin
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, math, markdown]
 parent: feature-math-rendering
 depends_on: []
@@ -59,3 +59,11 @@ None. Plugin is NOT wired into `REHYPE_PLUGINS` (per scope — that's step-5).
 
 ### Implementation discovery
 No unexpected HAST node types encountered. The `_mathGlyphSpan` helper in the test file was scaffolded for potential use but ended up unused — biome renamed it with an underscore prefix rather than deleting it, keeping it as reference for test structure.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 66 codepoints in `MATH_GLYPHS`; plugin mirrors `rehype-citation-chips.ts` shape exactly (visitParents + collect-then-splice). Character iteration via `for (const ch of value)` is Unicode-code-point safe. Fast short-circuit via `Array.from(value).some(...)` skips prose-only text nodes — important for perf on long messages. Ancestor-skip set covers all 7 documented tags. 35 tests cover all categories + ancestor skips + mixed cases + mutation safety. The `_mathGlyphSpan` helper retained for test-structure reference is harmless (biome underscore-prefixed it).
