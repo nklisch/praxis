@@ -8,7 +8,6 @@
  */
 import { describe, expect, it } from "vitest";
 import { composeSystemPromptWithAttribution } from "../brief/compose.js";
-import { resolveQuestionConstraints } from "../question-constraints.js";
 import { configureMode } from "../modes/configure.js";
 import { courseCreateMode } from "../modes/course-create.js";
 import { examMode } from "../modes/exam.js";
@@ -16,6 +15,7 @@ import { homeworkMode } from "../modes/homework.js";
 import { quizMode } from "../modes/quiz.js";
 import { studySkillsMode } from "../modes/study-skills.js";
 import { teachMode } from "../modes/teach.js";
+import { resolveQuestionConstraints } from "../question-constraints.js";
 
 const FRAGMENT_ID = "question-tool-guidance";
 

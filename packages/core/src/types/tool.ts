@@ -11,6 +11,7 @@ import type { FlashcardsService, FsrsScheduler } from "./flashcards.js";
 import type { AssignmentId, CourseId, DocumentId, SessionId, StudentId } from "./ids.js";
 import type { LockService } from "./lock-service.js";
 import type { IndexerOrchestrator, MemoryService } from "./memory.js";
+import type { QuestionConstraints } from "./mode.js";
 import type { NotesService } from "./notes.js";
 import type { PackImportService } from "./pack-import-service.js";
 import type { PedagogyPackService } from "./pedagogy.js";
@@ -148,6 +149,16 @@ export interface ToolContext {
    * read this; fall back to "unknown" when absent.
    */
   modeId?: string;
+  /**
+   * feature-mode-aware-question-constraints: resolved question-generation
+   * constraints for the session's active mode. Populated by
+   * EngineSessionManager.openActive via resolveQuestionConstraints, which
+   * merges mode.questionConstraints on top of DEFAULT_QUESTION_CONSTRAINTS_BY_MODE
+   * (falling back to FALLBACK_QUESTION_CONSTRAINTS for unknown modes).
+   * Tools that generate multiple-choice questions (e.g. quick_check.*)
+   * read this to honour per-mode layout budgets.
+   */
+  questionConstraints?: Required<QuestionConstraints>;
   services: ToolServices;
   log: Logger;
 }

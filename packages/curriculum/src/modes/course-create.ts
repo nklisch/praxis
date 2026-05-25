@@ -1,5 +1,8 @@
 import type { Mode } from "@praxis/core/types";
-import { DEFAULT_QUESTION_CONSTRAINTS_BY_MODE, FALLBACK_QUESTION_CONSTRAINTS } from "../question-constraints.js";
+import {
+  DEFAULT_QUESTION_CONSTRAINTS_BY_MODE,
+  FALLBACK_QUESTION_CONSTRAINTS,
+} from "../question-constraints.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { courseCreateRoleFragment } from "./fragments/course-create-role.js";
@@ -34,7 +37,10 @@ export const courseCreateMode: Mode = {
     courseCreateToolsFragment,
     courseContextFragmentDefault, // always the fallback — no active course in course-create
     constraintsFragment,
-    questionToolFragment(DEFAULT_QUESTION_CONSTRAINTS_BY_MODE["course-create"] ?? FALLBACK_QUESTION_CONSTRAINTS, "Course Design"), // ← question caps + content conventions
+    questionToolFragment(
+      DEFAULT_QUESTION_CONSTRAINTS_BY_MODE["course-create"] ?? FALLBACK_QUESTION_CONSTRAINTS,
+      "Course Design",
+    ), // ← question caps + content conventions
     postambleFragment,
   ],
   toolNames: [

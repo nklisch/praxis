@@ -1,5 +1,8 @@
 import type { Mode } from "@praxis/core/types";
-import { DEFAULT_QUESTION_CONSTRAINTS_BY_MODE, FALLBACK_QUESTION_CONSTRAINTS } from "../question-constraints.js";
+import {
+  DEFAULT_QUESTION_CONSTRAINTS_BY_MODE,
+  FALLBACK_QUESTION_CONSTRAINTS,
+} from "../question-constraints.js";
 import { assessmentToolsFragment } from "./fragments/assessment-tools.js";
 import { assignmentContextFragmentDefault } from "./fragments/assignment-context.js";
 import { constraintsFragment } from "./fragments/constraints.js";
@@ -34,7 +37,10 @@ export const homeworkMode: Mode = {
     behaviorInCourseFragmentDefault.homework, // ← course-aware behavior addendum
     assignmentContextFragmentDefault,
     constraintsFragment,
-    questionToolFragment(DEFAULT_QUESTION_CONSTRAINTS_BY_MODE.homework ?? FALLBACK_QUESTION_CONSTRAINTS, "Homework"), // ← question caps + content conventions
+    questionToolFragment(
+      DEFAULT_QUESTION_CONSTRAINTS_BY_MODE.homework ?? FALLBACK_QUESTION_CONSTRAINTS,
+      "Homework",
+    ), // ← question caps + content conventions
     postambleFragment,
   ],
   toolNames: quizMode.toolNames, // same as quiz (includes sketch.read + pedagogy.list_metacognitive_prompts); behavior diverges via prompt

@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-2-toolcontext-threading
 kind: story
-stage: implementing
+stage: review
 tags: [content, tool-schema, core]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults]
@@ -28,11 +28,23 @@ Extend `ToolContext` with `questionConstraints?: Required<QuestionConstraints>` 
   - Open a session whose mode has no `questionConstraints` → ToolContext has DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[mode.id]
 
 ## Acceptance Criteria
-- [ ] `ToolContext.questionConstraints?: Required<QuestionConstraints>` field added
-- [ ] SessionServiceImpl / EngineSessionManager resolves constraints at session-open
-- [ ] Per-turn call context build includes the resolved constraints
-- [ ] Tests verify defaults + merged + missing-override paths
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+- [x] `ToolContext.questionConstraints?: Required<QuestionConstraints>` field added
+- [x] SessionServiceImpl / EngineSessionManager resolves constraints at session-open
+- [x] Per-turn call context build includes the resolved constraints
+- [x] Tests verify defaults + merged + missing-override paths
+- [x] `pnpm typecheck && pnpm lint && pnpm test` green
+
+## Implementation notes (2026-05-24)
+
+**Call-context threading discovery**: the per-turn call context in `InProcessToolRegistry.dispatch` is a shallow copy of the base `ToolContext` stored on the registry (line 117-124 of `registry.ts`). Since `questionConstraints` is set once at session-open on the base context, it flows through to every tool dispatch automatically — no changes needed to the registry.
+
+**`resolveQuestionConstraints` placement**: called once in `EngineSessionManager.openActive` (before the `toolContext` object literal) and the result spread into `toolContext` unconditionally. `resolveQuestionConstraints` always returns a `Required<QuestionConstraints>` (never undefined), so no conditional spread was needed.
+
+**Pre-existing typecheck errors fixed**: The step-4 changes (prompt-fragment integration) were in the working tree but had `noUncheckedIndexedAccess` violations in all six mode files (`teach`, `quiz`, `exam`, `homework`, `course-create`, `study-skills`) and in `mode-question-fragment.test.ts`. Fixed by:
+- Mode files: `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[key] ?? FALLBACK_QUESTION_CONSTRAINTS`
+- Test file: replaced `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[key].field` with `resolveQuestionConstraints(key).field` (which already imported)
+
+**Test approach**: `openAndGetConstraints` helper opens a session via `EngineSessionManager`, captures the `ToolRegistry` passed to `engine.open`, then dispatches a sentinel tool that captures `ctx.questionConstraints` at handler time. This verifies the field is present on the ToolContext at dispatch without touching private registry fields.
 
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 2

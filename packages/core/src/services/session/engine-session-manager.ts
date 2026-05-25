@@ -14,6 +14,7 @@
  *   close() in finally; seed with priorTurns only on engine swap/restart.
  */
 
+import { resolveQuestionConstraints } from "@praxis/curriculum";
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
@@ -329,12 +330,23 @@ export class EngineSessionManager {
           })
         : undefined;
 
+    // feature-mode-aware-question-constraints: resolve once at session-open so
+    // every per-turn tool dispatch sees the merged constraints without an extra
+    // lookup. resolveQuestionConstraints merges mode.questionConstraints on top
+    // of the per-mode defaults (falling back to FALLBACK_QUESTION_CONSTRAINTS
+    // for unknown mode ids).
+    const questionConstraints = resolveQuestionConstraints(
+      args.mode.id,
+      args.mode.questionConstraints,
+    );
+
     const toolContext: ToolContext = {
       studentId: args.studentId as ToolContext["studentId"],
       sessionId: args.sessionId as ToolContext["sessionId"],
       ...(args.courseId !== undefined && { courseId: args.courseId }),
       ...(args.assignmentId !== undefined && { assignmentId: args.assignmentId }),
       ...(courseDocumentIds !== undefined && { courseDocumentIds }),
+      questionConstraints,
       services: {
         memory: this.deps.toolServices.memory, // ← Phase 7
         artifacts: this.deps.toolServices.artifacts, // ← Phase 6

@@ -1,5 +1,8 @@
 import type { Mode } from "@praxis/core/types";
-import { DEFAULT_QUESTION_CONSTRAINTS_BY_MODE, FALLBACK_QUESTION_CONSTRAINTS } from "../question-constraints.js";
+import {
+  DEFAULT_QUESTION_CONSTRAINTS_BY_MODE,
+  FALLBACK_QUESTION_CONSTRAINTS,
+} from "../question-constraints.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
@@ -35,7 +38,10 @@ export const teachMode: Mode = {
     behaviorInCourseFragmentDefault.teach, // ← course-aware behavior addendum (replaced when courseId is set)
     noteBriefAwarenessFragment, // ← note-briefed session opening + note.update offer at close
     constraintsFragment,
-    questionToolFragment(DEFAULT_QUESTION_CONSTRAINTS_BY_MODE.teach ?? FALLBACK_QUESTION_CONSTRAINTS, "Teach"), // ← question caps + content conventions
+    questionToolFragment(
+      DEFAULT_QUESTION_CONSTRAINTS_BY_MODE.teach ?? FALLBACK_QUESTION_CONSTRAINTS,
+      "Teach",
+    ), // ← question caps + content conventions
     postambleFragment,
   ],
   toolNames: [
