@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-6-selection-bar-async
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 6: Selection-bar capture — async notes / citations / flashcards
@@ -67,3 +67,9 @@ Three selection actions (note / cite / flashcard) converted to `useOptimisticAct
 - [x] Strip retry replays original params (useOptimisticAction captures params at trigger-time)
 - [x] Existing capture behaviors preserved on success path
 - [x] Tests cover dismiss-on-click + strip-on-failure (via document-tab-body.test.tsx which already existed)
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: All 3 selection actions (note/cite/flashcard) converted; `handleAskPraxis` correctly KEPT raw (UX navigation requirement). Dismiss-immediate via `Promise.resolve()` pattern lets bar disappear in same microtask. `failedAt` tracked via `useEffect` on state transition. Strip-only failure (no inline pip since bar is gone) is the canonical pattern for transient-affordance surfaces. Bundled commit `5a7ebe1b`.

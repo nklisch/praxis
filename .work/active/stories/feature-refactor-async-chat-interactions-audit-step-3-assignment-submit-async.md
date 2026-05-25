@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-3-assignment-submit-async
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 3: Assignment submit refactor — async sketch + recordResponse across 3 surfaces
@@ -61,3 +61,9 @@ Refactored all four submit surfaces (assignment-card, quiz-tab-body, homework-ta
 - `packages/ui/src/__tests__/assignment-card.test.tsx` (new tests: in-flight not disabled, FailurePopover on failure)
 - `packages/ui/src/__tests__/quiz-tab-body.test.tsx` (new test: in-flight not disabled)
 - `packages/ui/src/__tests__/homework-tab-body.test.tsx` (new test: in-flight not disabled)
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: 4 surfaces converted (assignment-card, quiz, homework, exam). Key insight: `useAssignment.submit()` returns null on failure → dispatch must throw explicitly to reach `failed` state. Submit buttons never disable; pip + FailurePopover convey state. ItemRail props extended for exam-tab-body. Bundled commit `01a967f4`.

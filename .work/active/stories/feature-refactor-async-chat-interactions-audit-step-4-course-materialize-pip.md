@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-4-course-materialize-pip
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 4: Course-materialize confirmation pip
@@ -53,3 +53,9 @@ Refactored the course-create confirm button to use `useOptimisticAction` with th
 
 **Files changed:**
 - `packages/ui/src/components/course-create-tab-body.tsx`
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: External-settle pattern wired beautifully — `dispatch` returns intentionally-never-resolving Promise; draft-events `finalized` handler calls `confirmAction.externalSettle("success")`. Button text stays constant; pip carries in-flight state. Canonical example for streaming-event-driven completion. Bundled commit `01a967f4`.

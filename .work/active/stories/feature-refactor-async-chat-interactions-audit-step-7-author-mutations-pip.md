@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-7-author-mutations-pip
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 7: Author / configurator mutations — pip sweep
@@ -76,3 +76,8 @@ Per-surface breakdown:
 - [x] Modal-dismissal-on-success preserved: `tool-call-entry` uses `onSuccess` to close modal; `lesson-editor`/`gate-inspector`/`memory-inspector-tabs` keep raw handlers for modal operations
 - [x] Existing author tests all pass (2114 total)
 - [x] New per-file test: trigger affordance does NOT disable during in-flight (lesson-editor, gate-inspector, memory-inspector-tabs, tool-call-entry, prompt-block-stack)
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: Sharp per-surface judgment. Pure data reads kept as cancellable `useEffect` (not mutations). Modal-owned destructive operations (lesson-delete, gate-override, memory-reset) correctly KEPT raw — `ConfirmReasonModal` owns the submitting/error UX; adding `useOptimisticAction` would double-stack state machines. Save operations converted; `tool-call-entry` mapped `{ok, reason?}` return to thrown errors. Reactive preview pane left as-is (no user trigger affordance). Documented judgment throughout. Bundled commit `5a7ebe1b`.

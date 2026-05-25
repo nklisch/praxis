@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-5-document-attach-pip
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 5: Document attach — per-row pip + optimistic state
@@ -58,3 +58,9 @@ Refactored `library-document-picker.tsx` to use per-row `useOptimisticAction` wi
 **Files changed:**
 - `packages/ui/src/components/library-document-picker.tsx`
 - `packages/ui/src/__tests__/library-document-picker.test.tsx` (3 new tests: optimistic attach, failure revert, concurrent rows)
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: Hooks-can't-be-in-loop → extracted `DocumentPickerRow` sub-component (correct React idiom). Optimistic attach immediately updates parent `attachedIds` via callback; `onError` reverts. Per-row independence; 3 new tests cover happy + revert + concurrent. Bundled commit `01a967f4`.

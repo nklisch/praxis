@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit
 kind: feature
-stage: implementing
+stage: done
 tags: [ui, refactor]
 parent: epic-chat-interaction-ux-overhaul
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Refactor: audit every UI surface that interacts with chat, sweep sync-await → async
@@ -348,3 +348,28 @@ Parallel-friendly after step-1+2 land: steps 3-7 fan out; step-8 waits for 3 sur
 - **Action-card / failure-popover positioning**. Anchoring the popover to the trigger requires DOM/style coordination. Mitigation: use a small portal helper or a CSS-only anchor (popover API or `position-anchor` if supported in Electron's Chromium version — check first).
 
 - **Author-mutation modal dismissal**. Some mutations currently dismiss the modal on success. Refactor must preserve that via `onSuccess`. Skipping = regression. Mitigation: per-file checklist of modal-dismissal contracts before refactoring.
+
+## Implementation summary + Review (2026-05-25)
+
+**All 8 child stories shipped via 4 consolidated orchestrator waves (per user's consolidation guidance):**
+
+- **Wave 1** (1 agent, commit `e12402aa`): step-1 + step-2 — canonical primitives + escalation hook
+- **Wave 2A** (1 agent, commit `01a967f4`): step-3 + step-4 + step-5 — HIGH priority surfaces (assignment-submit + course-materialize + document-attach)
+- **Wave 2B** (1 agent, commit `5a7ebe1b`): step-6 + step-7 — MED+LOW surfaces (selection-bar + author mutations sweep)
+- **Wave 3** (1 agent): step-8 — pattern doc codification
+
+**Architectural achievements**:
+- `useOptimisticAction` + `useActionEscalation` + `<ActionCard>`/`<ActionPip>`/`<FailurePopover>` shipped as production-ready canonical primitives
+- 12 sync-await UI surfaces converted to optimistic-dispatch pattern
+- `optimistic-dispatch` pattern doc at `.claude/skills/patterns/` codifies the shape for future surfaces
+- Two-tier failure pattern (inline → strip after threshold) generalized across all surfaces
+
+**Smart per-surface judgment** documented throughout — modal-owned destructive operations KEPT raw, reactive data fetches NOT converted, hooks-in-loop solved via sub-component extraction. No mechanical over-application of the pattern.
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: All 8 child stories individually reviewed + approved. Feature-level capability check: end-to-end pattern works across 12 surfaces; no more UI-locking sync-awaits in chat-bearing surfaces (modulo intentional kept-raw operations); failures degrade gracefully when activity registry is null. Parent epic `epic-chat-interaction-ux-overhaul` will have all 3 children done after this — epic should advance to review + done + archive.
+
+What's now possible: every UI affordance triggering engine/IPC work follows the optimistic-dispatch pattern. Future surfaces compose against `useOptimisticAction` + primitives + pattern doc. The complete chat-UX async overhaul is shipped — composer never blocks, questions dismiss immediately, assignment submits stay interactive, document attaches optimistically, selection actions surface failures via strip, author mutations show inline pips.

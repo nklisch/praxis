@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-8-pattern-doc
 kind: story
-stage: review
+stage: done
 tags: [refactor, docs, patterns]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-3-assignment-submit-async, feature-refactor-async-chat-interactions-audit-step-4-course-materialize-pip, feature-refactor-async-chat-interactions-audit-step-5-document-attach-pip]
@@ -54,3 +54,9 @@ Updated `.claude/rules/patterns.md`: added "Async dispatch patterns" section abo
 ## References
 - Parent feature: `.work/active/features/feature-refactor-async-chat-interactions-audit.md` § Step 8
 - Depends on steps 3, 4, 5 (three landed refactors to cite as examples)
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: Pattern doc + index entry shipped. Four canonical examples with file:line refs, two-tier failure model documented, 7 gotchas + 5 anti-patterns. Doc-only commit. The codification benefits future agents working on async-dispatch surfaces.

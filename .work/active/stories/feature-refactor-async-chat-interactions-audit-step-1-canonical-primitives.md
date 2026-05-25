@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor, design-system]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: []
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 1: Canonical `.action-card` + `.action-pip` primitives + `useOptimisticAction` hook
@@ -64,3 +64,9 @@ Ship the canonical primitives that every per-surface async refactor in this feat
 **Design-flaw escape hatch (externalSettle):** The hook exposes `externalSettle("success"|"failed", reason?)` as the clean solution for streaming-driven settle. When called while in `"pending"` or `"retrying"`, it immediately transitions state and fires the appropriate callback, then schedules the success-reset timer. The dispatched Promise continues in the background; when it resolves/rejects, the `stateRef` guard (`if (stateRef.current !== transitionalState) return`) prevents a double-settle. This is clean and doesn't need a separate `useExternalSettleAction` variant.
 
 **All acceptance criteria met.**
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: Canonical primitives shipped. `useOptimisticAction` state machine clean (idle/pending/success/failed/retrying); `stateRef` shadow guards externalSettle double-settle; `<ActionPip>` cleverly renders `<button>` in failed state (a11y) and `<span aria-hidden>` otherwise. 33 tests across 5 files. Bundled commit `e12402aa`.

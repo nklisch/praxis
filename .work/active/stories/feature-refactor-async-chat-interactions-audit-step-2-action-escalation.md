@@ -1,14 +1,14 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-2-action-escalation
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Step 2: `useActionEscalation` — generalize the failure-escalation hook
@@ -53,3 +53,9 @@ Note for future: `useFailedEscalation` in the composer feature can become a thin
 **Test file:** `packages/ui/src/hooks/__tests__/use-action-escalation.test.tsx` — 10 tests covering threshold escalation, pre-threshold item removal, unmount cleanup, escalated-then-unmount (finish handle), re-failure rescheduling, multiple independent timers, and graceful no-op for null/undefined activity. All use `vi.useFakeTimers()`.
 
 **All acceptance criteria met.**
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Notes**: `useActionEscalation` mirrors `useFailedEscalation` template exactly, generalized to `{id, label, failedAt}` shape. `ActivityRegistryClient` re-exported (forward declaration), 10 tests with `vi.useFakeTimers()`. Bundled commit `e12402aa`.
