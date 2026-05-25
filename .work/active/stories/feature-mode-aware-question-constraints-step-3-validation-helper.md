@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-3-validation-helper
 kind: story
-stage: implementing
+stage: review
 tags: [content, tool-schema]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults]
@@ -30,13 +30,21 @@ A single shared helper used by every question-emitting tool. Takes the question 
   - String vs `{label}` option shapes both accepted
 
 ## Acceptance Criteria
-- [ ] Helper accepts both string and `{label}` option shapes
-- [ ] Returns success when within all caps
-- [ ] Returns failure for over-cap prompt, over-cap choice text, over-cap choice count
-- [ ] Failure messages are agent-friendly second-person instructive prose
-- [ ] `multiSelectCap` NOT enforced here (documented)
-- [ ] Unit tests cover every branch + edge cases
-- [ ] `pnpm test packages/tools/src/dialog/__tests__/validate-question-constraints.test.ts` passes
+- [x] Helper accepts both string and `{label}` option shapes
+- [x] Returns success when within all caps
+- [x] Returns failure for over-cap prompt, over-cap choice text, over-cap choice count
+- [x] Failure messages are agent-friendly second-person instructive prose
+- [x] `multiSelectCap` NOT enforced here (documented)
+- [x] Unit tests cover every branch + edge cases
+- [x] `pnpm test packages/tools/src/dialog/__tests__/validate-question-constraints.test.ts` passes
+
+## Implementation notes (2026-05-24)
+
+Implemented exactly per spec:
+
+- `packages/tools/src/dialog/validate-question-constraints.ts` — exports `QuestionPayloadForValidation`, `ValidationResult`, and `validateQuestionConstraints`. Imports `QuestionConstraints` from `@praxis/core/types` (confirmed exported via `export type * from "./mode.js"` in the types index). The `multiSelectCap` non-enforcement is documented in both the module-level JSDoc and inline in the function. The internal `countWords` helper is module-private.
+- `packages/tools/src/dialog/__tests__/validate-question-constraints.test.ts` — 30 tests across 7 `describe` groups: success paths (exact-cap boundaries, mixed option shapes, multiSelect ignored), prompt-over-cap (boundary, modeLabel in message, ordering vs choiceCount), choiceCount-over-cap (boundary, ordering vs per-option), per-option-over-cap (string + `{label}` shapes, 1-based index in message, boundary), multiSelectCap not enforced, countWords edge cases (empty string, whitespace-only, leading/trailing whitespace, markdown bold as single token), and option-shape coverage.
+- All 30 tests pass; typecheck clean; new files pass biome check individually (pre-existing lint failures in `.mockups/` and other packages are unrelated to this story).
 
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 3
