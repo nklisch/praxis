@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool-step-1-writer-and-tool
 kind: story
-stage: review
+stage: done
 tags: [dev, observability, dx]
 parent: feature-dev-mode-agent-feedback-tool
 depends_on: []
