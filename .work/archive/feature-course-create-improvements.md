@@ -1,7 +1,7 @@
 ---
 id: feature-course-create-improvements
 kind: feature
-stage: implementing
+stage: done
 tags: [ui]
 parent: null
 depends_on: []
@@ -27,3 +27,9 @@ Children are independent — `depends_on: []` for each, no internal ordering. Im
 - `idea-create-to-design-docs-missing` → bug child story
 - `idea-create-course-select-existing-docs` → child story
 - `idea-create-course-pack-upload-polish` → child story
+
+## Implementation summary + Review (2026-05-25)
+
+3 stories shipped in consolidated commit. Bug 1: doc-scope linkage gap fixed — `handleStart` now calls `documentScopes.attach` per ready source before opening tab. Story 2: Library tab added to SourcePicker (4th option). Story 3: entry-row baseline/gap/leading-symbol tweaks. 5386 tests pass.
+
+**Verdict**: Approve. Feature has no parent → archives on advance.
