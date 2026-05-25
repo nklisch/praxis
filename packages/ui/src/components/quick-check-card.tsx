@@ -10,6 +10,7 @@ import { ShortAnswerBody } from "./item-bodies/short-answer-body.js";
 import { SingleChoiceBody } from "./item-bodies/single-choice-body.js";
 import { TwoTierBody } from "./item-bodies/two-tier-body.js";
 import styles from "./quick-check-card.module.css";
+import { ThreadChip } from "./thread-chip.js";
 
 export interface QuickCheckCardProps {
   callId: string;
@@ -22,11 +23,18 @@ export interface QuickCheckCardProps {
  * bubble; not a modal. Uses the same per-kind body subcomponents as
  * AssignmentItemCard for rendering consistency.
  *
- * After submit, the card retires to a compact summary row with a
- * correct/incorrect badge (or no badge for ungraded items). The collapsed
- * view is a <button> with aria-expanded; clicking toggles a read-only
- * details block that shows the full submitted answer. See feature
- * epic-ui-rendering-stability-state-transitions.
+ * On submit, the card immediately transitions to a <ThreadChip> summary —
+ * no greyed-out wait through the tutor's thinking round-trip. The
+ * `onResolve` IPC call fires in the background. The chip is click-to-expand
+ * back to a read-only card with the correct/incorrect badge.
+ *
+ * "Clarify in chat" dismisses the card immediately and signals the agent to
+ * resume conversational mode (fires `{ kind: "abandoned" }`).
+ *
+ * Free-form text input is rendered for choice-based items (single-choice,
+ * multi-select, two-tier). When the student populates it and submits, the
+ * free-form text is sent as a short-answer answer instead of the structured
+ * pick (more specific signal).
  *
  * Phase 17: only single-choice, multi-select, short-answer, and matching are
  * produced by quick_check.* tools. The remaining kinds are included for
@@ -35,85 +43,145 @@ export interface QuickCheckCardProps {
 export function QuickCheckCard({ callId, item, onResolve }: QuickCheckCardProps) {
   const [response, setResponse] = useState("");
   const [work, setWork] = useState("");
+  const [freeForm, setFreeForm] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [dismissedVariant, setDismissedVariant] = useState<"answered" | "dismissed" | null>(null);
+  const [dismissedAt, setDismissedAt] = useState<Date | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<QuickCheckAnswer | null>(null);
   const [correct, setCorrect] = useState<boolean | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [expandedFromChip, setExpandedFromChip] = useState(false);
 
   const hasReasoning =
     (item.kind === "single-choice" || item.kind === "multi-select" || item.kind === "two-tier") &&
     item.requireReasoning === true;
 
+  // Free-form is shown for choice-based items so students can elaborate or
+  // provide an alternative answer when none of the choices fit.
+  const showFreeForm =
+    item.kind === "single-choice" ||
+    item.kind === "multi-select" ||
+    item.kind === "two-tier" ||
+    item.kind === "structured-question";
+
   const isResponseEmpty = response === "" || response === "[]" || response === "{}";
 
-  const handleSubmit = async () => {
-    if (isResponseEmpty) {
-      setShowValidation(true);
-      return;
-    }
-    if (hasReasoning && work.trim() === "") {
-      setShowValidation(true);
-      return;
+  const handleSubmit = () => {
+    // Free-form wins: if populated, skip the structured-choice validation check.
+    const useFreeForm = freeForm.trim().length > 0;
+
+    if (!useFreeForm) {
+      if (isResponseEmpty) {
+        setShowValidation(true);
+        return;
+      }
+      if (hasReasoning && work.trim() === "") {
+        setShowValidation(true);
+        return;
+      }
     }
 
-    setSubmitting(true);
-    try {
-      const answer = buildAnswer(item, response, work);
-      await onResolve(callId, answer);
-      setLastAnswer(answer);
-      setCorrect(gradeAnswer(item, answer));
-      setSubmitted(true);
-    } finally {
-      setSubmitting(false);
-    }
+    const when = new Date();
+    // Build the answer — free-form overrides structured pick
+    const answer: QuickCheckAnswer = useFreeForm
+      ? { kind: "short-answer", text: freeForm.trim() }
+      : buildAnswer(item, response, work);
+
+    const graded = gradeAnswer(item, answer);
+    setLastAnswer(answer);
+    setCorrect(graded);
+    setSubmitted(true);
+    setDismissedVariant("answered");
+    setDismissedAt(when);
+
+    // Fire-and-forget — do NOT await; chip renders immediately
+    void onResolve(callId, answer);
   };
 
-  if (submitted) {
+  const handleClarifyInChat = () => {
+    if (submitted) return;
+    const when = new Date();
+    setSubmitted(true);
+    setDismissedVariant("dismissed");
+    setDismissedAt(when);
+    void onResolve(callId, { kind: "abandoned" });
+  };
+
+  // ── ThreadChip render path ───────────────────────────────────────────────────
+
+  if (dismissedVariant !== null && dismissedAt !== null && !expandedFromChip) {
+    const stem = stemOf(item);
+    const truncatedStem = stem.length > 60 ? `${stem.slice(0, 57)}…` : stem;
+
+    if (dismissedVariant === "dismissed") {
+      return (
+        <ThreadChip variant="dismissed" verb="you asked to discuss in chat" when={dismissedAt} />
+      );
+    }
+
+    const answerSummary = lastAnswer !== null ? summariseAnswer(item, lastAnswer) : undefined;
+    const verb =
+      lastAnswer?.kind === "multi-select"
+        ? `you selected ${lastAnswer.selectedIndices.length}`
+        : "you answered";
+
+    return (
+      <ThreadChip
+        variant="answered"
+        verb={verb}
+        answer={answerSummary ?? truncatedStem}
+        when={dismissedAt}
+        onExpand={() => setExpandedFromChip(true)}
+      />
+    );
+  }
+
+  // ── Read-only re-expanded card ───────────────────────────────────────────────
+
+  if (expandedFromChip) {
     return (
       <div className={`${styles.card} ${styles.submitted}`}>
         <button
           type="button"
           className={styles.collapsedSummary}
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
+          onClick={() => setExpandedFromChip(false)}
+          aria-expanded={true}
         >
           <span className={styles.disclosure} aria-hidden="true">
-            {expanded ? "▾" : "▸"}
+            ▾
           </span>
           <span className={styles.collapsedStem}>{stemOf(item)}</span>
           {lastAnswer && (
             <span className={styles.collapsedAnswer}>· {summariseAnswer(item, lastAnswer)}</span>
           )}
           {correct === true && (
-            <span className={styles.badgeCorrect} aria-label="correct">
+            <span className={styles.badgeCorrect} role="img" aria-label="correct">
               ✓
             </span>
           )}
           {correct === false && (
-            <span className={styles.badgeIncorrect} aria-label="incorrect">
+            <span className={styles.badgeIncorrect} role="img" aria-label="incorrect">
               ✗
             </span>
           )}
         </button>
-        {expanded && (
-          <div className={styles.collapsedDetails}>
-            {renderQuickCheckBody({
-              item,
-              response,
-              work,
-              onResponseChange: () => {},
-              disabled: true,
-            })}
-            {hasReasoning && work.trim() !== "" && (
-              <p className={styles.collapsedReasoning}>{work}</p>
-            )}
-          </div>
-        )}
+        <div className={styles.collapsedDetails}>
+          {renderQuickCheckBody({
+            item,
+            response,
+            work,
+            onResponseChange: () => {},
+            disabled: true,
+          })}
+          {hasReasoning && work.trim() !== "" && (
+            <p className={styles.collapsedReasoning}>{work}</p>
+          )}
+        </div>
       </div>
     );
   }
+
+  // ── Active card ──────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.card}>
@@ -129,7 +197,7 @@ export function QuickCheckCard({ callId, item, onResolve }: QuickCheckCardProps)
         response,
         work,
         onResponseChange: setResponse,
-        disabled: submitting,
+        disabled: submitted,
       })}
 
       {hasReasoning && (
@@ -137,19 +205,44 @@ export function QuickCheckCard({ callId, item, onResolve }: QuickCheckCardProps)
           id={`qc-reasoning-${callId}`}
           value={work}
           onChange={setWork}
-          disabled={submitting}
+          disabled={submitted}
           showValidation={showValidation}
         />
+      )}
+
+      {showFreeForm && (
+        <div className={styles.freeForm}>
+          <label className={styles.freeFormLabel} htmlFor={`qc-free-${callId}`}>
+            or, in your own words
+          </label>
+          <textarea
+            id={`qc-free-${callId}`}
+            className={styles.freeFormInput}
+            value={freeForm}
+            onChange={(e) => setFreeForm(e.target.value)}
+            disabled={submitted}
+            placeholder="…something else? sketch the reasoning."
+            rows={2}
+          />
+        </div>
       )}
 
       <div className={styles.footer}>
         <button
           type="button"
+          className={styles.clarifyBtn}
+          onClick={handleClarifyInChat}
+          disabled={submitted}
+        >
+          ↑ clarify in chat
+        </button>
+        <button
+          type="button"
           className={styles.submitBtn}
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitted}
         >
-          {submitting ? "…" : "submit"}
+          {submitted ? "…" : "submit"}
         </button>
       </div>
     </div>

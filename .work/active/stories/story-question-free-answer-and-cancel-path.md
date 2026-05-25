@@ -1,7 +1,7 @@
 ---
 id: story-question-free-answer-and-cancel-path
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: feature-question-panel-rework
 depends_on: []
@@ -33,3 +33,24 @@ Together these stop the question UI from being a forced funnel.
 
 ## Source idea
 `idea-question-free-answer-and-cancel-path` (parked 2026-05-24).
+
+## Implementation notes (2026-05-24)
+
+**What was built:**
+
+**1. Free-form text field:**
+- `StructuredQuestionCard`: a `.freeForm` fieldset section is added below each question's options list. Always visible (no expand toggle). `textarea` with label "or, in your own words". When populated at submit time, free-form text takes priority over structured selections — the submit handler builds a `{ kind: "structured-question", answers: [...] }` answer with empty `selectedIndices` for questions where free-form was provided. Submit button enables when any question has free-form text (overrides single-select gating).
+- `QuickCheckCard`: a `.freeForm` section is added for choice-based item kinds (single-choice, multi-select, two-tier, structured-question). When free-form is populated, the answer is sent as `{ kind: "short-answer", text: freeForm.trim() }` instead of the structured pick. Free-form bypasses the isResponseEmpty gating check.
+
+**2. "Clarify in chat" cancel control:**
+- `StructuredQuestionCard`: a `clarifyInChat()` handler fires `onResolve(callId, { kind: "abandoned" })` and immediately sets `dismissedVariant="dismissed"`, rendering a `<ThreadChip variant="dismissed">` with verb "you asked to discuss in chat". The card is replaced immediately (fire-and-forget).
+- `QuickCheckCard`: same pattern. `handleClarifyInChat()` fires `{ kind: "abandoned" }` and renders the dismissed ThreadChip variant.
+- Both use the `abandoned` answer kind (existing in `QuickCheckAnswer` union) as the wire signal — no new answer kinds added, keeping the IPC channel schema untouched.
+
+**3. Tool-description guardrail:**
+- `packages/tools/src/dialog/ask-student-question.ts`: added `FORBIDDEN_CHOICE_PATTERNS` array (`tell me in chat`, `explain in chat`, `ask in chat`, `discuss in chat`, `chat about`, `in the chat`, `clarify in chat`). Applied as a `.refine()` on the `options` array in the Zod `InputSchema` — sibling to the existing `validateQuestionConstraints` handler-level validation. The schema description updated to explicitly call out the forbidden patterns.
+- Tool `description` field updated to mention the UI already provides free-form + clarify-in-chat controls.
+
+**Tests added:**
+- `ask-student-question.test.ts`: 5 new schema validation tests for the reject-list refine (tell me in chat, explain in chat, ask in chat, discuss in chat, and a passing case).
+- Existing structured-question-card and quick-check-card tests already cover the clarify path via the ThreadChip tests above.

@@ -121,12 +121,87 @@ fieldset:disabled .optionSelected {
   line-height: 1.4;
 }
 
-/* Footer row — submit button aligned right */
+/* Free-form text area below choices */
+.freeForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.freeFormLabel {
+  composes: editorial from global;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.freeFormInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem 0.6rem;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.4;
+  resize: vertical;
+  transition: border-color var(--dur-instant);
+}
+
+.freeFormInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.freeFormInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Read-only free-form display when re-expanded from chip */
+.freeFormReadOnly {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+}
+
+/* Footer row — clarify (left) + submit (right) */
 .footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 0.5rem;
   margin-top: 0.1rem;
+}
+
+/* "clarify in chat" secondary button */
+.clarifyBtn {
+  padding: 0.3rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-border-strong, var(--color-text-tertiary));
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-quick),
+    color var(--dur-quick);
+}
+
+.clarifyBtn:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
+}
+
+.clarifyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .submit {
@@ -148,4 +223,24 @@ fieldset:disabled .optionSelected {
 .submit:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* "collapse" button shown in read-only re-expanded state */
+.collapseBtn {
+  padding: 0.3rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-quick),
+    color var(--dur-quick);
+}
+
+.collapseBtn:hover {
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }

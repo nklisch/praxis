@@ -1,0 +1,111 @@
+/* ── ThreadChip — post-submit question summary ──────────────────────────────── */
+/* Visual spec: .mockups/design-system/components.css § .thread-chip            */
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-1-5) var(--space-3) var(--space-1-5) var(--space-2);
+  margin: var(--space-1) 0 var(--space-1) var(--space-6);
+  background: var(--color-bg-tertiary);
+  border: none;
+  border-left: 2px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  max-width: fit-content;
+  transition: background var(--dur-quick) var(--ease-standard);
+  /* Animate in from below — matches .chat-rise-in if defined, else subtle fade */
+  animation: threadChipIn var(--dur-quick) var(--ease-standard) both;
+  text-align: left;
+}
+
+@keyframes threadChipIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    animation: none;
+  }
+}
+
+.chip:hover {
+  background: var(--color-accent-muted, color-mix(in srgb, var(--color-accent) 8%, transparent));
+  color: var(--color-text-primary);
+}
+
+/* Dismissed variant — neutral left border; hover effect suppressed */
+.chipDismissed {
+  border-left-color: var(--color-text-tertiary);
+}
+
+.chipDismissed:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.chipDismissed .glyph {
+  color: var(--color-text-tertiary);
+}
+
+/* Glyph: ↳ decorative arrow */
+.glyph {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-accent);
+}
+
+/* Verb: "you answered" / "you selected 3" / "you asked to discuss in chat" */
+.verb {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-style: normal;
+}
+
+/* Answer text — italic quoted */
+.answer {
+  color: var(--color-text-primary);
+  font-style: italic;
+}
+
+.answer::before,
+.answer::after {
+  content: '"';
+  color: var(--color-text-tertiary);
+}
+
+/* Timestamp */
+.when {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-text-tertiary);
+  padding-left: var(--space-2);
+}
+
+/* Expand affordance */
+.expand {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-text-tertiary);
+}

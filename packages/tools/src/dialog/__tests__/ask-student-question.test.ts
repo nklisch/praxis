@@ -161,6 +161,86 @@ describe("askStudentQuestionTool — schema validation", () => {
       expect(result.data.questions[0]?.multiSelect).toBe(false);
     }
   });
+
+  // ── Reject-list refine for "tell me in chat" choice text ───────────────────
+  // Per story-question-free-answer-and-cancel-path: the schema rejects choice
+  // labels that suggest the "discuss in chat" path (already provided as a UI
+  // control). This prevents the agent from adding a redundant/confusing choice.
+
+  it("rejects 'tell me in chat' as a choice label", () => {
+    const args = {
+      questions: [
+        {
+          header: "Source",
+          prompt: "Which source?",
+          multiSelect: false,
+          options: [{ label: "Pack" }, { label: "Tell me in chat" }],
+        },
+      ],
+    };
+    const result = askStudentQuestionTool.input.safeParse(args);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects 'explain in chat' as a choice label", () => {
+    const args = {
+      questions: [
+        {
+          header: "Method",
+          prompt: "How?",
+          multiSelect: false,
+          options: [{ label: "Option A" }, { label: "Explain in chat" }],
+        },
+      ],
+    };
+    expect(askStudentQuestionTool.input.safeParse(args).success).toBe(false);
+  });
+
+  it("rejects 'ask in chat' as a choice label", () => {
+    const args = {
+      questions: [
+        {
+          header: "Q",
+          prompt: "Pick?",
+          multiSelect: false,
+          options: [{ label: "A" }, { label: "Ask in chat instead" }],
+        },
+      ],
+    };
+    expect(askStudentQuestionTool.input.safeParse(args).success).toBe(false);
+  });
+
+  it("rejects 'discuss in chat' as a choice label", () => {
+    const args = {
+      questions: [
+        {
+          header: "Q",
+          prompt: "Pick?",
+          multiSelect: false,
+          options: [{ label: "A" }, { label: "Let's discuss in chat" }],
+        },
+      ],
+    };
+    expect(askStudentQuestionTool.input.safeParse(args).success).toBe(false);
+  });
+
+  it("accepts normal choice labels that don't contain forbidden patterns", () => {
+    const args = {
+      questions: [
+        {
+          header: "Src",
+          prompt: "Which source?",
+          multiSelect: false,
+          options: [
+            { label: "Canonical pack" },
+            { label: "Textbook chapter 3" },
+            { label: "I'll figure it out" },
+          ],
+        },
+      ],
+    };
+    expect(askStudentQuestionTool.input.safeParse(args).success).toBe(true);
+  });
 });
 
 // ── Handler happy path ────────────────────────────────────────────────────────

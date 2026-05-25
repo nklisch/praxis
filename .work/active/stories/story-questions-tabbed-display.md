@@ -1,7 +1,7 @@
 ---
 id: story-questions-tabbed-display
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: feature-question-panel-rework
 depends_on: []
@@ -28,3 +28,15 @@ Compounds with the sibling bug-fix story `story-fix-user-question-no-dismiss-on-
 
 ## Source idea
 `idea-questions-tabbed-display` (parked 2026-05-24).
+
+## Implementation notes (2026-05-24)
+
+**What was built:**
+
+- `InlineQuestionSet` (NEW — `packages/ui/src/components/inline-question-set.tsx` + `inline-question-set.module.css`): paged chassis for N in-flight structured questions. Renders a tab strip head (`Questions` label + tab buttons + progress counter) and one question body at a time. Tab states: `--done` (✓), `--active` (●), `--unanswered` (○). Prev/next navigation arrows at the right of the actions row. Free-form textarea always visible below choices. Submit + clarify-in-chat buttons.
+
+**Integration point:** The `InlineQuestionSet` component is available for the chat-tab-body to use when multiple `ask_student_question` calls arrive in the same turn (N > 1 pending structured-question checks). The `chat-tab-body.tsx` wiring to detect N > 1 pending items and route through the chassis was not implemented in this story — that wiring requires a separate orchestration change in the quick-check bridge hook that depends on turn-boundary grouping logic. The component itself is complete, tested, and ready for integration.
+
+**Decision note:** Per the design-flaw escape hatch instruction, the multi-question detection (routing N > 1 questions to InlineQuestionSet) is deferred. `StructuredQuestionCard` already handles 1-to-4 questions per call with its fieldset-per-question layout; the InlineQuestionSet provides the paged chassis for when multiple *separate* tool calls arrive in one turn. The detection logic in `chat-tab-body.tsx` is left for a follow-up story.
+
+- NEW: `packages/ui/src/__tests__/inline-question-set.test.tsx` — 18 tests covering tab rendering, tab state glyphs, navigation, submit/clarify, and free-form.

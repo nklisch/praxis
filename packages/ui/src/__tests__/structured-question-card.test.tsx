@@ -154,8 +154,12 @@ describe("StructuredQuestionCard — aria-pressed", () => {
     render(
       <StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={async () => {}} />,
     );
-    const buttons = screen.getAllByRole("button").filter((b) => b.textContent !== "Submit");
-    for (const btn of buttons) {
+    // Filter to only buttons that actually carry aria-pressed (the option buttons)
+    const optionButtons = screen
+      .getAllByRole("button")
+      .filter((b) => b.hasAttribute("aria-pressed"));
+    expect(optionButtons.length).toBeGreaterThan(0);
+    for (const btn of optionButtons) {
       expect(btn.getAttribute("aria-pressed")).toBe("false");
     }
   });
@@ -321,23 +325,37 @@ describe("StructuredQuestionCard — onResolve", () => {
 // ─── Post-submit state ────────────────────────────────────────────────────────
 
 describe("StructuredQuestionCard — post-submit state", () => {
-  it("shows 'Submitted' and disables button after submit", async () => {
+  /**
+   * Updated for dismiss-on-submit (story-fix-user-question-no-dismiss-on-submit):
+   * On submit the card immediately transitions to a <ThreadChip> summary — the
+   * full card is replaced so the chat thread below is not occluded through the
+   * tutor's thinking round-trip.
+   */
+  it("transitions to a ThreadChip on submit (dismiss-on-submit behaviour)", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
     render(<StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />);
 
     fireEvent.click(screen.getByText("Very confident").closest("button")!);
     fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
+    // onResolve fires in background — card transitions immediately without waiting
+    // for the resolve to complete.
     await waitFor(() => {
-      expect(onResolve).toHaveBeenCalled();
+      // The full card is gone — no more fieldsets or "Submit" button.
+      expect(screen.queryByRole("button", { name: /submit/i })).toBeNull();
+      expect(document.querySelectorAll("fieldset").length).toBe(0);
     });
 
-    const submitBtn = screen.getByRole("button", { name: /submitted/i }) as HTMLButtonElement;
-    expect(submitBtn.disabled).toBe(true);
-    expect(submitBtn.textContent).toBe("Submitted");
+    // A ThreadChip summary is now rendered.
+    const chip = screen.getByRole("button", { name: /expand question/i });
+    expect(chip).toBeDefined();
+    // The chip verb and answer are visible. The verb is lowercase in the DOM
+    // (text-transform uppercase is CSS-only; textContent is the raw text).
+    expect(chip.textContent).toContain("you answered");
+    expect(chip.textContent).toContain("Very confident");
   });
 
-  it("option buttons are disabled (via fieldset) after submit", async () => {
+  it("ThreadChip click re-expands to read-only card view", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
     render(<StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />);
 
@@ -345,12 +363,16 @@ describe("StructuredQuestionCard — post-submit state", () => {
     fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
-      expect(onResolve).toHaveBeenCalled();
+      expect(screen.queryByRole("button", { name: /submit/i })).toBeNull();
     });
 
-    const fieldsets = document.querySelectorAll("fieldset") as NodeListOf<HTMLFieldSetElement>;
-    for (const fs of fieldsets) {
-      expect(fs.disabled).toBe(true);
-    }
+    // Click the chip to re-expand
+    const chip = screen.getByRole("button", { name: /expand question/i });
+    fireEvent.click(chip);
+
+    // Card is now re-expanded in read-only mode — question text is visible
+    expect(screen.getByText("How confident are you in this topic?")).toBeDefined();
+    // The collapse button is visible
+    expect(screen.getByRole("button", { name: /collapse/i })).toBeDefined();
   });
 });
