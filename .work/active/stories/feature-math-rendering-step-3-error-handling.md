@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-3-error-handling
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, math, css]
 parent: feature-math-rendering
 depends_on: []
@@ -58,3 +58,11 @@ Implemented as scoped. Token names confirmed against `packages/ui/src/styles/glo
 ## References
 - Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 3
 - File: `packages/ui/src/components/markdown-content.module.css`
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 36 LoC CSS addition (`.mathError` + `:global(.katex-error)` alias) + 10 LoC test scaffold (skip-test pointing at step-5 as activator). All values reference design tokens (`--color-danger`, `--radius-sm`, `--font-mono`, `--color-text-secondary`). `color-mix(in srgb, X 8%, transparent)` syntax already in production use (`error-message.module.css`). Duplicated rule block in `:global(.katex-error)` is the correct approach — CSS Modules `composes:` can't cross `:global()` boundary. Skip-test with TODO is the right scope-respecting choice (full render verification needs step-5's `throwOnError: false` wiring).

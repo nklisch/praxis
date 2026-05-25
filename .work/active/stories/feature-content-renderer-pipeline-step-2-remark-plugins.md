@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-2-remark-plugins
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, markdown]
 parent: feature-content-renderer-pipeline
 depends_on: []
@@ -50,3 +50,11 @@ Hand-rolled `remarkAdmonitions` plugin that parses GitHub-style `> [!hint]` bloc
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 2
 - Template: `packages/ui/src/lib/rehype-citation-chips.ts`
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: `remarkAdmonitions` plugin parses GitHub-style `> [!type]` blockquotes into `containerDirective` nodes via collect-then-splice pattern. `ContainerDirective` typed locally to avoid pulling `mdast-util-directive` as a direct dep — sensible. `remark-directive ^4.0.0` added with `@types/mdast` + `unist-util-visit` deps for resolution. `remark-parse`, `remark-stringify`, `unified` added as devDeps for test harness — fine. Test correctly calls `processor.runSync(tree)` after `processor.parse(md)` (transformer plugins don't run during parse). 21 tests cover all 5 types + body stripping + nested markdown + non-admonition blockquote isolation. Smoke test verifies `remark-directive` parses `::: figure :::` correctly. Plugin NOT yet wired into REHYPE_PLUGINS (per scope — step-8).
