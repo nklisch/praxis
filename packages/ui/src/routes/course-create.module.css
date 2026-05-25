@@ -21,7 +21,7 @@
 .kicker {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-leading-symbol, var(--space-2));
   font: 600 11px / 1 var(--font-mono, monospace);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -30,8 +30,9 @@
 }
 
 .kickerDot {
-  width: 7px;
-  height: 7px;
+  /* Bumped from 7px — was too small relative to 11px kicker text. */
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--tint-course-create);
   flex-shrink: 0;
@@ -200,36 +201,43 @@
 }
 
 .statusIndexing {
-  font: 600 9px / 1 var(--font-mono, monospace);
+  font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px var(--space-1-5);
+  padding: 4px var(--space-2);
   border-radius: var(--radius-full, 9999px);
   background: var(--color-accent);
   color: var(--color-text-inverse);
   flex-shrink: 0;
+  /* Align status pill against the cap height of the adjacent filename text. */
+  align-self: center;
+  vertical-align: middle;
 }
 
 .statusReady {
-  font: 600 9px / 1 var(--font-mono, monospace);
+  font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px var(--space-1-5);
+  padding: 4px var(--space-2);
   border-radius: var(--radius-full, 9999px);
   background: var(--color-success);
   color: var(--color-text-inverse);
   flex-shrink: 0;
+  align-self: center;
+  vertical-align: middle;
 }
 
 .statusError {
-  font: 600 9px / 1 var(--font-mono, monospace);
+  font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px var(--space-1-5);
+  padding: 4px var(--space-2);
   border-radius: var(--radius-full, 9999px);
   background: var(--color-danger);
   color: var(--color-text-inverse);
   flex-shrink: 0;
+  align-self: center;
+  vertical-align: middle;
 }
 
 .removeBtn {

@@ -41,7 +41,7 @@
   border-bottom: 1px solid transparent;
   display: flex;
   align-items: baseline;
-  gap: var(--space-1-5);
+  gap: var(--space-leading-symbol, var(--space-1-5));
   transition: color var(--dur-quick) var(--ease-standard);
 }
 

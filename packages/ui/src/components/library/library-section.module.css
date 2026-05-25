@@ -10,7 +10,7 @@
 .sectionHeader {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: var(--space-leading-symbol, 0.65rem);
   margin-bottom: 0.9rem;
 }
 

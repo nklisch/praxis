@@ -513,12 +513,24 @@
     The broad 6-pack: composer, assignment-item-card, assignment-card, prompt-block,
     concept-link-overlay, claude-auth-modal. These compose from tier-1 primitives
     and stand in for the heavily-reused domain shapes downstream mocks reach for.
+    The <code>.composer-verbs</code> chip rail is a sibling widget that mounts above the composer.
   </p>
 
   <div class="row row--2">
     <div class="cell">
-      <span class="cell__label">.composer</span>
+      <span class="cell__label">.composer + .composer-verbs (sibling chip rail)</span>
       <div class="cell__demo cell__demo--block">
+        <!-- composer-verbs mounts above the composer as a sibling, not inside it.
+             Class map: production .row → .composer-verbs__row; .chip → .composer-verbs__chip -->
+        <div class="composer-verbs" role="toolbar" aria-label="Tutor verbs">
+          <div class="composer-verbs__row">
+            <button type="button" class="composer-verbs__chip">explain</button>
+            <button type="button" class="composer-verbs__chip">quiz me</button>
+            <button type="button" class="composer-verbs__chip">example</button>
+            <button type="button" class="composer-verbs__chip">summarise</button>
+            <button type="button" class="composer-verbs__chip" disabled>hint (disabled)</button>
+          </div>
+        </div>
         <div class="composer">
           <div class="composer__sketch-container"><!-- optional expansion slot --></div>
           <form class="composer__form">

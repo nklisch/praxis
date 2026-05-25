@@ -121,6 +121,11 @@
   --space-12: 48px;
   --space-16: 64px;
 
+  /* Leading-symbol gap — uniform margin-right applied to glyphs / ornaments
+   * that immediately precede a word (§, ¶, dot marks, kicker ornaments).
+   * Keeps the symbol legible as a leading mark rather than crashing into text. */
+  --space-leading-symbol: 0.35em;
+
   /* ─────────────────────────────────────────────────────────────────
    * Radius scale
    * Studio Quiet favors small radii — sharp, architectural shapes

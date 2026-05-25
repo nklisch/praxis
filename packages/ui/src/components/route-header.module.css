@@ -59,7 +59,7 @@
   grid-row: 1;
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: var(--space-leading-symbol, 0.55rem);
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.24em;
@@ -70,12 +70,15 @@
 }
 
 .kickerDot {
-  width: 0.42rem;
-  height: 0.42rem;
+  /* Bumped from 0.42rem — was undersized relative to the 0.6rem kicker text.
+   * 0.55rem ≈ cap-height of the adjacent mono text, seats correctly at baseline. */
+  width: 0.55rem;
+  height: 0.55rem;
   border-radius: 50%;
   background: var(--tint-route, var(--color-text-secondary));
   box-shadow: 0 0 0 2px
     color-mix(in srgb, var(--tint-route, var(--color-text-secondary)) 22%, transparent);
+  flex-shrink: 0;
 }
 
 /* Title + optional deck share the second row. */

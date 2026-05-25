@@ -40,12 +40,17 @@
 }
 
 .badge {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-info) 12%, transparent);
-  padding: 0.1rem 0.35rem;
+  padding: 0.15rem 0.4rem;
   border-radius: 3px;
-  align-self: flex-start;
+  /* Align inline badges against the cap height of adjacent text.
+   * flex-start keeps badge flush to the top of its column, but when
+   * used inline (not flex child) vertical-align: middle seats it correctly. */
+  align-self: center;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 .meta {

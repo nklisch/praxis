@@ -127,6 +127,12 @@
    * Or simply: padding-inline: var(--space-page-gutter) for symmetric gutters. */
   --space-page-gutter: 1.5rem;
 
+  /* Leading-symbol gap — uniform margin-right applied to glyphs / ornaments
+   * that immediately precede a word (§, ¶, dot marks, kicker ornaments).
+   * Keeps the symbol legible as a leading mark rather than crashing into text.
+   * Use on ::before pseudo-elements, <span class="ornament">, or .kickerDot etc. */
+  --space-leading-symbol: 0.35em;
+
   /* ─────────────────────────────────────────────────────────────────
    * Radius scale
    * Studio Quiet favors small radii — sharp, architectural shapes
