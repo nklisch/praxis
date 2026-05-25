@@ -171,4 +171,46 @@ describe("MemoryInspectorTabs", () => {
       expect(screen.getByText(/No configurator actions yet/)).toBeDefined();
     });
   });
+
+  it("Reset button in student model stays interactive during in-flight resetConcept (not disabled)", async () => {
+    // Optimistic dispatch: the Reset button must NOT be disabled while the IPC
+    // round-trip is pending. Guards the useOptimisticAction conversion.
+    let resolveReset!: () => void;
+    const blockedReset = new Promise<void>((resolve) => {
+      resolveReset = () => resolve();
+    });
+    const client = makeClient({
+      studentModel: makeStudentModel([["concept-x", {}]]),
+    });
+    // Override resetConcept to be blocking.
+    (client.author.resetConcept as ReturnType<typeof vi.fn>) = vi
+      .fn()
+      .mockReturnValue(blockedReset);
+    renderTabs(client);
+
+    // Wait for the Reset button in the table to appear.
+    await waitFor(() => {
+      // Use getAllByRole since the confirm modal may also have a "Reset" button later.
+      const resetBtns = screen.getAllByRole("button", { name: /^reset$/i });
+      expect(resetBtns.length).toBeGreaterThan(0);
+    });
+
+    // Click the table-row Reset button (the trigger affordance).
+    const tableResetBtn = screen.getAllByRole("button", { name: /^reset$/i })[0];
+    if (!tableResetBtn) throw new Error("Reset button not found");
+    expect(tableResetBtn).not.toHaveProperty("disabled", true);
+    fireEvent.click(tableResetBtn);
+
+    // The table-row Reset button must still be accessible (not disabled)
+    // even while the modal is open and the action is in-flight.
+    // (The modal adds a second "Reset" confirm button — use the first.)
+    await waitFor(() => {
+      const allResets = screen.getAllByRole("button", { name: /^reset$/i });
+      // The first one is the table-row button (the trigger affordance).
+      expect(allResets[0]).not.toHaveProperty("disabled", true);
+    });
+
+    // Resolve so no pending state leaks between tests.
+    resolveReset();
+  });
 });

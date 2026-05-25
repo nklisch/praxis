@@ -1,8 +1,12 @@
 import type { ConceptId, Lesson, LessonId } from "@praxis/core/types";
 import { type FormEvent, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { ConceptPicker } from "./concept-picker.js";
 import { ConfirmReasonModal } from "./confirm-reason-modal.js";
+import { FailurePopover } from "./failure-popover.js";
 import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
 import styles from "./lesson-editor.module.css";
 
@@ -32,33 +36,47 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
   const [title, setTitle] = useState(lesson.title);
   const [estimatedMinutes, setEstimatedMinutes] = useState(String(lesson.estimatedMinutes ?? ""));
   const [selectedConceptIds, setSelectedConceptIds] = useState<string[]>(lesson.conceptIds.slice());
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleSave = async (e: FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const updated = await client.author.updateLesson({
-        lessonId: lesson.id,
-        patch: {
-          title: title.trim() || lesson.title,
-          conceptIds: selectedConceptIds as ConceptId[],
-          ...(estimatedMinutes.trim() !== "" && {
-            estimatedMinutes: Number(estimatedMinutes),
-          }),
-        },
-      });
+  // ── updateLesson action ──────────────────────────────────────────────────
+  // Optimistic dispatch: the save button stays interactive during the IPC
+  // round-trip. A pip beside it shows pending / success / failed state; failure
+  // renders a FailurePopover with retry so the user can recover without
+  // re-entering form data (params are captured at trigger-time).
+  const saveAction = useOptimisticAction<{
+    lessonId: LessonId;
+    patch: {
+      title: string;
+      conceptIds: ConceptId[];
+      estimatedMinutes?: number;
+    };
+  }>({
+    dispatch: async (params) => {
+      const updated = await client.author.updateLesson(params);
       onSaved(updated);
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const handleSave = (e: FormEvent) => {
+    e.preventDefault();
+    saveAction.trigger({
+      lessonId: lesson.id,
+      patch: {
+        title: title.trim() || lesson.title,
+        conceptIds: selectedConceptIds as ConceptId[],
+        ...(estimatedMinutes.trim() !== "" && {
+          estimatedMinutes: Number(estimatedMinutes),
+        }),
+      },
+    });
   };
 
+  // ── deleteLesson action ──────────────────────────────────────────────────
+  // ConfirmReasonModal owns submit / error UI for the destructive confirm flow.
+  // Judgment call: ConfirmReasonModal.onConfirm expects Promise<void> and calls
+  // onClose() on success, so delete stays as a raw async handler here — the
+  // modal's own submitting / error states handle the UX. This preserves the
+  // audit-reason collection contract without a competing state machine.
   const handleDelete = async (reason: string) => {
     if (reason) {
       await client.author.deleteLesson({ lessonId: lesson.id, reason });
@@ -74,6 +92,8 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
     selectedConceptIds.length !== lesson.conceptIds.length ||
     selectedConceptIds.some((id, idx) => id !== lesson.conceptIds[idx]);
 
+  const isSaving = saveAction.state === "pending" || saveAction.state === "retrying";
+
   return (
     <div className={styles.editor}>
       <form onSubmit={handleSave} className={styles.form}>
@@ -85,7 +105,6 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
               className={styles.input}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              disabled={saving}
               required
             />
           </label>
@@ -102,7 +121,6 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
               onChange={(e) => setEstimatedMinutes(e.target.value)}
               min={1}
               max={240}
-              disabled={saving}
             />
           </label>
         </div>
@@ -113,29 +131,44 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
             selectedIds={selectedConceptIds}
             options={availableConcepts}
             onChange={setSelectedConceptIds}
-            disabled={saving}
             placeholder="Search concepts by name…"
           />
         </div>
-
-        {saveError && (
-          <p className={styles.error} role="alert">
-            {saveError}
-          </p>
-        )}
 
         <div className={styles.actions}>
           <button
             type="button"
             className={styles.deleteBtn}
             onClick={() => setShowDeleteModal(true)}
-            disabled={saving}
           >
             Delete lesson
           </button>
-          <button type="submit" className={styles.saveBtn} disabled={saving || !isDirty}>
-            {saving ? "Saving…" : "Save"}
-          </button>
+          <div
+            style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4 }}
+          >
+            <button
+              type="submit"
+              className={styles.saveBtn}
+              disabled={!isDirty}
+              aria-label="Save lesson"
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </button>
+            <ActionPip state={saveAction.state} />
+            {saveAction.state === "failed" && (
+              <FailurePopover
+                reason={saveAction.errorReason}
+                actions={[
+                  {
+                    label: COPY.actionPip.retryLabel,
+                    onClick: saveAction.retry,
+                    variant: "primary",
+                  },
+                  { label: COPY.actionPip.dismissLabel, onClick: saveAction.dismiss },
+                ]}
+              />
+            )}
+          </div>
         </div>
       </form>
 

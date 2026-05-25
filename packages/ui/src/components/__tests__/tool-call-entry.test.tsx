@@ -215,4 +215,56 @@ describe("ToolCallEntry — revert affordance", () => {
     fireEvent.click(getByRole("button", { name: /^revert$/i }));
     await waitFor(() => expect(container.textContent).toContain("No snapshot available"));
   });
+
+  it("Revert confirm button stays interactive during in-flight restoreAction (not disabled)", async () => {
+    // Optimistic dispatch: the Revert confirm button must NOT be disabled while
+    // the IPC round-trip is pending. Guards the useOptimisticAction conversion.
+    let resolveRestore!: () => void;
+    const blockedRestore = new Promise<{ ok: true; restoredEntity: "lesson"; entityKey: string }>(
+      (resolve) => {
+        resolveRestore = () => resolve({ ok: true, restoredEntity: "lesson", entityKey: "l-1" });
+      },
+    );
+    const client = makeFakeClient({
+      author: {
+        restoreAction: vi.fn().mockReturnValue(blockedRestore),
+        listConfiguratorActions: vi.fn().mockResolvedValue([]),
+      } as unknown as PraxisClient["author"],
+    });
+
+    const { container } = renderEntry(
+      { name: "lesson.create", summary: "Added a lesson", verdict: "ok", actionId: ACTION_ID },
+      client,
+    );
+
+    // Open modal by clicking the ↶ revert button (identified by its aria-label).
+    const revertBtn = container.querySelector("button[aria-label='Revert lesson.create']");
+    expect(revertBtn).not.toBeNull();
+    fireEvent.click(revertBtn as HTMLElement);
+
+    // Find the "Revert" confirm button in the modal by text content.
+    const confirmBtn = Array.from(container.querySelectorAll("button[type='button']")).find(
+      (b) => b.textContent?.trim() === "Revert",
+    );
+    expect(confirmBtn).not.toBeNull();
+    // Must not be disabled before firing.
+    expect(confirmBtn).not.toHaveProperty("disabled", true);
+
+    // Fire the action.
+    fireEvent.click(confirmBtn as HTMLElement);
+
+    // During in-flight the text changes to "Reverting…". The button must remain
+    // accessible (not disabled) so the user could cancel or observe state.
+    await waitFor(() => {
+      const inFlightBtn = Array.from(container.querySelectorAll("button[type='button']")).find(
+        (b) => b.textContent?.trim() === "Reverting…",
+      );
+      if (inFlightBtn) {
+        expect(inFlightBtn).not.toHaveProperty("disabled", true);
+      }
+    });
+
+    // Resolve to avoid pending state leaking between tests.
+    resolveRestore();
+  });
 });

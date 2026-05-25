@@ -142,4 +142,25 @@ describe("GateInspector", () => {
       expect(screen.getByRole("dialog")).toBeDefined();
     });
   });
+
+  it("Save threshold button stays interactive during in-flight updateGate (not disabled)", async () => {
+    // Optimistic dispatch: the threshold Save button must NOT be disabled while
+    // the IPC round-trip is pending. Guards the useOptimisticAction conversion.
+    let resolveUpdate!: () => void;
+    const blockedUpdate = new Promise<ReturnType<typeof makeGate>>((resolve) => {
+      resolveUpdate = () => resolve(makeGate());
+    });
+    const client = makeClient({ updateGate: vi.fn().mockReturnValue(blockedUpdate) });
+    renderInspector(client, makeGate());
+
+    // Trigger save.
+    fireEvent.click(screen.getByRole("button", { name: /save threshold/i }));
+
+    // While the promise is pending, the button must remain accessible.
+    const saveBtn = screen.getByRole("button", { name: /save threshold/i });
+    expect(saveBtn).not.toHaveProperty("disabled", true);
+
+    // Resolve so no pending state leaks between tests.
+    resolveUpdate();
+  });
 });

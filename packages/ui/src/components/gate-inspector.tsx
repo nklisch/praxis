@@ -1,7 +1,11 @@
 import type { Gate, GateId, SuccessCriteria } from "@praxis/core/types";
 import { type FormEvent, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { ConfirmReasonModal } from "./confirm-reason-modal.js";
+import { FailurePopover } from "./failure-popover.js";
 import styles from "./gate-inspector.module.css";
 
 export interface GateInspectorProps {
@@ -76,37 +80,43 @@ export function GateInspector({
       ? String(Math.round(gate.successCriteria.minScore * 100))
       : "",
   );
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const canEditMinScore = gate.successCriteria.kind === "mastery-threshold";
 
-  const handleSave = async (e: FormEvent) => {
+  // ── updateGate action ────────────────────────────────────────────────────
+  // Optimistic dispatch: Save threshold button stays interactive; pip shows state.
+  const saveAction = useOptimisticAction<{
+    gateId: GateId;
+    patch: { successCriteria: SuccessCriteria };
+  }>({
+    dispatch: async (params) => {
+      const updated = await client.author.updateGate(params);
+      onSaved(updated);
+    },
+  });
+
+  const handleSave = (e: FormEvent) => {
     e.preventDefault();
     if (!canEditMinScore) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const score = Number(minScore) / 100;
-      const updated = await client.author.updateGate({
-        gateId: gate.id,
-        patch: {
-          successCriteria: {
-            ...gate.successCriteria,
-            minScore: score,
-          } as SuccessCriteria,
-        },
-      });
-      onSaved(updated);
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    const score = Number(minScore) / 100;
+    saveAction.trigger({
+      gateId: gate.id,
+      patch: {
+        successCriteria: {
+          ...gate.successCriteria,
+          minScore: score,
+        } as SuccessCriteria,
+      },
+    });
   };
 
+  // ── overrideGate / deleteGate ────────────────────────────────────────────
+  // Both actions go through ConfirmReasonModal which owns submit / error UX.
+  // Judgment call: keep as raw async handlers so the modal's submitting state
+  // and onClose()-on-success contract are preserved without a competing
+  // state machine. ConfirmReasonModal.onConfirm expects Promise<void>.
   const handleOverride = async (reason: string) => {
     const updated = await client.author.overrideGate({ gateId: gate.id, reason });
     onSaved(updated);
@@ -120,6 +130,8 @@ export function GateInspector({
     }
     onDeleted(gate.id);
   };
+
+  const isSaving = saveAction.state === "pending" || saveAction.state === "retrying";
 
   return (
     <div className={styles.inspector}>
@@ -162,19 +174,30 @@ export function GateInspector({
                 min={0}
                 max={100}
                 step={5}
-                disabled={saving}
               />
             </label>
 
-            {saveError && (
-              <p className={styles.error} role="alert">
-                {saveError}
-              </p>
-            )}
-
-            <button type="submit" className={styles.saveBtn} disabled={saving}>
-              {saving ? "Saving…" : "Save threshold"}
-            </button>
+            <div
+              style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <button type="submit" className={styles.saveBtn} aria-label="Save threshold">
+                {isSaving ? "Saving…" : "Save threshold"}
+              </button>
+              <ActionPip state={saveAction.state} />
+              {saveAction.state === "failed" && (
+                <FailurePopover
+                  reason={saveAction.errorReason}
+                  actions={[
+                    {
+                      label: COPY.actionPip.retryLabel,
+                      onClick: saveAction.retry,
+                      variant: "primary",
+                    },
+                    { label: COPY.actionPip.dismissLabel, onClick: saveAction.dismiss },
+                  ]}
+                />
+              )}
+            </div>
           </form>
         )}
 
@@ -204,7 +227,7 @@ export function GateInspector({
               type="button"
               className={styles.overrideBtn}
               onClick={() => setShowOverrideModal(true)}
-              disabled={saving || gate.state.kind === "overridden"}
+              disabled={gate.state.kind === "overridden"}
             >
               Override gate
             </button>
@@ -212,7 +235,6 @@ export function GateInspector({
               type="button"
               className={styles.deleteBtn}
               onClick={() => setShowDeleteModal(true)}
-              disabled={saving}
             >
               Delete gate
             </button>

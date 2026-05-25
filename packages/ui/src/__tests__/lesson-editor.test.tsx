@@ -139,4 +139,32 @@ describe("LessonEditor", () => {
       expect(onDeleted).toHaveBeenCalledWith("lesson-1");
     });
   });
+
+  it("save button stays interactive during in-flight updateLesson (not disabled)", async () => {
+    // Optimistic dispatch: the Save button must NOT be disabled while the IPC
+    // round-trip is pending. This guards the useOptimisticAction conversion.
+    let resolveUpdate!: () => void;
+    const blockedUpdate = new Promise<ReturnType<typeof makeLesson>>((resolve) => {
+      resolveUpdate = () => resolve(makeLesson({ title: "Updated" }));
+    });
+    const client = makeClient({
+      updateLesson: vi.fn().mockReturnValue(blockedUpdate),
+    });
+    renderEditor(client, makeLesson());
+
+    // Make the form dirty so Save is enabled.
+    const titleInput = screen.getByDisplayValue("Test Lesson");
+    fireEvent.change(titleInput, { target: { value: "New Title" } });
+
+    // Trigger save.
+    fireEvent.click(screen.getByRole("button", { name: /save lesson/i }));
+
+    // While the promise is pending, the Save button must remain accessible
+    // (not disabled) — the optimistic pattern keeps the affordance live.
+    const saveBtn = screen.getByRole("button", { name: /save lesson/i });
+    expect(saveBtn).not.toHaveProperty("disabled", true);
+
+    // Resolve so no pending state leaks between tests.
+    resolveUpdate();
+  });
 });

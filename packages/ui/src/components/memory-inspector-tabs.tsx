@@ -2,6 +2,8 @@ import type { ConceptId, ConceptMastery, Misconception, MisconceptionId } from "
 import { useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useConfiguratorActions } from "../hooks/use-configurator-actions.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { ActionPip } from "./action-pip.js";
 import { ConfirmReasonModal } from "./confirm-reason-modal.js";
 import styles from "./memory-inspector-tabs.module.css";
 
@@ -69,18 +71,44 @@ export function MemoryInspectorTabs() {
     loadMisconceptions();
   }, [loadMastery, loadMisconceptions]);
 
+  // ── Mutation actions ─────────────────────────────────────────────────────
+  // resetConcept and clearMisconception flow through ConfirmReasonModal.
+  // Judgment call: ConfirmReasonModal owns submit/error/onClose UX. We use
+  // useOptimisticAction here so we can show a pip and failure popover inside
+  // the modal body if something goes wrong after submission.
+  //
+  // studentModel and misconceptions reads (lines 32, 51) stay as useCallback /
+  // useEffect — they're pure data fetches, not mutations, so no action hook
+  // is needed. useResource would also work but the cancellation pattern here
+  // is equivalent.
+
+  const resetAction = useOptimisticAction<{ conceptId: ConceptId; reason: string }>({
+    dispatch: async (params) => {
+      await client.author.resetConcept(params);
+      setResetTarget(null);
+      await loadMastery();
+    },
+  });
+
+  const clearAction = useOptimisticAction<{ misconceptionId: MisconceptionId; reason: string }>({
+    dispatch: async (params) => {
+      await client.author.clearMisconception(params);
+      setClearTarget(null);
+      await loadMisconceptions();
+    },
+  });
+
   const handleResetConcept = async (reason: string) => {
     if (!resetTarget) return;
-    await client.author.resetConcept({ conceptId: resetTarget, reason });
-    setResetTarget(null);
-    await loadMastery();
+    // Fire and forget the useOptimisticAction; ConfirmReasonModal awaits this
+    // Promise. Since trigger() returns void and we return immediately, the modal
+    // closes optimistically. The pip on the Reset button shows the async state.
+    resetAction.trigger({ conceptId: resetTarget, reason });
   };
 
   const handleClearMisconception = async (reason: string) => {
     if (!clearTarget) return;
-    await client.author.clearMisconception({ misconceptionId: clearTarget, reason });
-    setClearTarget(null);
-    await loadMisconceptions();
+    clearAction.trigger({ misconceptionId: clearTarget, reason });
   };
 
   return (
@@ -108,6 +136,8 @@ export function MemoryInspectorTabs() {
             loading={masteryLoading}
             error={masteryError}
             onReset={(conceptId) => setResetTarget(conceptId)}
+            resetActionState={resetAction.state}
+            resetTarget={resetTarget}
           />
         )}
         {activeTab === "misconceptions" && (
@@ -116,6 +146,8 @@ export function MemoryInspectorTabs() {
             loading={miscLoading}
             error={miscError}
             onClear={(id) => setClearTarget(id)}
+            clearActionState={clearAction.state}
+            clearTarget={clearTarget}
           />
         )}
         {activeTab === "audit" && (
@@ -157,11 +189,17 @@ function StudentModelTab({
   loading,
   error,
   onReset,
+  resetActionState,
+  resetTarget,
 }: {
   mastery: Array<[ConceptId, ConceptMastery]>;
   loading: boolean;
   error: string | null;
   onReset: (conceptId: ConceptId) => void;
+  /** State of the in-flight resetConcept action (for pip on the trigger row). */
+  resetActionState?: import("../hooks/use-optimistic-action.js").ActionState;
+  /** The concept currently targeted by the pending reset, if any. */
+  resetTarget?: ConceptId | null;
 }) {
   if (loading) return <p className={styles.status}>Loading mastery data…</p>;
   if (error) return <p className={styles.error}>{error}</p>;
@@ -185,33 +223,40 @@ function StudentModelTab({
         </tr>
       </thead>
       <tbody>
-        {mastery.map(([conceptId, cm]) => (
-          <tr key={conceptId}>
-            <td className={styles.conceptId}>{conceptId}</td>
-            <td>
-              <span className={styles.masteryBar}>
-                <span
-                  className={styles.masteryFill}
-                  style={{ width: `${Math.round(cm.pKnown * 100)}%` }}
-                />
-              </span>
-              {Math.round(cm.pKnown * 100)}%
-            </td>
-            <td>
-              {cm.lastPracticedAt ? new Date(cm.lastPracticedAt).toLocaleDateString() : "Never"}
-            </td>
-            <td>
-              <button
-                type="button"
-                className={styles.resetBtn}
-                onClick={() => onReset(conceptId)}
-                title="Reset concept mastery to initial state"
-              >
-                Reset
-              </button>
-            </td>
-          </tr>
-        ))}
+        {mastery.map(([conceptId, cm]) => {
+          const isThisRowActive = resetTarget === conceptId;
+          const pipState = isThisRowActive && resetActionState ? resetActionState : "idle";
+          return (
+            <tr key={conceptId}>
+              <td className={styles.conceptId}>{conceptId}</td>
+              <td>
+                <span className={styles.masteryBar}>
+                  <span
+                    className={styles.masteryFill}
+                    style={{ width: `${Math.round(cm.pKnown * 100)}%` }}
+                  />
+                </span>
+                {Math.round(cm.pKnown * 100)}%
+              </td>
+              <td>
+                {cm.lastPracticedAt ? new Date(cm.lastPracticedAt).toLocaleDateString() : "Never"}
+              </td>
+              <td>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    type="button"
+                    className={styles.resetBtn}
+                    onClick={() => onReset(conceptId)}
+                    title="Reset concept mastery to initial state"
+                  >
+                    Reset
+                  </button>
+                  <ActionPip state={pipState} />
+                </span>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
@@ -222,11 +267,17 @@ function MisconceptionsTab({
   loading,
   error,
   onClear,
+  clearActionState,
+  clearTarget,
 }: {
   misconceptions: Misconception[];
   loading: boolean;
   error: string | null;
   onClear: (id: MisconceptionId) => void;
+  /** State of the in-flight clearMisconception action (for pip on the trigger row). */
+  clearActionState?: import("../hooks/use-optimistic-action.js").ActionState;
+  /** The misconception currently targeted by the pending clear, if any. */
+  clearTarget?: MisconceptionId | null;
 }) {
   if (loading) return <p className={styles.status}>Loading misconceptions…</p>;
   if (error) return <p className={styles.error}>{error}</p>;
@@ -243,24 +294,31 @@ function MisconceptionsTab({
 
   return (
     <ul className={styles.miscList}>
-      {misconceptions.map((m) => (
-        <li key={m.id} className={styles.miscItem}>
-          <div className={styles.miscHeader}>
-            <span className={styles.miscConcept}>{m.conceptId}</span>
-            <span
-              className={`${styles.miscStatus} ${m.status === "active" ? styles.statusActive : styles.statusCleared}`}
-            >
-              {m.status}
-            </span>
-          </div>
-          <p className={styles.miscDesc}>{m.description}</p>
-          {m.status === "active" && (
-            <button type="button" className={styles.clearBtn} onClick={() => onClear(m.id)}>
-              Mark cleared
-            </button>
-          )}
-        </li>
-      ))}
+      {misconceptions.map((m) => {
+        const isThisRowActive = clearTarget === m.id;
+        const pipState = isThisRowActive && clearActionState ? clearActionState : "idle";
+        return (
+          <li key={m.id} className={styles.miscItem}>
+            <div className={styles.miscHeader}>
+              <span className={styles.miscConcept}>{m.conceptId}</span>
+              <span
+                className={`${styles.miscStatus} ${m.status === "active" ? styles.statusActive : styles.statusCleared}`}
+              >
+                {m.status}
+              </span>
+            </div>
+            <p className={styles.miscDesc}>{m.description}</p>
+            {m.status === "active" && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <button type="button" className={styles.clearBtn} onClick={() => onClear(m.id)}>
+                  Mark cleared
+                </button>
+                <ActionPip state={pipState} />
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -4,8 +4,11 @@ import { listModes, requireMode } from "@praxis/curriculum/modes";
 import { type JSX, useCallback, useEffect, useMemo, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useFragmentOverrides } from "../hooks/use-fragment-overrides.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
 import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { AttributedPreviewPane } from "./attributed-preview-pane.js";
+import { FailurePopover } from "./failure-popover.js";
 import { LoadingState } from "./loading-state.js";
 import { PromptBlock } from "./prompt-block.js";
 import styles from "./prompt-block-stack.module.css";
@@ -145,8 +148,17 @@ export function PromptBlockStack({ modeId, onModeChange }: PromptBlockStackProps
     [modeId, globalText, appendText, overrides.byId],
   );
 
-  const dispatchSave = useCallback(
-    async (block: AssembledBlock, text: string): Promise<void> => {
+  // ── dispatchSave action ──────────────────────────────────────────────────
+  // Optimistic dispatch: PromptBlock's commitEdit() awaits onSave, but since
+  // trigger() returns void, the Promise returned by the wrapper resolves
+  // immediately. The block exits edit-mode right away (optimistic dismiss);
+  // the pip at the block level shows the async IPC state. Failure renders
+  // a FailurePopover with retry so the user can recover without re-editing.
+  //
+  // Reads (getGlobalPrompt, getModeAppend lines 115/132) stay as useEffect
+  // cancellable fetches — they're not mutations and don't need action tracking.
+  const saveAction = useOptimisticAction<{ block: AssembledBlock; text: string }>({
+    dispatch: async ({ block, text }) => {
       switch (block.saveAction) {
         case "fragment": {
           await client.author.customizePrompt(modeId, block.blockId, text);
@@ -167,7 +179,16 @@ export function PromptBlockStack({ modeId, onModeChange }: PromptBlockStackProps
         }
       }
     },
-    [client, modeId, overrides],
+  });
+
+  // onSave wrapper passed to each PromptBlock. Returns immediately so the
+  // block exits edit-mode without waiting for the IPC round-trip.
+  const dispatchSave = useCallback(
+    (block: AssembledBlock, text: string): Promise<void> => {
+      saveAction.trigger({ block, text });
+      return Promise.resolve();
+    },
+    [saveAction],
   );
 
   const handleEditingChange = useCallback(
@@ -197,8 +218,44 @@ export function PromptBlockStack({ modeId, onModeChange }: PromptBlockStackProps
 
   const allLoaded = globalLoaded && appendLoaded && !overrides.loading;
 
+  const isSaving = saveAction.state === "pending" || saveAction.state === "retrying";
+
   return (
     <div className={styles.stack}>
+      {/* ── Save action status ── visible when a block save is in-flight / settled ── */}
+      {saveAction.state !== "idle" && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "4px 8px",
+            fontSize: "var(--font-size-sm, 0.875rem)",
+            color: "var(--color-text-tertiary)",
+          }}
+          aria-live="polite"
+        >
+          <ActionPip state={saveAction.state} />
+          {isSaving && <span>Saving…</span>}
+          {saveAction.state === "success" && <span>Saved</span>}
+          {saveAction.state === "failed" && (
+            <span style={{ position: "relative" }}>
+              <FailurePopover
+                reason={saveAction.errorReason}
+                actions={[
+                  {
+                    label: COPY.actionPip.retryLabel,
+                    onClick: saveAction.retry,
+                    variant: "primary",
+                  },
+                  { label: COPY.actionPip.dismissLabel, onClick: saveAction.dismiss },
+                ]}
+              />
+            </span>
+          )}
+        </div>
+      )}
       <div className={styles.modePicker}>
         <label htmlFor="prompt-block-stack-mode" className={styles.modePickerLabel}>
           {COPY.prompt.modePickerLabel}

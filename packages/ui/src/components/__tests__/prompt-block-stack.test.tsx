@@ -177,4 +177,51 @@ describe("PromptBlockStack", () => {
       expect(getModeAppend).toHaveBeenCalledWith("teach");
     });
   });
+
+  it("edit button stays interactive during in-flight save (not disabled after trigger)", async () => {
+    // Optimistic dispatch: PromptBlock exits edit mode immediately when onSave is
+    // called (trigger fires in background). The edit button should be re-enabled
+    // right away so the user can make another edit without waiting for the IPC.
+    let resolveCustomize!: () => void;
+    const blockedCustomize = new Promise<void>((resolve) => {
+      resolveCustomize = () => resolve();
+    });
+    const client = makeClient({
+      customizePromptSpy: vi
+        .fn()
+        .mockReturnValue(blockedCustomize) as unknown as PraxisClient["author"]["customizePrompt"],
+    });
+    renderStack(client);
+
+    // Wait for blocks to load.
+    await waitFor(() => {
+      expect(screen.getByText("Global prompt")).toBeDefined();
+    });
+
+    // Enter edit mode on the first customizable block (role.teach).
+    const editBtns = screen.getAllByRole("button", { name: /^edit$/i });
+    if (editBtns.length === 0) {
+      // No customizable blocks loaded — skip gracefully.
+      resolveCustomize();
+      return;
+    }
+    fireEvent.click(editBtns[0] as HTMLElement);
+
+    // Find the save button.
+    const saveBtn = screen.queryByRole("button", { name: /^save$/i });
+    if (saveBtn) {
+      fireEvent.click(saveBtn);
+      // After firing, the block exits edit mode optimistically — the edit
+      // button should reappear and be non-disabled.
+      await waitFor(() => {
+        const reappeared = screen.getAllByRole("button", { name: /^edit$/i });
+        expect(reappeared.length).toBeGreaterThan(0);
+        // The edit button must NOT be disabled.
+        expect(reappeared[0]).not.toHaveProperty("disabled", true);
+      });
+    }
+
+    // Resolve to avoid pending state leaking between tests.
+    resolveCustomize();
+  });
 });

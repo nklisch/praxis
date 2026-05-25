@@ -23,6 +23,11 @@
  * content pane, a floating `<SelectionActionBar>` appears with four capture
  * actions (note · ask Praxis · cite · flashcard). Listens to
  * `selectionchange` on the document, debounced ~100ms.
+ *
+ * Selection actions use `useOptimisticAction` so the bar dismisses immediately
+ * on click. Failures escalate to the activity strip via `useActionEscalation`
+ * after 30 s (two-tier failure pattern — no inline pip, since the bar is gone
+ * when the failure surfaces).
  */
 
 import type {
@@ -32,8 +37,10 @@ import type {
   SessionId,
 } from "@praxis/core/types";
 import type { JSX } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useActionEscalation } from "../hooks/use-action-escalation.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
 import { useResource } from "../hooks/use-resource.js";
 import styles from "./document-tab-body.module.css";
 import { pickRenderer } from "./document-viewer/format-router.js";
@@ -163,6 +170,27 @@ function computeRangeOffset(root: Element, rangeNode: Node, rangeOffset: number)
   return -1;
 }
 
+// ── Selection action param types ─────────────────────────────────────────────
+// Defined at module scope so they're visible to the hook call sites without
+// needing to declare interfaces inside the function body.
+
+interface NoteParams {
+  text: string;
+}
+
+interface CitationParams {
+  documentId: DocumentId;
+  citingSessionId: SessionId;
+  startOffset: number;
+  endOffset: number;
+  citedText: string;
+}
+
+interface FlashcardParams {
+  front: string;
+  back: string;
+}
+
 /**
  * Top-level document viewer. Loads `DocumentDetail` on mount and delegates
  * rendering to the per-format renderer selected by `pickRenderer(doc.mimeType)`.
@@ -248,16 +276,120 @@ export function DocumentTabBody({
     };
   }, []);
 
+  // ── Selection action hooks ────────────────────────────────────────────────
+  // Each action uses useOptimisticAction so the bar dismisses immediately on
+  // click. Failures are aggregated by useActionEscalation and surface in the
+  // activity strip after 30 s (two-tier failure pattern). Since the bar is
+  // gone when a failure might surface, there's no inline pip for these actions.
+
+  const noteAction = useOptimisticAction<NoteParams>({
+    dispatch: async (params) => {
+      await client.notes.create({
+        format: "free",
+        body: { kind: "free", text: params.text },
+      });
+    },
+  });
+
+  const citationAction = useOptimisticAction<CitationParams>({
+    dispatch: async (params) => {
+      await client.citations.record(params);
+    },
+  });
+
+  const flashcardAction = useOptimisticAction<FlashcardParams>({
+    dispatch: async (params) => {
+      await client.flashcards.create({
+        front: params.front,
+        back: params.back,
+        source: { kind: "user-created" },
+      });
+    },
+  });
+
+  // Track failedAt timestamps for escalation — useOptimisticAction doesn't
+  // expose when it transitions to "failed", so we capture it via useEffect.
+  const [noteFailedAt, setNoteFailedAt] = useState<number | null>(null);
+  const [citationFailedAt, setCitationFailedAt] = useState<number | null>(null);
+  const [flashcardFailedAt, setFlashcardFailedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (noteAction.state === "failed") {
+      setNoteFailedAt((prev) => prev ?? Date.now());
+    } else {
+      setNoteFailedAt(null);
+    }
+  }, [noteAction.state]);
+
+  useEffect(() => {
+    if (citationAction.state === "failed") {
+      setCitationFailedAt((prev) => prev ?? Date.now());
+    } else {
+      setCitationFailedAt(null);
+    }
+  }, [citationAction.state]);
+
+  useEffect(() => {
+    if (flashcardAction.state === "failed") {
+      setFlashcardFailedAt((prev) => prev ?? Date.now());
+    } else {
+      setFlashcardFailedAt(null);
+    }
+  }, [flashcardAction.state]);
+
+  // Aggregate failed actions for strip escalation.
+  const failedActions = useMemo(() => {
+    const list: Array<{ id: string; label: string; failedAt: number }> = [];
+    if (noteAction.state === "failed" && noteFailedAt !== null) {
+      list.push({ id: "selection-note", label: "Note creation failed", failedAt: noteFailedAt });
+    }
+    if (citationAction.state === "failed" && citationFailedAt !== null) {
+      list.push({
+        id: "selection-citation",
+        label: "Citation failed",
+        failedAt: citationFailedAt,
+      });
+    }
+    if (flashcardAction.state === "failed" && flashcardFailedAt !== null) {
+      list.push({
+        id: "selection-flashcard",
+        label: "Flashcard creation failed",
+        failedAt: flashcardFailedAt,
+      });
+    }
+    return list;
+  }, [
+    noteAction.state,
+    noteFailedAt,
+    citationAction.state,
+    citationFailedAt,
+    flashcardAction.state,
+    flashcardFailedAt,
+  ]);
+
+  // activity: null — ActivityClient (renderer-side) has events()/dismiss() but not
+  // start(), which is ActivityRegistry (server-side). Strip escalation degrades
+  // gracefully; a future iteration can thread a start()-capable registry from a
+  // parent component if needed. Consistent with other tab-body escalation usages.
+  useActionEscalation({
+    failedActions,
+    activity: null,
+  });
+
   // ── Action handlers ──────────────────────────────────────────────────────
 
-  const handleNote = useCallback(async () => {
-    await client.notes.create({
-      format: "free",
-      body: { kind: "free", text: selectionBar.text },
-    });
-  }, [client, selectionBar.text]);
+  const handleNote = useCallback((): Promise<void> => {
+    // Capture selection params at click-time; trigger fires in background.
+    // Dismiss immediately — bar won't block on the async work.
+    noteAction.trigger({ text: selectionBar.text });
+    dismissBar();
+    return Promise.resolve();
+  }, [noteAction, selectionBar.text, dismissBar]);
 
   const handleAskPraxis = useCallback(async () => {
+    // ask Praxis spawns a new session — this is intentionally awaited since
+    // onSpawnedSession must open the tab before we dismiss, and the UX relies
+    // on the immediate navigation. Not converted to optimistic dispatch.
     const handle = await client.session.spawnFromPassage({
       documentId: tab.documentId as DocumentId,
       range: { startOffset: selectionBar.startOffset, endOffset: selectionBar.endOffset },
@@ -267,8 +399,8 @@ export function DocumentTabBody({
     }
   }, [client, tab.documentId, selectionBar.startOffset, selectionBar.endOffset, onSpawnedSession]);
 
-  const handleCite = useCallback(async () => {
-    await client.citations.record({
+  const handleCite = useCallback((): Promise<void> => {
+    citationAction.trigger({
       documentId: tab.documentId as DocumentId,
       // v1: citingSessionId is required by the API; if no session is active
       // we use an empty-string sentinel. A future iteration can gate this
@@ -278,17 +410,20 @@ export function DocumentTabBody({
       endOffset: selectionBar.endOffset,
       citedText: selectionBar.text,
     });
-  }, [client, tab.documentId, currentSessionId, selectionBar]);
+    dismissBar();
+    return Promise.resolve();
+  }, [citationAction, tab.documentId, currentSessionId, selectionBar, dismissBar]);
 
-  const handleFlashcard = useCallback(async () => {
+  const handleFlashcard = useCallback((): Promise<void> => {
     const front = window.prompt("Flashcard front (question or cue):", "");
-    if (front === null || front.trim() === "") return; // user cancelled
-    await client.flashcards.create({
-      front: front.trim(),
-      back: selectionBar.text,
-      source: { kind: "user-created" },
-    });
-  }, [client, selectionBar.text]);
+    if (front === null || front.trim() === "") {
+      // user cancelled — bar stays visible (no dismiss)
+      return Promise.resolve();
+    }
+    flashcardAction.trigger({ front: front.trim(), back: selectionBar.text });
+    dismissBar();
+    return Promise.resolve();
+  }, [flashcardAction, selectionBar.text, dismissBar]);
 
   const loader = useCallback(() => client.documents.get(tab.documentId), [client, tab.documentId]);
   const citationsLoader = useCallback(

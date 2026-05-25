@@ -2,6 +2,10 @@ import type { Timestamp } from "@praxis/core/types";
 import type { JSX } from "react";
 import { useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
+import { FailurePopover } from "./failure-popover.js";
 import { Modal } from "./modal.js";
 import styles from "./tool-call-entry.module.css";
 
@@ -65,8 +69,6 @@ export function ToolCallEntry(props: ToolCallEntryProps): JSX.Element {
   const client = usePraxisClient();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [revertState, setRevertState] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [revertError, setRevertError] = useState<string | null>(null);
 
   // Once the component records a successful restore, it shows the restored
   // label even if the parent hasn't refreshed its actions list yet.
@@ -74,26 +76,19 @@ export function ToolCallEntry(props: ToolCallEntryProps): JSX.Element {
 
   const isRestored = localRestored || (restoredAt != null && restoredAt !== undefined);
 
-  const glyphClass =
-    verdict === "ok"
-      ? styles.glyphOk
-      : verdict === "error"
-        ? styles.glyphError
-        : styles.glyphRunning;
-
-  const handleConfirmRevert = async () => {
-    if (!actionId) return;
-    setConfirmOpen(false);
-    setRevertState("loading");
-    setRevertError(null);
-    try {
-      const result = await client.author.restoreAction({ actionId });
-      if (result.ok) {
-        setRevertState("done");
-        setLocalRestored(true);
-      } else {
-        setRevertState("error");
-        setRevertError(
+  // ── restoreAction ──────────────────────────────────────────────────────────
+  // Optimistic dispatch: the revert button stays interactive while the IPC call
+  // is in-flight. Pip beside the confirm button shows pending / success / failed
+  // state. Failure renders a FailurePopover with retry.
+  //
+  // `restoreAction` returns `{ ok, reason? }` rather than throwing on logical
+  // failure, so we map the non-ok cases to thrown errors so useOptimisticAction
+  // transitions to "failed" correctly.
+  const revertAction = useOptimisticAction<{ actionId: string }>({
+    dispatch: async (params) => {
+      const result = await client.author.restoreAction(params);
+      if (!result.ok) {
+        throw new Error(
           result.reason === "already_restored"
             ? "Already restored."
             : result.reason === "no_snapshot"
@@ -103,11 +98,26 @@ export function ToolCallEntry(props: ToolCallEntryProps): JSX.Element {
                 : "Action not found.",
         );
       }
-    } catch (err) {
-      setRevertState("error");
-      setRevertError(err instanceof Error ? err.message : "Restore failed.");
-    }
+    },
+    onSuccess: () => {
+      setLocalRestored(true);
+      setConfirmOpen(false);
+    },
+  });
+
+  const glyphClass =
+    verdict === "ok"
+      ? styles.glyphOk
+      : verdict === "error"
+        ? styles.glyphError
+        : styles.glyphRunning;
+
+  const handleConfirmRevert = () => {
+    if (!actionId) return;
+    revertAction.trigger({ actionId });
   };
+
+  const isReverting = revertAction.state === "pending" || revertAction.state === "retrying";
 
   return (
     <>
@@ -122,11 +132,6 @@ export function ToolCallEntry(props: ToolCallEntryProps): JSX.Element {
           <span className={styles.revertZone}>
             {isRestored ? (
               <span className={styles.restoredLabel}>↶ restored</span>
-            ) : revertState === "loading" ? (
-              <span className={styles.revertLoading}>↶…</span>
-            ) : revertState === "done" ? (
-              // Should be covered by localRestored above, but keep as fallback.
-              <span className={styles.restoredLabel}>↶ restored</span>
             ) : (
               <button
                 type="button"
@@ -137,12 +142,6 @@ export function ToolCallEntry(props: ToolCallEntryProps): JSX.Element {
                 ↶ revert
               </button>
             )}
-          </span>
-        )}
-
-        {revertState === "error" && revertError != null && (
-          <span className={styles.revertErrorText} role="alert">
-            {revertError}
           </span>
         )}
       </div>
@@ -166,13 +165,36 @@ export function ToolCallEntry(props: ToolCallEntryProps): JSX.Element {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                className={styles.confirmButton}
-                onClick={() => void handleConfirmRevert()}
+              <span
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
               >
-                Revert
-              </button>
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  onClick={handleConfirmRevert}
+                >
+                  {isReverting ? "Reverting…" : "Revert"}
+                </button>
+                <ActionPip state={revertAction.state} />
+                {revertAction.state === "failed" && (
+                  <FailurePopover
+                    reason={revertAction.errorReason}
+                    actions={[
+                      {
+                        label: COPY.actionPip.retryLabel,
+                        onClick: revertAction.retry,
+                        variant: "primary",
+                      },
+                      { label: COPY.actionPip.dismissLabel, onClick: revertAction.dismiss },
+                    ]}
+                  />
+                )}
+              </span>
             </div>
           </div>
         </Modal>
