@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators-step-1-primitive
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui, design-system]
 parent: feature-refactor-shared-choice-indicators
 depends_on: []
@@ -43,3 +43,27 @@ Create a new CSS module shipping the `.choice-indicator` primitive + 4 variants 
 - Parent feature: `.work/active/features/feature-refactor-shared-choice-indicators.md` § Step 1
 - Mockup target: `.mockups/design-system/components.css`
 - Production location: `packages/ui/src/components/item-bodies/`
+
+## Implementation notes (2026-05-24)
+
+### Files touched
+- **Created** `packages/ui/src/components/item-bodies/choice-indicator.module.css` — 5 classes: `.choiceIndicator` (base), `.choiceIndicatorRadio`, `.choiceIndicatorCheck`, `.choiceIndicatorCorrect`, `.choiceIndicatorIncorrect`
+- **Created** `packages/ui/src/__tests__/choice-indicator.test.tsx` — 14 tests covering all 6 state combinations + module resolution + variant exclusivity
+- **Updated** `.mockups/design-system/components.css` — added `.choice-indicator` family in Tier 2 section + updated table-of-contents comment
+
+### Design decisions
+- State driven by `data-selected="true"` attribute rather than `:checked` peer-selector; this keeps the indicator fully self-contained (no dependency on a sibling `<input>`), which step-2 consumers can use without restructuring the DOM.
+- Local CSS custom properties (`--_indicator-fill`, `--_indicator-border-color`) as internal pivot points for feedback variants — feedback classes override just these two vars without repeating the geometry rules.
+- `color-mix(in srgb, var(--color-success) 50%, transparent)` for the border tint matches the exact pattern already established in `item-body-shared.module.css` (`.correct` rule, line ~42).
+- `inset: 3px` for the radio fill dot matches `.inline-question__indicator` in `components.css` (reference already in tree).
+
+### Token verification
+All tokens confirmed present in `packages/ui/src/styles/global.css`: `--color-success`, `--color-danger`, `--color-accent`, `--color-border-strong`, `--radius-sm`, `--font-mono`, `--font-weight-bold`. No new tokens introduced.
+
+### Test results
+- `pnpm vitest run choice-indicator.test.tsx` → 14/14 pass
+- `pnpm typecheck` → clean across all packages
+- `pnpm biome check` on new files → clean (pre-existing mockup HTML lint errors unrelated)
+
+### Deviations from spec
+- None. Existing `item-body-shared.module.css` is fully untouched.

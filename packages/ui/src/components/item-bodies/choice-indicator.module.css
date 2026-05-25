@@ -1,0 +1,140 @@
+/*
+ * choice-indicator.module.css
+ *
+ * Reusable custom indicator for radio/checkbox choices in assessment item
+ * bodies. Replaces the browser-native <input type="radio|checkbox"> with a
+ * styled presentation-layer span, while the actual accessible input stays
+ * visually hidden and drives state through the peer-selector pattern or
+ * explicit `data-selected` props.
+ *
+ * Mock-to-production class name mapping
+ * (CSS Modules hashes production names; mock names are literal):
+ *
+ *   Mock literal                  │ Production (hashed at build)
+ *   ──────────────────────────────┼──────────────────────────────
+ *   .choice-indicator             │ .choiceIndicator
+ *   .choice-indicator--radio      │ .choiceIndicatorRadio
+ *   .choice-indicator--check      │ .choiceIndicatorCheck
+ *   .choice-indicator--correct    │ .choiceIndicatorCorrect
+ *   .choice-indicator--incorrect  │ .choiceIndicatorIncorrect
+ *
+ * Composition:
+ *   <span class="choiceIndicator choiceIndicatorRadio">           default radio
+ *   <span class="choiceIndicator choiceIndicatorCheck">           default checkbox
+ *   <span class="choiceIndicator choiceIndicatorRadio choiceIndicatorCorrect">  correct radio
+ *   <span class="choiceIndicator choiceIndicatorCheck choiceIndicatorIncorrect"> incorrect check
+ *
+ * All values are design tokens — no hardcoded hex or pixel values.
+ *
+ * Reference: .inline-question__indicator in .mockups/design-system/components.css
+ * uses the same 16×16 / 1.5px border / inset-3px pattern; this module
+ * consolidates that treatment for reuse across item-bodies.
+ */
+
+/* ── Base wrapper ─────────────────────────────────────────────────────────── */
+
+/*
+ * .choiceIndicator — the sized, bordered shell that sits at the leading edge
+ * of each choice row. Flex-shrink 0 keeps it pinned at its declared size even
+ * inside a wrapping flex parent; relative positioning anchors the ::after fill
+ * or checkmark.
+ *
+ * Width/height intentionally expressed as a local custom property so shape
+ * variants (radio → circle, check → square) only override border-radius without
+ * repeating the dimension pair.
+ */
+.choiceIndicator {
+  --_indicator-size: 16px;
+  --_indicator-border-color: var(--color-border-strong);
+  --_indicator-fill: var(--color-accent);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--_indicator-size);
+  height: var(--_indicator-size);
+  position: relative;
+  border: 1.5px solid var(--_indicator-border-color);
+  box-sizing: border-box;
+  /* Default: square with slight rounding; overridden per shape variant */
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out;
+}
+
+/* ── Shape variants ───────────────────────────────────────────────────────── */
+
+/*
+ * .choiceIndicatorRadio — circle. ::after is the filled center dot,
+ * rendered when data-selected="true" is set by the parent label.
+ *
+ * The inset-3px geometry matches .inline-question__indicator in
+ * components.css (established reference, locked 2026-05-19).
+ */
+.choiceIndicatorRadio {
+  border-radius: 50%;
+}
+
+.choiceIndicatorRadio[data-selected="true"] {
+  border-color: var(--_indicator-fill);
+}
+
+.choiceIndicatorRadio[data-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--_indicator-fill);
+}
+
+/*
+ * .choiceIndicatorCheck — square. ::after is a checkmark glyph (✓),
+ * centered via flex on the square container, colored with
+ * --_indicator-fill. Mono font for pixel-sharp rendering.
+ */
+.choiceIndicatorCheck {
+  border-radius: var(--radius-sm);
+}
+
+.choiceIndicatorCheck[data-selected="true"] {
+  border-color: var(--_indicator-fill);
+}
+
+.choiceIndicatorCheck[data-selected="true"]::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--_indicator-fill);
+}
+
+/* ── Feedback state variants ──────────────────────────────────────────────── */
+
+/*
+ * .choiceIndicatorCorrect — success color palette. Overrides the local
+ * fill custom property so both the border and the ::after fill shift in one
+ * declaration without touching the shape variant rules.
+ *
+ * Uses color-mix to tint the border at 50% opacity matching the pattern
+ * established in item-body-shared.module.css (.correct rule, line ~42).
+ */
+.choiceIndicatorCorrect {
+  --_indicator-fill: var(--color-success);
+  --_indicator-border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
+}
+
+/*
+ * .choiceIndicatorIncorrect — danger color palette.
+ */
+.choiceIndicatorIncorrect {
+  --_indicator-fill: var(--color-danger);
+  --_indicator-border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+}

@@ -30,6 +30,7 @@
  *     .prompt-block
  *     .concept-link-overlay
  *     .claude-auth-modal
+ *     .choice-indicator (+ --radio / --check / --correct / --incorrect)
  *
  * Tokens-only: every color, spacing, and radius is a var(--token).
  * Edit by re-running /ux-ui-design:components.
@@ -1229,6 +1230,94 @@ body {
 }
 .claude-auth-modal__status--signed-in::before {
   content: "✓";
+}
+
+/* ─── Tier 2: choice-indicator ───────────────────────────────────────────── */
+
+/*
+ * Reusable custom indicator for radio/checkbox choices in assessment item
+ * bodies. Two shape variants (--radio / --check) compose with two feedback
+ * state variants (--correct / --incorrect).
+ *
+ * Mock-to-production class name mapping:
+ *   .choice-indicator             → .choiceIndicator           (CSS Modules hashed)
+ *   .choice-indicator--radio      → .choiceIndicatorRadio
+ *   .choice-indicator--check      → .choiceIndicatorCheck
+ *   .choice-indicator--correct    → .choiceIndicatorCorrect
+ *   .choice-indicator--incorrect  → .choiceIndicatorIncorrect
+ *
+ * Source: packages/ui/src/components/item-bodies/choice-indicator.module.css
+ *
+ * Composition examples:
+ *   <span class="choice-indicator choice-indicator--radio">
+ *   <span class="choice-indicator choice-indicator--check choice-indicator--correct" data-selected="true">
+ */
+.choice-indicator {
+  --_indicator-size: 16px;
+  --_indicator-border-color: var(--color-border-strong);
+  --_indicator-fill: var(--color-accent);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--_indicator-size);
+  height: var(--_indicator-size);
+  position: relative;
+  border: 1.5px solid var(--_indicator-border-color);
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out;
+}
+
+.choice-indicator--radio {
+  border-radius: 50%;
+}
+
+.choice-indicator--radio[data-selected="true"] {
+  border-color: var(--_indicator-fill);
+}
+
+.choice-indicator--radio[data-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--_indicator-fill);
+}
+
+.choice-indicator--check {
+  border-radius: var(--radius-sm);
+}
+
+.choice-indicator--check[data-selected="true"] {
+  border-color: var(--_indicator-fill);
+}
+
+.choice-indicator--check[data-selected="true"]::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--_indicator-fill);
+}
+
+.choice-indicator--correct {
+  --_indicator-fill: var(--color-success);
+  --_indicator-border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
+}
+
+.choice-indicator--incorrect {
+  --_indicator-fill: var(--color-danger);
+  --_indicator-border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
 }
 
 /* Section break — when route bodies stack multiple .section blocks, the
