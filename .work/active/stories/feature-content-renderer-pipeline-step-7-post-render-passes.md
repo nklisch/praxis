@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-7-post-render-passes
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, markdown]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-3-css-primitives]
@@ -50,6 +50,29 @@ Two rehype post-render plugins that walk text nodes and wrap matches in CSS-clas
 - [ ] Unit table excludes single-letter units to avoid prose-variable false positives
 - [ ] Both plugins use the `visitParents` + collect-then-splice pattern from `rehype-citation-chips`
 - [ ] Unit tests cover happy path + ancestor-skip + false-positive-avoidance
+
+## Implementation notes (2026-05-24)
+
+### rehype-file-paths
+- Created `packages/ui/src/lib/markdown-plugins/rehype-file-paths.ts`
+- `FILE_PATH_RE = /\b[\w-]+(?:\/[\w.-]+)+\.\w{1,8}\b/g` — requires at least one slash and a dot-extension
+- `SKIP_TAGS = Set(["code", "pre", "kbd", "samp", "a"])` — ancestor skip
+- Mirrors `rehype-math-glyph-wrap.ts` collect-then-splice pattern exactly
+- Wraps matches in `<span class="file-path">` (unhashed class name for CSS global selector; CSS Module `.filePath` styles it via the module)
+- Tests `packages/ui/src/__tests__/rehype-file-paths.test.ts` (14 tests): all pass
+
+### rehype-units
+- Created `packages/ui/src/lib/markdown-plugins/rehype-units.ts`
+- `UNIT_TABLE` exported `as const` — multi-char SI + imperial only; single-letter J/N/W/V/A/g/m/s excluded (false-positive risk vs variable names)
+- Longer/compound tokens ordered first in table to prevent prefix shadowing in alternation regex (e.g. `m/s²` before `m/s`, `kHz` before `Hz`)
+- `UNIT_RE` uses lookahead `(?=[\s.,;:!?)]|$)` instead of `\b` to handle compound units ending in `²` (which is not a `\w` char)
+- Wraps matches in `<span class="units"><span class="num">N</span><span class="unit">U</span></span>`
+- Same ancestor-skip pattern as file-paths
+- Tests `packages/ui/src/__tests__/rehype-units.test.ts` (20 tests): all pass
+
+### Design discovery
+- `°C`/`°F` degree-sign units end in a word char so `\b` works; `m/s²` ends in `²` (non-word) so lookahead boundary used instead.
+- Both plugins ship unwired — step-8 adds them to `REHYPE_PLUGINS` in `markdown-content.tsx`.
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 7

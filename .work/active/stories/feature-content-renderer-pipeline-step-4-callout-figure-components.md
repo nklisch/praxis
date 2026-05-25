@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-4-callout-figure-components
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, ui]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-2-remark-plugins, feature-content-renderer-pipeline-step-3-css-primitives]
@@ -37,6 +37,22 @@ React components rendered via react-markdown's `components` map for the custom H
 - [ ] Components have no state, no effects
 - [ ] Tests cover each callout type + figure with/without caption/verdict
 - [ ] Accessibility: callouts have appropriate `role` attribute
+
+## Implementation notes (2026-05-24)
+
+- Created `packages/ui/src/components/markdown/callout.tsx`:
+  - `Callout` renders `<aside role="note">` with `.callout` + `.<type>` modifier class
+  - `TYPE_LABEL` record drives the `<span class="calloutIcon" aria-hidden="true">` text (Theorem / Lemma / Hint / Warning)
+  - `?? ""` fallbacks on CSS module key access satisfies `noUncheckedIndexedAccess`
+  - Pure presentational — no state, no effects
+- Created `packages/ui/src/components/markdown/figure.tsx`:
+  - `Figure` renders `<figure>` with `.figureBody` always present; `<figcaption>` only when `caption` prop is provided
+  - Verdict glyph is `<span role="img" aria-label="correct|check your work">` inside the figcaption
+  - `?? ""` fallbacks on CSS module verdict-class key access
+- Tests `packages/ui/src/__tests__/markdown/callout.test.tsx` (11 tests) and `figure.test.tsx` (17 tests): all pass
+  - Each callout type modifier class verified; `calloutIcon` aria-hidden confirmed
+  - Figure with/without caption, with/without verdict; aria-label on verdict span confirmed
+- Also formatted `packages/ui/src/components/markdown/definition.tsx` (pre-existing, was failing biome format)
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 4

@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-6-concept-glossary-components
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, ui]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-3-css-primitives]
@@ -36,6 +36,16 @@ Two small additions: a `concept:` link-scheme handler that renders `<ConceptRef>
 - [ ] Tests cover render, click, slug extraction
 - [ ] Glossary class applies to `<abbr>` elements (verify via integration test in step-8)
 - [ ] Non-concept `<a>` hrefs preserve existing behavior (external target=_blank, etc.)
+
+## Implementation notes (2026-05-24)
+
+- Created `packages/ui/src/components/markdown/concept-ref.tsx`:
+  - `ConceptRef` renders `<a href="#" className={styles.conceptRef} onClick={handleClick}>`
+  - `handleClick` calls `e.preventDefault()` then `onOpen?.(conceptSlug)` — safe no-op when `onOpen` absent
+  - `biome-ignore lint/a11y/useValidAnchor` applied with justification: `concept:` links are intentional in-app anchors
+- Wiring of `concept:` href detection and `abbr` override deferred to step-8 per spec — this story ships the component only
+- Tests `packages/ui/src/__tests__/markdown/concept-ref.test.tsx` (9 tests): all pass
+  - Renders `<a href="#">`; applies `.conceptRef` class; click fires `onOpen(slug)`; no-op without handler; slug passed exactly; rich children supported
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 6
