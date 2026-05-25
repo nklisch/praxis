@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-4-prompt-fragment
 kind: story
-stage: implementing
+stage: review
 tags: [content, agent-prompt]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults]
@@ -46,3 +46,7 @@ A single factory that builds the unified question-tool prompt fragment. Takes re
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 4
 - Pattern: `.claude/skills/patterns/mode-prompt-fragment-composition.md` (factory fragments)
 - Depends on step-1 types
+
+## Implementation notes (2026-05-24)
+
+Created `packages/curriculum/src/modes/fragments/question-tool.ts` exporting `questionToolFragment(constraints, modeLabel)`. Confirmed `"constraints"` is a valid `PromptFragmentPosition` in `@praxis/core/types/mode.ts`. Added the factory export to `packages/curriculum/src/modes/index.ts` alongside the existing `devModeFragment` export. Test file at `packages/curriculum/src/modes/fragments/__tests__/question-tool.test.ts` covers all 4 acceptance criteria: id/position/customizable, teach interpolation, exam interpolation, and all 6 markup-convention sections. All 4943 workspace tests pass; typecheck clean.
