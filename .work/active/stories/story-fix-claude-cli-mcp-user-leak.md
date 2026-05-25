@@ -1,7 +1,7 @@
 ---
 id: story-fix-claude-cli-mcp-user-leak
 kind: story
-stage: review
+stage: done
 tags: [bug, security, engines]
 parent: feature-claude-cli-spawn-hardening
 depends_on: []
