@@ -1,7 +1,7 @@
 ---
 id: story-fix-cornell-cue-spawn-seed-session
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: feature-workspace-notes-affordance-fixes
 depends_on: []
