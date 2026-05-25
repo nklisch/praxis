@@ -51,3 +51,9 @@ The spawned CLI's tool surface is hard-limited to exactly what Praxis passes via
 - `packages/engines/src/claude-code/adapter.ts`: Added `strictMcpConfig: true` to the `createConversation()` call (11 lines of comment + 1 line of code). See the comment block explaining the security rationale.
 - `packages/engines/src/__tests__/claude-code.test.ts`: Added regression test `"open() passes strictMcpConfig: true to prevent the CLI from loading user-level MCP servers"` which asserts `sdkOpts?.strictMcpConfig === true`.
 - `packages/claude-cli-sdk/src/cli/__tests__/spawn-hardening.test.ts`: Added `buildConversationArgs — --strict-mcp-config` describe block with 3 tests covering the emission and non-emission cases.
+
+## Implementation notes + Review (2026-05-25)
+
+Bundled commit `6467e020`. Discovered `strictMcpConfig: true` flag already exists in SDK + CLI 2.1.150+ — clean one-line fix in `packages/engines/src/claude-code/adapter.ts`. Maps to CLI's `--strict-mcp-config` flag which instructs the CLI to use ONLY servers from `--mcp-config`, ignoring user-level `~/.claude/settings.json` MCP entries. No HOME sandboxing or workaround needed.
+
+**Verdict**: Approve — minimal, correct fix using upstream-supported flag.

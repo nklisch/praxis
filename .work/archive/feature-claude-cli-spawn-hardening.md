@@ -1,14 +1,14 @@
 ---
 id: feature-claude-cli-spawn-hardening
 kind: feature
-stage: implementing
+stage: done
 tags: [security, engines, bug]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Claude CLI spawn hardening: MCP scope leak + orphan subprocess cleanup
@@ -24,3 +24,13 @@ Children are independent and can be worked in either order, but landing them tog
 
 ## Source idea
 `idea-claude-cli-mcp-user-leak` (parked 2026-05-24).
+
+## Implementation summary + Review (2026-05-25)
+
+Both bug fixes shipped in one consolidated commit (`6467e020`):
+- MCP user-config leak: `strictMcpConfig: true` flag (upstream-supported, clean)
+- Orphan subprocess cleanup: detached spawn + group-kill + PID registry sweep
+
+5375 tests pass. Security + lifecycle hardening complete.
+
+**Verdict**: Approve — both bugs fixed with minimal surface area + comprehensive coverage. Feature has no parent → archives on advance.

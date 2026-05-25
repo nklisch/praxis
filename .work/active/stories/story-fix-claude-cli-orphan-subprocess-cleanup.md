@@ -87,3 +87,16 @@ Option 3's "self-terminate when parent dies" is the cleanest fix — the CLI doe
 - `packages/desktop/electron/main/index.ts`: Calls `sweepOrphanedPids()` in `bootstrap()` before `buildServices()`; calls `services.pidRegistry.clear()` in the `before-quit` handler after sessions are closed.
 - `packages/claude-cli-sdk/src/cli/__tests__/spawn-hardening.test.ts`: New test file — 7 tests covering `detached:true`, `killProcessGroup` (POSIX SIGTERM+SIGKILL, ESRCH swallow, Windows no-op), and `--strict-mcp-config` flag emission.
 - `packages/engines/src/__tests__/claude-code.test.ts`: Added 2 regression tests — `strictMcpConfig: true` assertion and PID callback threading assertion.
+
+## Implementation notes + Review (2026-05-25)
+
+Bundled commit `6467e020`. Three-layer defense:
+1. **Detached spawn** in `spawn.ts` — CLI subprocess becomes its own process-group leader (POSIX); new `killProcessGroup(pgid, graceMs)` helper sends SIGTERM to `-pgid` then SIGKILL after 3s
+2. **Group-kill on close/abort** in `conversation.ts` — `Conversation.close()` + abort handler use `killProcessGroup(pid)` so MCP workers + electron descendants die with the CLI root
+3. **Crash-survival PID registry** (NEW `spawned-pid-registry.ts`) — persists PIDs to `<dataDir>/spawned-pids.json`; `sweepOrphanedPids()` runs at desktop startup to SIGTERM survivors from prior crashes; `pidRegistry.clear()` on `before-quit`
+
+Onspawn/onexit PID callbacks threaded through full stack: `ConversationOptions` → `ClaudeCodeEngineOptions` → `CreateEngineInput` → `ServiceDeps` → `EngineSessionManager.openActive()` → all 3 desktop resolver paths.
+
+7 new spawn-hardening tests + 2 regression tests. 5375 total tests pass.
+
+**Verdict**: Approve — robust three-layer defense matches the design's "graceful + crash-survival" intent.
