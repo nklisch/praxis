@@ -76,14 +76,6 @@
   cursor: not-allowed;
 }
 
-/* Feedback glyph */
-.feedbackGlyph {
-  margin-left: auto;
-  font-size: 0.8rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
 /* Keyboard/accessibility toggle */
 .accessToggle {
   display: flex;

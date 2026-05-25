@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators-step-2-body-components
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-shared-choice-indicators
 depends_on: [feature-refactor-shared-choice-indicators-step-1-primitive]
@@ -47,3 +47,16 @@ Update `single-choice-body.tsx` and `multi-select-body.tsx` to render via the ne
 - Parent feature: `.work/active/features/feature-refactor-shared-choice-indicators.md` § Step 2
 - Files: `packages/ui/src/components/item-bodies/{single-choice-body,multi-select-body,item-body-shared.module}.{tsx,css}`
 - Depends on step-1 primitive
+
+## Implementation notes (2026-05-24)
+
+**Files touched:**
+- `packages/ui/src/components/item-bodies/single-choice-body.tsx` — added `indicatorStyles` import from `choice-indicator.module.css`; replaced `feedbackClass` on `<label>` + `feedbackGlyph` `<span>` pair with a single `<span aria-hidden="true">` composed from `choiceIndicator + choiceIndicatorRadio [+ choiceIndicatorCorrect|choiceIndicatorIncorrect]`, driven by `data-selected` attribute.
+- `packages/ui/src/components/item-bodies/multi-select-body.tsx` — same refactor; `choiceIndicatorCheck` instead of `choiceIndicatorRadio`.
+- `packages/ui/src/components/item-bodies/item-body-shared.module.css` — removed `.feedbackGlyph` (now unused). Kept `.correct` and `.incorrect` because `ordering-body.tsx` and `matching-body.tsx` still reference them — the story scope's "verified-no-other-consumers" claim was incorrect; grep revealed two additional consumers.
+
+**Deviation from scope:** `.correct` / `.incorrect` were NOT removed from `item-body-shared.module.css` because `ordering-body.tsx` and `matching-body.tsx` still import and apply those classes directly via `styles.correct` / `styles.incorrect`. Removing them would have broken those components silently. Those body types will be addressed in a future refactor step if needed.
+
+**Test results:** 168 test files, 1803 passed, 1 skipped — all green. No test modifications were required; all existing tests use semantic `getByRole` queries.
+
+**Typecheck/lint:** Clean on all changed files. Pre-existing lint errors in unrelated files (mockups HTML) were not introduced by this change.

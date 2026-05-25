@@ -1,4 +1,5 @@
 import type { MultiSelectItem } from "@praxis/core/types";
+import indicatorStyles from "./choice-indicator.module.css";
 import styles from "./item-body-shared.module.css";
 
 export interface MultiSelectBodyProps {
@@ -44,21 +45,22 @@ export function MultiSelectBody({
     <ul className={styles.optionList}>
       {item.options.map((opt, i) => {
         const isSelected = selected.includes(i);
-        const feedbackClass =
-          correctSet !== null
-            ? correctSet.has(i)
-              ? styles.correct
-              : isSelected
-                ? styles.incorrect
-                : ""
-            : "";
+        const isCorrect = correctSet?.has(i) ?? false;
+        const isIncorrect = correctSet !== null && isSelected && !correctSet.has(i);
+
+        const indicatorClass = [
+          indicatorStyles.choiceIndicator,
+          indicatorStyles.choiceIndicatorCheck,
+          isCorrect ? indicatorStyles.choiceIndicatorCorrect : undefined,
+          isIncorrect ? indicatorStyles.choiceIndicatorIncorrect : undefined,
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
           <li key={i}>
-            <label
-              className={`${styles.optionLabel} ${disabled ? styles.disabled : ""} ${feedbackClass}`}
-            >
+            <label className={`${styles.optionLabel} ${disabled ? styles.disabled : ""}`}>
               <input
                 type="checkbox"
                 className={styles.optionInput}
@@ -67,17 +69,12 @@ export function MultiSelectBody({
                 onChange={() => toggle(i)}
                 disabled={disabled}
               />
+              <span
+                className={indicatorClass}
+                data-selected={isSelected ? "true" : undefined}
+                aria-hidden="true"
+              />
               {opt}
-              {correctSet?.has(i) && (
-                <span className={styles.feedbackGlyph} aria-hidden="true">
-                  ·
-                </span>
-              )}
-              {correctSet !== null && isSelected && !correctSet.has(i) && (
-                <span className={styles.feedbackGlyph} aria-hidden="true">
-                  °
-                </span>
-              )}
             </label>
           </li>
         );

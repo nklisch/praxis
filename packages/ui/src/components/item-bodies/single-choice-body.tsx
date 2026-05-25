@@ -1,4 +1,5 @@
 import type { SingleChoiceItem } from "@praxis/core/types";
+import indicatorStyles from "./choice-indicator.module.css";
 import styles from "./item-body-shared.module.css";
 
 export interface SingleChoiceBodyProps {
@@ -22,21 +23,22 @@ export function SingleChoiceBody({
     <ul className={styles.optionList}>
       {item.options.map((opt, i) => {
         const isSelected = response === String(i);
-        const feedbackClass =
-          feedback !== undefined
-            ? i === feedback.correctIndex
-              ? styles.correct
-              : isSelected && i !== feedback.correctIndex
-                ? styles.incorrect
-                : ""
-            : "";
+        const isCorrect = feedback !== undefined && i === feedback.correctIndex;
+        const isIncorrect = feedback !== undefined && isSelected && i !== feedback.correctIndex;
+
+        const indicatorClass = [
+          indicatorStyles.choiceIndicator,
+          indicatorStyles.choiceIndicatorRadio,
+          isCorrect ? indicatorStyles.choiceIndicatorCorrect : undefined,
+          isIncorrect ? indicatorStyles.choiceIndicatorIncorrect : undefined,
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
           <li key={i}>
-            <label
-              className={`${styles.optionLabel} ${disabled ? styles.disabled : ""} ${feedbackClass}`}
-            >
+            <label className={`${styles.optionLabel} ${disabled ? styles.disabled : ""}`}>
               <input
                 type="radio"
                 className={styles.optionInput}
@@ -46,17 +48,12 @@ export function SingleChoiceBody({
                 onChange={() => onChange(String(i))}
                 disabled={disabled}
               />
+              <span
+                className={indicatorClass}
+                data-selected={isSelected ? "true" : undefined}
+                aria-hidden="true"
+              />
               {opt}
-              {feedback !== undefined && i === feedback.correctIndex && (
-                <span className={styles.feedbackGlyph} aria-hidden="true">
-                  ·
-                </span>
-              )}
-              {feedback !== undefined && isSelected && i !== feedback.correctIndex && (
-                <span className={styles.feedbackGlyph} aria-hidden="true">
-                  °
-                </span>
-              )}
             </label>
           </li>
         );
