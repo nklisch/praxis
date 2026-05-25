@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool
 kind: feature
-stage: implementing
+stage: review
 tags: [dev, observability, dx]
 parent: null
 depends_on: []
@@ -308,3 +308,16 @@ Parallel-friendly: steps 1 and 3 ship without waiting; 2 follows 1; 4 is the ver
 - **`INDEX.md` grows unbounded**: 100-entry truncation moves overflow to `INDEX.archive.md`, which grows unbounded. In a dev session that runs for weeks, this could get large. **Mitigation**: dev-only feature; agents/devs can `rm .praxis/dev-reports/INDEX.archive.md` periodically. Document.
 
 - **CI environment**: if `PRAXIS_DEV` happens to be set in some CI shell unintentionally, tests for production-mode behavior would silently fail. **Mitigation**: every test that asserts "gate-off" behavior explicitly `delete process.env.PRAXIS_DEV` in `beforeEach`. The production-safety test is the canary.
+
+## Implementation summary (2026-05-24)
+
+All 4 child stories landed under autopilot/implement-orchestrator:
+
+- `step-1-writer-and-tool` (commit `1fa837b`) — `DevReportsWriter` + `dev.report_issue` tool. Two deviations from spec, both improvements: `DevReport`/`DevReportsWriter` declared in `@praxis/core/types/tool.ts` (avoids `@praxis/tools` ↔ `@praxis/core` cycle); `modeId?: string` forward-staged into `ToolContext` (handler needed it immediately).
+- `step-2-tool-registration-gating` (commit `ed1d1c6`) — `IS_DEV` gate in `services.ts` for both `DEV_TOOLS` push and `devReportsWriter` construction. Used spread `...(IS_DEV && { devReportsWriter: ... })` due to `exactOptionalPropertyTypes: true`.
+- `step-3-prompt-fragment-injection` (commit `f59a279`) — `devModeFragment` at `position: "postamble"` injected into `EngineSessionManager.openActive` when gate is on. 11 tests covering fragment shape, compose integration, and gate behavior.
+- `step-4-production-safety-test` (commit `379fd88`) — dedicated double-gate canary: parameterized over all 7 modes asserting zero dev content when gate is off; plus gate-on sanity asserting the canary would catch regressions (no vacuous pass). Used `.prompt` (not `.systemPrompt` — fixed spec typo on the way).
+
+Verification at advance time: full workspace typecheck green; all changed files pass biome check.
+
+What's now possible: the agent has a structured channel to surface confusing tool descriptions, contradictory prompts, missing tools, broken results, and unexecutable instructions back to the developer via the `dev.report_issue` tool, gated behind `PRAXIS_DEV=true`. Reports land as markdown files in `.praxis/dev-reports/` with an auto-regenerated INDEX.md. Production builds carry zero trace of dev tooling — verified by the step-4 canary.
