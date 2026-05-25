@@ -9,7 +9,9 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { useFirstOccurrence } from "../hooks/use-first-occurrence.js";
 import { balanceFences } from "../lib/balance-fences.js";
+import { KATEX_MACROS } from "../lib/katex-macros.js";
 import { rehypeFilePaths } from "../lib/markdown-plugins/rehype-file-paths.js";
+import { rehypeMathGlyphWrap } from "../lib/markdown-plugins/rehype-math-glyph-wrap.js";
 import { rehypeUnits } from "../lib/markdown-plugins/rehype-units.js";
 import { remarkAdmonitions } from "../lib/markdown-plugins/remark-admonitions.js";
 import { remarkDefinitions } from "../lib/markdown-plugins/remark-definitions.js";
@@ -75,7 +77,7 @@ export interface MarkdownContentProps {
 // `data.hName` to produce custom HAST elements.
 const REMARK_BASE = [remarkGfm, remarkMath] as const;
 const REHYPE_BASE = [
-  rehypeKatex,
+  [rehypeKatex, { throwOnError: false, macros: KATEX_MACROS }],
   [rehypeHighlight, { detect: true, ignoreMissing: true }],
   rehypeCitationChips,
 ] as const;
@@ -135,12 +137,12 @@ const NOOP_MARK_SEEN = async (
  * same toggles incur no extra allocations.
  *
  * ## Plugin order (REHYPE)
- * 1. `rehypeKatex`          — math typesetting
+ * 1. `rehypeKatex`          — math typesetting (`throwOnError:false`, macros)
  * 2. `rehypeHighlight`      — syntax tokens on code blocks
  * 3. `rehypeCitationChips`  — replaces `[N]` markers
  * 4. `rehypeFilePaths`      — post-pass: wraps file-path matches (conditional)
  * 5. `rehypeUnits`          — post-pass: wraps unit matches (conditional)
- *    ↑ math-glyph-wrap post-pass lands here in feature-math-rendering-step-5
+ * 6. `rehypeMathGlyphWrap`  — post-pass: wraps bare Unicode glyphs (conditional on `bareGlyphMath`)
  *
  * ## Plugin order (REMARK)
  * 1. `remarkGfm`            — tables, autolinks
@@ -169,6 +171,7 @@ export function MarkdownContent({
   // ── Toggle defaults (all on when prop is omitted) ─────────────────────────
   const callouts = renderToggles?.callouts ?? true;
   const definitions = renderToggles?.definitions ?? true;
+  const bareGlyphMath = renderToggles?.bareGlyphMath ?? true;
   const filePathAutoDetect = renderToggles?.filePathAutoDetect ?? true;
   const unitAutoDetect = renderToggles?.unitAutoDetect ?? true;
 
@@ -188,8 +191,12 @@ export function MarkdownContent({
     // Post-render passes run after math + highlight + chips on settled HAST.
     if (filePathAutoDetect) plugins.push(rehypeFilePaths);
     if (unitAutoDetect) plugins.push(rehypeUnits);
+    // rehypeMathGlyphWrap MUST run after rehypeKatex so that <math> HAST
+    // elements exist when the ancestor-skip check fires — glyphs inside
+    // KaTeX expressions are then correctly skipped.
+    if (bareGlyphMath) plugins.push(rehypeMathGlyphWrap);
     return plugins;
-  }, [filePathAutoDetect, unitAutoDetect]);
+  }, [bareGlyphMath, filePathAutoDetect, unitAutoDetect]);
 
   // ── First-occurrence tracking ─────────────────────────────────────────────
   // Terms extracted via regex — avoids a second remark parse cycle.

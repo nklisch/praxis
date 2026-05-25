@@ -1,4 +1,5 @@
 import type { RenderToggles } from "@praxis/core/types";
+import { DEFAULT_RENDER_TOGGLES } from "@praxis/core/types";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MarkdownContent } from "../components/markdown-content.js";
@@ -132,13 +133,13 @@ describe("MarkdownContent", () => {
     expect(pre?.textContent).toContain("const x = 1;");
   });
 
-  // TODO(step-5): flip .skip to active when throwOnError: false is wired into
-  // the unified() pipeline in markdown-content.tsx. Step-5 is the activator.
-  it.skip("renders malformed LaTeX as a .katex-error badge (requires step-5 throwOnError wiring)", () => {
-    // $\widebar{x}$ uses an undefined KaTeX macro — with throwOnError: false
-    // KaTeX emits a <span class="katex-error"> containing the parse-error
-    // message and raw source instead of throwing.
-    const { container } = renderMd("$\\widebar{x}$");
+  it("renders malformed LaTeX as a .katex-error badge (throwOnError: false)", () => {
+    // $\frac{$ has an unclosed brace — a genuine parse error. With
+    // throwOnError: false, KaTeX emits <span class="katex-error"> instead of
+    // throwing. Note: unknown macros like \widebar render as colored inline
+    // text without a .katex-error class in KaTeX 0.16.x; actual syntax errors
+    // (unclosed braces, mismatched environments) do produce .katex-error.
+    const { container } = renderMd("$\\frac{$");
     expect(container.querySelector(".katex-error")).not.toBeNull();
   });
 
@@ -425,6 +426,71 @@ Speed = 9.8 m/s².
   // abbr/.glossary: raw HTML <abbr> is sanitized by react-markdown by default.
   // The `abbr` component override is for future use when a glossary remark
   // plugin emits <abbr> HAST elements. Tested via the CSS presence smoke tests.
+});
+
+/* ── Math rendering integration ─────────────────────────────────────────────
+ * Verifies that rehype-katex options (throwOnError: false, KATEX_MACROS) and
+ * rehypeMathGlyphWrap are correctly wired into the pipeline.
+ * ────────────────────────────────────────────────────────────────────────── */
+describe("math rendering integration", () => {
+  afterEach(() => cleanup());
+
+  it("renders \\R macro via KaTeX", () => {
+    // KATEX_MACROS maps \R → \mathbb{R}; KaTeX emits .katex root with
+    // .mord.mathbb spans containing the ℝ glyph.
+    const { container } = render(<MarkdownContent content="$\\R$" />);
+    expect(container.querySelector(".katex")).not.toBeNull();
+  });
+
+  it("wraps bare Greek glyph in .math-glyph", () => {
+    // rehypeMathGlyphWrap fires (bareGlyphMath defaults to true) and wraps
+    // each Unicode math glyph in <span class="math-glyph">.
+    const { container } = render(<MarkdownContent content="let α be a constant" />);
+    const glyph = container.querySelector(".math-glyph");
+    expect(glyph).not.toBeNull();
+    expect(glyph?.textContent).toBe("α");
+  });
+
+  it("renders malformed LaTeX as .katex-error (throwOnError: false)", () => {
+    // $\frac{$ has an unclosed brace — a genuine KaTeX parse error. With
+    // throwOnError: false, KaTeX emits <span class="katex-error"> instead of
+    // throwing, so surrounding content still renders. Note: unknown macros
+    // like \widebar render as colored text without .katex-error in KaTeX 0.16.x
+    // — only actual syntax errors (unclosed braces / mismatched envs) produce
+    // the .katex-error class.
+    const { container } = render(
+      <MarkdownContent content="$\\frac{$ and some text" />,
+    );
+    expect(container.querySelector(".katex-error")).not.toBeNull();
+    // Surrounding text still renders — page is not broken.
+    expect(container.textContent).toContain("and some text");
+  });
+
+  it("renders display math inside list items", () => {
+    // A loose list item with a properly-delimited display block ($$\n...\n$$
+    // on separate lines) produces a .katex-display span nested inside the
+    // <li>. The tight-list form `- $$...$$` is parsed as inline math by
+    // remark-math and does not produce .katex-display.
+    const md = "- item\n\n  $$\n  \\frac{1}{2}\n  $$\n";
+    const { container } = render(<MarkdownContent content={md} />);
+    const li = container.querySelector("li");
+    expect(li).not.toBeNull();
+    expect(li?.querySelector(".katex-display")).not.toBeNull();
+  });
+
+  it("does not wrap bare glyph when bareGlyphMath toggle is off", () => {
+    // When bareGlyphMath: false, rehypeMathGlyphWrap is not added to the
+    // pipeline — bare Unicode glyphs remain as plain text nodes.
+    const { container } = render(
+      <MarkdownContent
+        content="let α be a constant"
+        renderToggles={{ ...DEFAULT_RENDER_TOGGLES, bareGlyphMath: false }}
+      />,
+    );
+    expect(container.querySelector(".math-glyph")).toBeNull();
+    // The glyph text is still present in the document.
+    expect(container.textContent).toContain("α");
+  });
 });
 
 /* ── Mode-toggle integration: disabled features emit no class markers ────────
