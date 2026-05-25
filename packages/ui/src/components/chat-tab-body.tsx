@@ -15,13 +15,16 @@ import { useAuthStatus } from "../context/auth-context.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useParentChildOptional } from "../context/parent-child-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
+import { useFailedEscalation } from "../hooks/use-failed-escalation.js";
 import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
+import type { PendingMessageItem } from "../hooks/use-streamed-send.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
 import { AssignmentCard } from "./assignment-card.js";
 import { AuthGate } from "./auth-gate.js";
 import styles from "./chat-tab-body.module.css";
 import { Composer } from "./composer.js";
+import { ComposerStatus } from "./composer-status.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { CourseCreateTabBody } from "./course-create-tab-body.js";
 import { DocumentTabBody } from "./document-tab-body.js";
@@ -31,6 +34,7 @@ import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
 import type { InlineNoteFormat } from "./note-format-picker-popover.js";
 import { PageImagePanel } from "./page-image-panel.js";
+import { QueuedMessageBubble } from "./queued-message-bubble.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
 import { ReasoningBlock } from "./reasoning-block.js";
@@ -127,8 +131,30 @@ export function TeachChatTabBody({
     [parentChild],
   );
 
-  const { items, isStreaming, thinking, lastError, send, cancel, cancelPending, loadHistory } =
-    useStreamedSend(client, { onSystemNote });
+  const {
+    items,
+    isStreaming,
+    thinking,
+    lastError,
+    send,
+    cancel,
+    cancelPending,
+    editPending,
+    retryFailed,
+    removeFailed,
+    pendingCount,
+    failedCount,
+    loadHistory,
+  } = useStreamedSend(client, { onSystemNote });
+
+  const failedItems = useMemo(
+    () =>
+      items.filter(
+        (i): i is PendingMessageItem => i.kind === "pending-message" && i.status === "failed",
+      ),
+    [items],
+  );
+  useFailedEscalation({ failedItems, activity: null });
   const { flagAuthRequired } = useAuthStatus();
 
   // Resolve content-type render toggles from the session's mode. `getMode`
@@ -389,18 +415,15 @@ export function TeachChatTabBody({
           }
           if (item.kind === "pending-message") {
             return (
-              <div key={item.id} className={styles.pendingBubble}>
-                <span className={styles.pendingContent}>{item.text}</span>
-                <span className={styles.pendingChip}>▶ PENDING</span>
-                <button
-                  type="button"
-                  className={styles.pendingDismiss}
-                  onClick={() => cancelPending(item.id)}
-                  aria-label="Cancel pending message"
-                >
-                  ×
-                </button>
-              </div>
+              <QueuedMessageBubble
+                key={item.id}
+                item={item}
+                onEdit={editPending}
+                onRemove={(id) =>
+                  item.status === "failed" ? removeFailed(id) : cancelPending(id)
+                }
+                onRetry={retryFailed}
+              />
             );
           }
           return (
@@ -477,12 +500,21 @@ export function TeachChatTabBody({
           value={composerValue}
           onChange={setComposerValue}
           onSend={async (msg, sketchId) => {
+            // Exam lockdown gate (option 2): intercept at the tab-body level so
+            // Composer stays "always-input-accepting" per the new contract. The
+            // lockdown semantic belongs here, not in the Composer component.
+            if (examLockdown) return;
             setComposerValue("");
             await handleSendWithSketch(msg, sketchId);
           }}
           isStreaming={isStreaming}
           onCancel={cancel}
           sketchEnabled={true}
+        />
+        <ComposerStatus
+          isStreaming={isStreaming}
+          pendingCount={pendingCount}
+          failedCount={failedCount}
         />
       </AuthGate>
       {examLockdown && (

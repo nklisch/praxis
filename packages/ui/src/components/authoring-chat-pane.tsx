@@ -1,11 +1,15 @@
 import type { ConfiguratorActionRow, SessionId, Timestamp } from "@praxis/core/types";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useFailedEscalation } from "../hooks/use-failed-escalation.js";
 import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
+import type { PendingMessageItem } from "../hooks/use-streamed-send.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import styles from "./authoring-chat-pane.module.css";
 import { Composer } from "./composer.js";
+import { ComposerStatus } from "./composer-status.js";
 import { MessageBubble } from "./message.js";
+import { QueuedMessageBubble } from "./queued-message-bubble.js";
 import { StructuredQuestionCard } from "./structured-question-card.js";
 import { SubAgentBlock } from "./sub-agent-block.js";
 import { ToolCallEntry } from "./tool-call-entry.js";
@@ -55,7 +59,29 @@ export function AuthoringChatPane({
   onPrefillSent,
 }: AuthoringChatPaneProps) {
   const client = usePraxisClient();
-  const { items, isStreaming, lastError, send, cancel, loadHistory } = useStreamedSend(client);
+  const {
+    items,
+    isStreaming,
+    lastError,
+    send,
+    cancel,
+    cancelPending,
+    editPending,
+    retryFailed,
+    removeFailed,
+    pendingCount,
+    failedCount,
+    loadHistory,
+  } = useStreamedSend(client);
+
+  const failedItems = useMemo(
+    () =>
+      items.filter(
+        (i): i is PendingMessageItem => i.kind === "pending-message" && i.status === "failed",
+      ),
+    [items],
+  );
+  useFailedEscalation({ failedItems, activity: null });
   const [composerValue, setComposerValue] = useState("");
 
   // Subscribe to ask_student_question quick-check events for this session.
@@ -257,9 +283,17 @@ export function AuthoringChatPane({
             return null;
           }
           if (item.kind === "pending-message") {
-            // Pending messages are teach-mode UI state; authoring panes use a
-            // separate session.
-            return null;
+            return (
+              <QueuedMessageBubble
+                key={item.id}
+                item={item}
+                onEdit={editPending}
+                onRemove={(id) =>
+                  item.status === "failed" ? removeFailed(id) : cancelPending(id)
+                }
+                onRetry={retryFailed}
+              />
+            );
           }
           if (item.kind === "system-note") {
             // system_note cards don't appear in the authoring pane.
@@ -311,6 +345,11 @@ export function AuthoringChatPane({
         }}
         isStreaming={isStreaming}
         onCancel={cancel}
+      />
+      <ComposerStatus
+        isStreaming={isStreaming}
+        pendingCount={pendingCount}
+        failedCount={failedCount}
       />
     </div>
   );

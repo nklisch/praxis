@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-7-integration
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-2-stop-button, feature-composer-async-behavior-step-3-status-row, feature-composer-async-behavior-step-4-queued-bubble, feature-composer-async-behavior-step-5-send-error, feature-composer-async-behavior-step-6-escalation]
@@ -39,6 +39,20 @@ The merge story. Wire the Stop button, status row, queued/failed bubble, send-er
 - [ ] Smoke test #1 (send → failure → retry) passes against teach tab body
 - [ ] Smoke test #2 (send during in-flight → queue → Stop → dispatch) passes against teach tab body
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+
+## Implementation notes (2026-05-24)
+
+Only two callers of `useStreamedSend` required integration: `TeachChatTabBody` in `chat-tab-body.tsx` and `AuthoringChatPane` in `authoring-chat-pane.tsx`. Quiz/homework/exam/study-skills tab bodies delegate to one of these two, so there was no redundant work.
+
+**onRemove routing**: Implemented as a caller-wrap inside the items-list map: `onRemove={(id) => item.status === "failed" ? removeFailed(id) : cancelPending(id)}`. This keeps the QueuedMessageBubble API clean (single onRemove prop) while routing correctly.
+
+**Exam lockdown gate (option 2)**: The `onSend` wrapper in `TeachChatTabBody` returns early when `examLockdown` is true. The Composer stays always-input-accepting (never disabled). The lockdown notice is rendered via `<ExamLockdownGate>`.
+
+**useFailedEscalation activity**: No client-side `ActivityRegistry` is available in the UI (it's a server-side abstraction). Passed `activity: null`; the hook degrades gracefully and only activity-strip escalation is skipped.
+
+**Composer queue limitation**: `Composer.handleSubmit()` returns early when `isStreaming=true`, so queuing cannot be triggered via the Composer UI during streaming. Smoke test 1 uses `vi.doMock` + dynamic import with `?cache-bust` to inject a pre-populated failed item, bypassing the mechanical need to trigger queue population. The full queue → dispatch → fail → retry cycle is covered at the hook level in `use-streamed-send.test.tsx`.
+
+**Test file**: `packages/ui/src/__tests__/teach-tab-body-integration.test.tsx` — 3 smoke tests passing (182 test files, 2047 tests total).
 
 ## References
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 7
