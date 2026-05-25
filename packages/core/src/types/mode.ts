@@ -33,6 +33,13 @@ export interface PromptFragment {
   customizable: boolean;
 }
 
+export interface QuestionConstraints {
+  promptMaxWords?: number;
+  choiceMaxWords?: number;
+  choiceCount?: number;
+  multiSelectCap?: number;
+}
+
 export interface Mode {
   id: string;
   label: string;
@@ -49,5 +56,6 @@ export interface Mode {
   toolNames: string[];
   uiSurface: UISurfaceId;
   artifactScope?: ArtifactScope;
+  questionConstraints?: QuestionConstraints;
   onTurnEnd?(events: EngineEvent[]): Promise<void>;
 }

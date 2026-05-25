@@ -31,6 +31,13 @@ export {
   SqliteConceptEmbeddingsStore,
 } from "./packs/index.js";
 
+// Question constraints: per-mode defaults and merge helper.
+export {
+  DEFAULT_QUESTION_CONSTRAINTS_BY_MODE,
+  FALLBACK_QUESTION_CONSTRAINTS,
+  resolveQuestionConstraints,
+} from "./question-constraints.js";
+
 // Phase 10: Adaptive router.
 export {
   type ConceptCandidate,

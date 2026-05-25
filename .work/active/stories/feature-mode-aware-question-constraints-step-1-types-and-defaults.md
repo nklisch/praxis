@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-1-types-and-defaults
 kind: story
-stage: implementing
+stage: review
 tags: [content, tool-schema, config]
 parent: feature-mode-aware-question-constraints
 depends_on: []
@@ -38,6 +38,14 @@ Add the `QuestionConstraints` interface to `@praxis/core`, extend `Mode` with `q
 - [ ] Unknown mode falls back to `FALLBACK_QUESTION_CONSTRAINTS`
 - [ ] Existing modes typecheck unchanged (field optional)
 - [ ] Unit tests cover defaults + merges + fallback
+
+## Implementation notes (2026-05-24)
+
+- Added `QuestionConstraints` interface directly above `Mode` in `packages/core/src/types/mode.ts`; added `questionConstraints?: QuestionConstraints` to `Mode` between `artifactScope?` and `onTurnEnd?`
+- Created `packages/curriculum/src/question-constraints.ts` with all three exports: `FALLBACK_QUESTION_CONSTRAINTS`, `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE` (all 7 modes), and `resolveQuestionConstraints` using field-by-field merge to avoid `undefined`-spreading pitfall
+- Exported all three from `packages/curriculum/src/index.ts` barrel
+- Created `packages/curriculum/src/__tests__/question-constraints.test.ts` with 4 tests: all-modes defaults, unknown-mode fallback, partial override, empty-override
+- Typecheck clean; lint clean on changed files (pre-existing lint errors unrelated); all 61 curriculum tests pass including 4 new ones; pre-existing better-sqlite3 ABI failures unaffected
 
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 1
