@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints
 kind: feature
-stage: review
+stage: done
 tags: [content, tool-schema, agent-prompt, cross-package]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -474,3 +474,13 @@ All 7 child stories landed across multiple autopilot orchestrator runs:
 **Verification at advance time**: full workspace typecheck green; `pnpm test` — 5060 passed, 24 skipped (slow Pyodide tests). All 7 stories' acceptance criteria met.
 
 What's now possible: every question-emitting tool now validates against per-mode caps at dispatch time. Over-cap calls return agent-friendly tool_result errors instructing the agent how to correct (trim prompts, compress choices, cut counts). Per-mode caps are visible to the agent via the unified prompt fragment composed into 6 mode system prompts.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: All 7 child stories individually reviewed + approved across multiple orchestrator/review cycles. Feature-level capability check: end-to-end validation works (handler → resolver → helper → throw → registry envelope); per-mode caps interpolated into 6 mode prompts via the unified `questionToolFragment`. Comprehensive test coverage (~750 LoC of new tests). Cross-cutting `INLINE_FALLBACK_CONSTRAINTS` duplication respects the `@praxis/tools` ↛ `@praxis/curriculum` runtime-dep boundary per `docs/ARCHITECTURE.md` — correct call. Parent epic `epic-educational-content-rendering` still active (2 sibling features still implementing) — feature stays in `.work/active/` per substrate stage-discipline.
+
+What's now possible: every question-emitting tool now validates per-mode question caps at dispatch time. Over-cap calls return agent-friendly tool_result errors instructing the agent how to correct ("Trim to the essential framing", "Compress to the choice's distinguishing feature"). Per-mode caps are visible to the agent via the unified prompt fragment composed into 6 mode system prompts. This is the agent-side foundation for the renderer features (`feature-content-renderer-pipeline`, `feature-math-rendering`) to land against — the agent now writes within bounds the renderer can present cleanly.
