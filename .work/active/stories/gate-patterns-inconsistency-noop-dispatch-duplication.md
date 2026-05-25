@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-noop-dispatch-duplication
 kind: story
-stage: drafting
+stage: implementing
 tags: [refactor]
 parent: null
 depends_on: []
