@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-1-mode-render-toggles
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, config]
 parent: feature-content-renderer-pipeline
 depends_on: []
@@ -47,3 +47,11 @@ All 8 existing modes in `packages/curriculum/src/modes/` typecheck unchanged —
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 1
 - File: `packages/core/src/types/mode.ts`
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 8 LoC interface + field on `Mode` + `Object.freeze`d `DEFAULT_RENDER_TOGGLES` + `resolveRenderToggles` with field-by-field `??` merge (mirrors `resolveQuestionConstraints` pattern exactly). 5 tests cover frozen defaults, all-undefined, partial override, all-false, empty-object. Existing 8 modes typecheck unchanged. Barrel export pattern correctly distinguishes type vs runtime-value exports (`export type *` doesn't re-export values, so explicit export line added).

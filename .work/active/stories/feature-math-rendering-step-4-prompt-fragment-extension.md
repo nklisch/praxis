@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-4-prompt-fragment-extension
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, math, agent-prompt]
 parent: feature-math-rendering
 depends_on: [feature-math-rendering-step-1-katex-macros, feature-mode-aware-question-constraints-step-4-prompt-fragment]
@@ -60,3 +60,11 @@ Tests added (7 total, 4 new):
 - Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 4
 - File: `packages/curriculum/src/modes/fragments/question-tool.ts` (created in dependent story)
 - Depends on step-1 (macros) and the sibling-feature's prompt-fragment story
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Inline duplication of `KATEX_MACRO_DOCS_INLINE` in `question-tool.ts` mirrors the `INLINE_FALLBACK_CONSTRAINTS` pattern used by step-5/step-6 of mode-aware-question-constraints — same dep-boundary respect (`@praxis/curriculum` ↛ `@praxis/ui` runtime imports). Source comment points at `katex-macros.ts` for drift detection. `buildMacrosTable()` helper formats markdown table rows from the 11 entries; interpolated into Math section. 3 new tests assert table header/separator + all 11 shortcuts + presence regardless of mode caps. Clean addition; Math feature now 4/5 done (step-5 still blocked on content-renderer step-8).

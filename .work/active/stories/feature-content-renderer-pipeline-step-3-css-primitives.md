@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-3-css-primitives
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, design-system, css]
 parent: feature-content-renderer-pipeline
 depends_on: []
@@ -89,3 +89,11 @@ No default highlight.js theme was imported anywhere in the UI package (neither i
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 3
 - Source: `.mockups/design-system/content-types.html`
 - Tokens: `.mockups/design-system/tokens.css` / production token file
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Substantial — ~230 LoC of new CSS across 30+ classes covering callouts (4 types), figures (with verdicts), procedural steps (counter-based, block-layout to avoid grid fragmentation of inline math), passages with cite, definitions, concept-refs (with `§` sigil), glossary, units (sans-serif at 0.88em per user feedback "units are hard to see"), code (inline + block + token classes), file-paths, math-glyph. Studio Quiet hljs theme replaces all default-theme styling — keywords/built-ins → accent, strings → success, function titles → info, comments → tertiary italic. ONE intentional hex literal (`#c48a50` for numbers) documented inline as a Studio Quiet warm-amber choice (the prior `#b4d28d` literal got replaced with `--color-success`). `prefers-reduced-motion` block suppresses transitions on decorative elements. 34 new CSS-presence smoke tests; no regressions across 1831-test UI suite. Verified all needed tokens present in `global.css` — no token-invention. Unblocks content-renderer step-4/5/6/7.
