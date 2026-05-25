@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-5-pipeline-wiring
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, math]
 parent: feature-math-rendering
 depends_on: [feature-math-rendering-step-1-katex-macros, feature-math-rendering-step-2-bare-glyph-plugin, feature-math-rendering-step-3-error-handling, feature-content-renderer-pipeline-step-8-pipeline-wiring]
@@ -66,3 +66,11 @@ The story specified `- $$\frac{1}{2}$$` (tight list inline). remark-math parses 
 
 ### Test results
 All 5192 tests pass (1945 in `@praxis/ui`, rest in other packages). No new lint/typecheck errors introduced (pre-existing drizzle-orm type error in `@praxis/memory` is unrelated to this story).
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 3 targeted edits to `markdown-content.tsx`: imports, `[rehypeKatex, { throwOnError: false, macros: KATEX_MACROS }]` options, `rehypeMathGlyphWrap` appended last (correct ordering — runs AFTER rehype-katex so `<math>` HAST exists for the wrap-plugin's ancestor skip). Two design-flaw escape hatches triggered correctly: (1) `$\widebar{x}$` doesn't produce `.katex-error` in KaTeX 0.16 (renders as colored text) — switched to `$\frac{$` (unclosed brace) which IS a genuine parse error; (2) tight-list `- $$...$$` parses as inline math, needed loose-list with separated delimiters for block render. Both are honest input-spec corrections; docs updated. 5 new integration tests cover all paths. 5192 tests pass. Closes math-rendering feature (5/5 stories).
