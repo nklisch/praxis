@@ -37,3 +37,9 @@ The "indexed" / "ready" status icons (and similar small status badges) render to
 **Discovery note**: The main alignment issue was that badges used `align-self: flex-start` (fine within flex columns for the info block) but the badge itself was floating too high relative to text. `align-self: center` + `vertical-align: middle` correctly seats the badge at the optical midpoint of adjacent text regardless of rendering context.
 
 No new failing tests. No pre-existing lint errors introduced.
+
+## Implementation notes + Review (2026-05-25)
+
+Bundled in commit `de369f87`. Inline badges/pills bumped + recentered across `document-list.module.css`, `course-create.module.css`, and mockup `.badge` primitive. `vertical-align: middle` + `align-self: center` for flex contexts. Small adjustments to size (0.7→0.72rem, 9→10px).
+
+**Verdict**: Approve — design polish change, no test regressions.

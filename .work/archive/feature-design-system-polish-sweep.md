@@ -1,14 +1,14 @@
 ---
 id: feature-design-system-polish-sweep
 kind: feature
-stage: implementing
+stage: done
 tags: [ui, design-system]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Design-system polish sweep: token & contract alignment
@@ -27,3 +27,12 @@ Children are independent — `depends_on: []` each. Implementation can fan out; 
 - `idea-index-ready-badge-alignment` → child story
 - `idea-leading-symbol-spacing` → child story
 - `idea-composer-verbs-contract-divergence` → refactor child story
+
+## Implementation summary + Review (2026-05-25)
+
+All 3 child stories shipped in one consolidated commit (`de369f87`):
+- `story-index-ready-badge-alignment` — badge sizing + vertical-align
+- `story-leading-symbol-spacing` — new `--space-leading-symbol` token applied across 5 modules
+- `story-refactor-composer-verbs-contract-divergence` — mockup widget added matching production
+
+**Verdict**: Approve — small focused polish work, no behavior changes, no regressions. Feature has no parent → archives on advance.

@@ -40,3 +40,9 @@ Production classes (`.row`, `.chip`) were **not renamed** — the production mod
 2. **`.mockups/design-system/components.html`**: Added showcase in the Tier 2 composer cell — shows the verbs rail above the composer shell, with a class-map comment, includes a disabled chip to demonstrate the opacity state.
 
 **Verified**: buttons in the new showcase have `type="button"` so no new biome lint errors are introduced. Total components.html error count stays at 50 (all pre-existing).
+
+## Implementation notes + Review (2026-05-25)
+
+Bundled in commit `de369f87`. Agent chose the simpler direction — added the `.composer-verbs` widget definition to mockup (`.mockups/design-system/components.css`) using BEM-aligned names that map explicitly to production's `.row`/`.chip`. Production CSS module unchanged (no rename needed). Showcase added to `components.html`.
+
+**Verdict**: Approve — contract aligned, no production code changes, no risk.

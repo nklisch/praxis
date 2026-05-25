@@ -48,3 +48,9 @@ The value `0.35em` is relative to the element's own font-size, so it scales corr
 **Surfaces not touched**: `::before` pseudo-elements with `content:` symbol patterns (chevrons in `draft-card.module.css`, `note-card.module.css`) were intentionally excluded — those are expand/collapse indicators that depend on their exact positioning and don't follow the leading-symbol pattern.
 
 No new failing tests. No pre-existing lint errors introduced.
+
+## Implementation notes + Review (2026-05-25)
+
+Bundled in commit `de369f87`. New `--space-leading-symbol: 0.35em` token added to both `packages/ui/src/styles/global.css` and `.mockups/design-system/tokens.css`. Applied via `gap` in 5 CSS modules (route-header, library-section, top-nav, course-create, components.css `.editorial-kicker`). Dot sizes bumped to harmonize (route-header 0.42→0.55rem, course-create 7→9px).
+
+**Verdict**: Approve — uniform spacing applied, token in both places (mockup + production), 2114 tests pass.
