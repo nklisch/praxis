@@ -633,6 +633,7 @@ export class SessionServiceImpl implements SessionService {
     studentId?: StudentId;
     noteId: NoteId;
     cueId?: string;
+    seedText?: string;
   }): Promise<SessionHandle> {
     return this.spawner.spawnFromNote(input);
   }

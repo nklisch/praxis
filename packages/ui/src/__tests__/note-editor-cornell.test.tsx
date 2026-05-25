@@ -156,18 +156,59 @@ describe("NoteEditorCornell — spawn button", () => {
     expect(screen.queryByLabelText("Talk to Praxis about row 1")).toBeNull();
   });
 
-  it("renders spawn buttons for each row when onSpawnFromCue is provided", () => {
+  it("renders spawn buttons for each non-empty row when onSpawnFromCue is provided", () => {
     render(<NoteEditorCornell body={makeBody()} onChange={() => {}} onSpawnFromCue={() => {}} />);
     expect(screen.getByLabelText("Talk to Praxis about row 1")).toBeDefined();
     expect(screen.getByLabelText("Talk to Praxis about row 2")).toBeDefined();
   });
 
-  it("calls onSpawnFromCue with the row index string when spawn button is clicked", () => {
+  it("calls onSpawnFromCue with (rowIndexString, cueText) when spawn button is clicked", () => {
     const onSpawnFromCue = vi.fn();
     render(
       <NoteEditorCornell body={makeBody()} onChange={() => {}} onSpawnFromCue={onSpawnFromCue} />,
     );
     fireEvent.click(screen.getByLabelText("Talk to Praxis about row 2"));
-    expect(onSpawnFromCue).toHaveBeenCalledWith("1");
+    expect(onSpawnFromCue).toHaveBeenCalledWith("1", "Q2");
+  });
+
+  it("spawn button shows a visible 'Ask Praxis' label (Bug 1 — opaque affordance)", () => {
+    render(<NoteEditorCornell body={makeBody()} onChange={() => {}} onSpawnFromCue={() => {}} />);
+    // The visible label text must be present in the document.
+    expect(screen.getAllByText("Ask Praxis").length).toBeGreaterThan(0);
+  });
+
+  it("does not render spawn button on empty cue rows (Bug 2 — empty-row guard)", () => {
+    const body: CornellBody = {
+      kind: "cornell",
+      questions: ["Q1", ""],
+      details: ["D1", "D2"],
+      summary: "",
+    };
+    render(<NoteEditorCornell body={body} onChange={() => {}} onSpawnFromCue={() => {}} />);
+    // Row 1 (index 0) has content — button must be present.
+    expect(screen.getByLabelText("Talk to Praxis about row 1")).toBeDefined();
+    // Row 2 (index 1) is empty — button must be absent.
+    expect(screen.queryByLabelText("Talk to Praxis about row 2")).toBeNull();
+  });
+
+  it("does not render spawn button when cue is whitespace-only (Bug 2 — trim guard)", () => {
+    const body: CornellBody = {
+      kind: "cornell",
+      questions: ["   "],
+      details: ["D1"],
+      summary: "",
+    };
+    render(<NoteEditorCornell body={body} onChange={() => {}} onSpawnFromCue={() => {}} />);
+    expect(screen.queryByLabelText("Talk to Praxis about row 1")).toBeNull();
+  });
+
+  it("passes current editor cue text as second argument (Bug 3 — seed from editor state)", () => {
+    const onSpawnFromCue = vi.fn();
+    render(
+      <NoteEditorCornell body={makeBody()} onChange={() => {}} onSpawnFromCue={onSpawnFromCue} />,
+    );
+    fireEvent.click(screen.getByLabelText("Talk to Praxis about row 1"));
+    // Second argument must be the live editor text, not an index.
+    expect(onSpawnFromCue).toHaveBeenCalledWith("0", "Q1");
   });
 });

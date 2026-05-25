@@ -1,14 +1,14 @@
 ---
 id: story-fix-new-note-button-always-available
 kind: story
-stage: implementing
+stage: review
 tags: [bug, ui]
 parent: feature-workspace-notes-affordance-fixes
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Fix: workspace-notes "new note" button only renders in the empty-state
@@ -27,3 +27,13 @@ The workspace notes list component in `packages/ui/src/components/` (find exact 
 
 ## Source idea
 `idea-new-note-button-always-available` (parked 2026-05-24).
+
+## Implementation notes (2026-05-25)
+
+Added a persistent `+ New note` button to the `NotesListTab` catalogue header (`packages/ui/src/routes/workspace/notes-list.tsx`). The header now has a `headRow` flex container that aligns the existing kicker (`¶ workspace · the catalogue`) with the new button on the right.
+
+The header button uses the new `.newBtnHead` CSS class (outline style — `border: 1px solid var(--color-accent)`, transparent background) to distinguish it visually from the filled `.newBtn` in the empty-state CTA. Both trigger the same `handleNewNote` handler. The empty-state button is retained so the primary CTA in the zero-notes state remains prominent.
+
+CSS changes in `notes-list.module.css`: added `.headRow` (flex, space-between), `.newBtnHead` (outline button, uppercase mono, accent colour), and moved `.kicker` margin from `margin-bottom` to `margin: 0` (margin now lives on `.headRow`).
+
+Regressions in `notes-list-route.test.tsx`: two new tests assert `getAllByRole("button", { name: /new note/i })` returns at least one button in both the empty-state case and the populated-results case.

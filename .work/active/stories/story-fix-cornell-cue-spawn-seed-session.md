@@ -1,14 +1,14 @@
 ---
 id: story-fix-cornell-cue-spawn-seed-session
 kind: story
-stage: implementing
+stage: review
 tags: [bug, ui]
 parent: feature-workspace-notes-affordance-fixes
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Fix: Cornell cue-spawn lands in an empty session instead of being seeded with the cue context
@@ -33,3 +33,20 @@ The spawned session is primed with the cue row's text as context — either as a
 
 ## Source idea
 `idea-cornell-cue-spawn-button-fixes` sub-issue (3) (parked 2026-05-24).
+
+## Implementation discovery (2026-05-25)
+
+**Root cause**: `SessionSpawner.spawnFromNote` already seeds the session from the DB — it reads the saved note body and injects an opening message with `<note-cue>` tags. The session IS seeded after save. The real bug is that the UI passes only the `cueId` (row index), so when the user hasn't saved yet the server reads the stale DB snapshot and misses unsaved edits.
+
+**Fix chosen**: extend `spawnFromNote` with an optional `seedText` field that bypasses the DB body parse when present. This is minimal and backwards-compatible.
+
+**Changes**:
+- `packages/core/src/types/session-client.ts` — added `seedText?: string` to `SessionService.spawnFromNote` interface.
+- `packages/core/src/services/session/session-spawner.ts` — when `input.seedText` is non-empty, skip the DB parse and use it directly as `cueText`.
+- `packages/core/src/services/session-service.ts` — thread `seedText` through to spawner.
+- `packages/desktop/electron/main/session-channel.ts` — add `seedText` to `SpawnFromNoteSchema` and pass it through.
+- `packages/client/src/services/session-client.ts` — add `seedText` to `spawnFromNote` input type.
+- `NoteEditorCornellProps.onSpawnFromCue` and `NoteEditorFeynmanProps.onSpawnFromCue` — signatures updated from `(cueId: string) => void` to `(cueId: string, cueText: string) => void`.
+- `note-editor-page.tsx:handleSpawnFromCue` — now receives `cueText` as a second argument and passes it as `seedText` to `spawnFromNote`.
+
+Regression: `note-editor-cornell.test.tsx` asserts `onSpawnFromCue` is called with `("0", "Q1")` — both the index and the live text.

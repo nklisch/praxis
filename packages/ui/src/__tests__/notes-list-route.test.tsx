@@ -129,4 +129,23 @@ describe("NotesListTab (Catalogue)", () => {
       expect(screen.getByText(/2 results/i)).toBeDefined();
     });
   });
+
+  // Bug 4 regression: new-note button must always be reachable, not only in empty-state.
+  it("renders a persistent '+ New note' button in the header when no notes exist (Bug 4)", async () => {
+    renderTab(makeClient([]));
+    await waitFor(() => {
+      // Header button (always visible) — at least one instance must be present.
+      const buttons = screen.getAllByRole("button", { name: /new note/i });
+      expect(buttons.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("renders a persistent '+ New note' button in the header when notes exist (Bug 4)", async () => {
+    renderTab(makeClient([makeNoteHit()]));
+    await waitFor(() => {
+      // The header button must be present even when the results grid is non-empty.
+      const buttons = screen.getAllByRole("button", { name: /new note/i });
+      expect(buttons.length).toBeGreaterThan(0);
+    });
+  });
 });

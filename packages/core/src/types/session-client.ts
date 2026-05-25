@@ -55,6 +55,13 @@ export interface SessionService {
     studentId?: StudentId;
     noteId: NoteId;
     cueId?: string;
+    /**
+     * Optional seed text supplied directly by the caller (e.g. the current
+     * editor state before the note has been saved). When present, the spawner
+     * uses this instead of reading the cue text from the DB, so the session
+     * is always primed with what the user currently sees.
+     */
+    seedText?: string;
   }): Promise<SessionHandle>;
   /**
    * Open a new teach session scoped to a passage in a document.

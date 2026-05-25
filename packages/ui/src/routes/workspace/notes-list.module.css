@@ -4,12 +4,48 @@
   padding: var(--space-6) 0 20px; /* design-system-exception: 20px bottom; between --space-4 (16px) and --space-6 (24px) */
 }
 
+/* Row that aligns the kicker with the persistent new-note button */
+.headRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
 .kicker {
   font: var(--font-weight-semibold) var(--font-size-xs) / 1 var(--font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-3);
+  margin: 0;
+}
+
+/* Header-row variant of the new-note button — smaller, outline style so it
+   doesn't compete with the page heading. Matches the editorial voice: present
+   but not loud. */
+.newBtnHead {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font: var(--font-weight-semibold) var(--font-size-xs) / 1 var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  transition:
+    background var(--dur-quick),
+    color var(--dur-quick);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.newBtnHead:hover:not(:disabled) {
+  background: var(--color-accent-muted);
+}
+
+.newBtnHead:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .headTitle {

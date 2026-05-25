@@ -136,12 +136,12 @@ describe("NoteEditorFeynman — writing mode", () => {
     expect(screen.getByLabelText("Talk to Praxis about follow-up 2")).toBeDefined();
   });
 
-  it("calls onSpawnFromCue with the follow-up index string when spawn button is clicked", () => {
+  it("calls onSpawnFromCue with (index, cueText) when spawn button is clicked", () => {
     const onSpawnFromCue = vi.fn();
     const body = makeBody({ followUps: ["Q1", "Q2"] });
     renderEditor({ body, onSpawnFromCue });
     fireEvent.click(screen.getByLabelText("Talk to Praxis about follow-up 2"));
-    expect(onSpawnFromCue).toHaveBeenCalledWith("1");
+    expect(onSpawnFromCue).toHaveBeenCalledWith("1", "Q2");
   });
 });
 

@@ -11,8 +11,13 @@ export interface CornellBody {
 export interface NoteEditorCornellProps {
   body: CornellBody;
   onChange: (body: CornellBody) => void;
-  /** Called with the row index (as a string) when the spawn button is clicked. */
-  onSpawnFromCue?: (cueId: string) => void;
+  /**
+   * Called when the "Ask Praxis" button is clicked on a non-empty cue row.
+   * Receives the row index as a string (`cueId`) and the current cue text
+   * (`cueText`) so the caller can seed the spawned session without requiring
+   * the note to have been saved first.
+   */
+  onSpawnFromCue?: (cueId: string, cueText: string) => void;
 }
 
 /**
@@ -146,17 +151,21 @@ export function NoteEditorCornell({ body, onChange, onSpawnFromCue }: NoteEditor
                 </div>
 
                 <div className={styles.cueRowActions}>
-                  {onSpawnFromCue !== undefined && (
-                    <button
-                      type="button"
-                      className={styles.spawnBtn}
-                      onClick={() => onSpawnFromCue(String(i))}
-                      aria-label={`Talk to Praxis about row ${i + 1}`}
-                      title="Talk to Praxis about this"
-                    >
-                      ▶
-                    </button>
-                  )}
+                  {onSpawnFromCue !== undefined &&
+                    (localBody.questions[i] ?? "").trim().length > 0 && (
+                      <button
+                        type="button"
+                        className={styles.spawnBtn}
+                        onClick={() => onSpawnFromCue(String(i), localBody.questions[i] ?? "")}
+                        aria-label={`Talk to Praxis about row ${i + 1}`}
+                        title="Ask Praxis about this cue"
+                      >
+                        <span className={styles.spawnBtnGlyph} aria-hidden="true">
+                          ▶
+                        </span>
+                        <span className={styles.spawnBtnLabel}>Ask Praxis</span>
+                      </button>
+                    )}
                   <button
                     type="button"
                     className={styles.removeBtn}

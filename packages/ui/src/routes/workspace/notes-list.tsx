@@ -118,7 +118,17 @@ export function NotesListTab() {
     <div>
       {/* ── Catalogue head ── */}
       <header className={styles.catalogueHead}>
-        <p className={styles.kicker}>¶ workspace · the catalogue</p>
+        <div className={styles.headRow}>
+          <p className={styles.kicker}>¶ workspace · the catalogue</p>
+          <button
+            type="button"
+            className={styles.newBtnHead}
+            onClick={handleNewNote}
+            disabled={creating}
+          >
+            {creating ? "Creating…" : "+ New note"}
+          </button>
+        </div>
         <h1 className={styles.headTitle}>
           Everything you&apos;ve <em>made</em>
         </h1>

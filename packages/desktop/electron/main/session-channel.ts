@@ -106,6 +106,7 @@ export function registerSessionHandlers(
   const SpawnFromNoteSchema = z.object({
     noteId: z.string().min(1, "noteId"),
     cueId: z.string().optional(),
+    seedText: z.string().optional(),
   });
 
   // Spawn a teach session pre-loaded with a note's cue context.
@@ -118,6 +119,7 @@ export function registerSessionHandlers(
         studentId,
         noteId: brandId<"NoteId">(opts.noteId) as NoteId,
         ...(opts.cueId !== undefined && { cueId: opts.cueId }),
+        ...(opts.seedText !== undefined && { seedText: opts.seedText }),
       });
     }),
   );

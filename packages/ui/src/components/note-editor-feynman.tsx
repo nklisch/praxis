@@ -14,8 +14,13 @@ export interface NoteEditorFeynmanProps {
   onChange: (body: FeynmanBody) => void;
   /** Note id used to persist annotations via the API. When absent, annotations are local-only. */
   noteId?: NoteId;
-  /** Called with the follow-up index (as a string) when the spawn button is clicked. */
-  onSpawnFromCue?: (cueId: string) => void;
+  /**
+   * Called when the "Ask Praxis" button is clicked on a non-empty follow-up row.
+   * Receives the row index as a string (`cueId`) and the current follow-up text
+   * (`cueText`) so the caller can seed the spawned session with the live editor
+   * state rather than requiring the note to have been saved first.
+   */
+  onSpawnFromCue?: (cueId: string, cueText: string) => void;
 }
 
 type PassMode = "writing" | "reviewing";
@@ -270,15 +275,15 @@ export function NoteEditorFeynman({
                       rows={2}
                       aria-label={`Follow-up ${i + 1}`}
                     />
-                    {onSpawnFromCue !== undefined && (
+                    {onSpawnFromCue !== undefined && q.trim().length > 0 && (
                       <button
                         type="button"
                         className={styles.spawnBtn}
-                        onClick={() => onSpawnFromCue(String(i))}
+                        onClick={() => onSpawnFromCue(String(i), q)}
                         aria-label={`Talk to Praxis about follow-up ${i + 1}`}
-                        title="Talk to Praxis about this"
+                        title="Ask Praxis about this follow-up"
                       >
-                        ▶
+                        <span aria-hidden="true">▶</span> Ask Praxis
                       </button>
                     )}
                     <button

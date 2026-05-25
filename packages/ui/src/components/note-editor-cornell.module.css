@@ -311,11 +311,16 @@
   background: transparent;
   border: none;
   color: var(--color-accent);
-  font-size: 0.85rem;
+  font-size: var(--font-size-xs, 12px);
   cursor: pointer;
-  padding: var(--space-1, 4px) var(--space-1, 4px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
   border-radius: var(--radius-sm, 3px);
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.03em;
   transition:
     color var(--dur-quick),
     background var(--dur-quick);
@@ -323,6 +328,17 @@
 
 .spawnBtn:hover {
   background: var(--color-accent-muted);
+}
+
+.spawnBtnGlyph {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+.spawnBtnLabel {
+  /* visible at all times — quiet chrome, not hidden */
+  font-size: var(--font-size-xs, 12px);
+  white-space: nowrap;
 }
 
 .removeBtn {

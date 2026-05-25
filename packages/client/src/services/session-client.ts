@@ -74,7 +74,11 @@ export class SessionClient implements SessionService {
   }
 
   /** Open a teach session pre-loaded with a note's cue context. */
-  async spawnFromNote(input: { noteId: NoteId; cueId?: string }): Promise<SessionHandle> {
+  async spawnFromNote(input: {
+    noteId: NoteId;
+    cueId?: string;
+    seedText?: string;
+  }): Promise<SessionHandle> {
     const result = await this.transport.invoke<IpcEnvelope<SessionHandle> | SessionHandle>(
       `${CHANNEL}.spawnFromNote`,
       input,

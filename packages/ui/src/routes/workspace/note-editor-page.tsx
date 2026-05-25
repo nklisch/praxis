@@ -89,15 +89,21 @@ export function NoteEditorPage() {
   /**
    * Spawn a new teach session pre-loaded with a specific note cue.
    * Follows the session-tab-open-flow pattern: spawn → open tab → navigate.
+   *
+   * `cueText` is the current editor value for that row (passed by the editor
+   * component). We send it as `seedText` so the spawner can prime the session
+   * with the live editor state rather than the last-saved DB snapshot — this
+   * ensures unsaved edits are included in the opening context.
    */
   const handleSpawnFromCue = useCallback(
-    async (cueId: string) => {
+    async (cueId: string, cueText: string) => {
       if (!note || spawning) return;
       setSpawning(true);
       try {
         const handle = await client.session.spawnFromNote({
           noteId: note.id,
           cueId,
+          seedText: cueText.trim() || undefined,
         });
         const tab = await client.tabs.open({ sessionId: handle.sessionId });
         await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });

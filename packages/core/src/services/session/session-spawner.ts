@@ -133,6 +133,13 @@ export class SessionSpawner {
     studentId?: StudentId;
     noteId: NoteId;
     cueId?: string;
+    /**
+     * Seed text supplied directly by the caller (e.g. the UI's current editor
+     * state). When present, skips the DB body parse and uses this as the cue
+     * text so the session is primed with what the user currently sees even if
+     * they haven't saved yet.
+     */
+    seedText?: string;
   }): Promise<SessionHandle> {
     // Resolve studentId — falls back to the default student if not supplied.
     const studentId: StudentId =
@@ -149,10 +156,12 @@ export class SessionSpawner {
     }
 
     // Parse the body so we can extract the cue text.
-    let cueText: string | null = null;
+    // If the caller supplied seedText directly (e.g. unsaved editor state),
+    // use it verbatim and skip the DB body parse entirely.
+    let cueText: string | null = input.seedText?.trim() || null;
     let noteBodyText: string | null = null;
 
-    if (noteRow.body != null && noteRow.format !== "sketch") {
+    if (cueText === null && noteRow.body != null && noteRow.format !== "sketch") {
       try {
         const body = parseNoteBody(
           noteRow.format as "cornell" | "feynman" | "outline" | "free",
