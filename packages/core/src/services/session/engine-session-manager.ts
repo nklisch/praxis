@@ -82,6 +82,8 @@ export interface EngineSessionManagerDeps
     | "subAgent"
     | "promptCustomization"
     | "engineFactory"
+    | "onEngineProcessSpawned"
+    | "onEngineProcessExited"
   > {}
 
 export class EngineSessionManager {
@@ -158,7 +160,18 @@ export class EngineSessionManager {
     assignmentId?: AssignmentId;
   }): Promise<ActiveEntry> {
     const engineConfig = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
-    const factory = this.deps.engineFactory ?? ((c, d) => createEngine({ config: c, deps: d }));
+    const factory =
+      this.deps.engineFactory ??
+      ((c, d) =>
+        createEngine({
+          config: c,
+          deps: d,
+          // Thread PID callbacks so the desktop layer can register/deregister
+          // CLI subprocess PIDs with the orphan-sweep registry. Optional in
+          // tests and non-Electron deployments (deps are undefined then).
+          onProcessSpawned: this.deps.onEngineProcessSpawned,
+          onProcessExited: this.deps.onEngineProcessExited,
+        }));
     const engine = factory(engineConfig, { log: this.deps.log });
 
     // Phase 6 + 7: inject course-context override when a courseId is set.

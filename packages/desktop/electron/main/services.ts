@@ -1,3 +1,4 @@
+import { dirname } from "node:path";
 import { readCourseCreateConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
 import { IngestionService } from "@praxis/core/ingestion";
@@ -71,6 +72,7 @@ import { buildSandboxServices } from "./services/build-sandbox-services.js";
 import { buildSecretServices } from "./services/build-secret-services.js";
 import { buildSessionPrecursors } from "./services/build-session-precursors.js";
 import { buildWorkspaceServices } from "./services/build-workspace-services.js";
+import { createSpawnedPidRegistry, type SpawnedPidRegistry } from "./spawned-pid-registry.js";
 
 export interface Services {
   session: SessionServiceImpl;
@@ -138,12 +140,26 @@ export interface Services {
   workers: { embeddings: NodeWorker };
   /** Returns the default student ID for the single-student v1 install. */
   getDefaultStudentId: () => string;
+  /** PID registry for crash-survival orphan-subprocess cleanup. */
+  pidRegistry: SpawnedPidRegistry;
 }
 
 export function buildServices(dbPath: string, log: MainLogger): Services {
   const IS_DEV = process.env.PRAXIS_DEV === "true";
 
   const { db, sqlite } = openDb({ path: dbPath });
+
+  // PID registry for crash-survival orphan-subprocess cleanup.
+  // Lives in the same directory as the database so both dev and packaged builds
+  // write to a consistent location that persists across restarts.
+  const dataDir = dirname(dbPath);
+  const pidRegistry = createSpawnedPidRegistry(dataDir, log);
+  const onProcessSpawned = (pid: number): void => {
+    pidRegistry.register(pid).catch(() => {});
+  };
+  const onProcessExited = (pid: number): void => {
+    pidRegistry.deregister(pid).catch(() => {});
+  };
 
   // Step 1: Infrastructure (activity registry, sub-agent registry, quick check)
   const infra = buildInfraServices(log);
@@ -169,6 +185,8 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     memoryService: memory.memoryService,
     sympy: sandbox.sympy,
     sandbox: sandbox.sandbox,
+    onProcessSpawned,
+    onProcessExited,
   });
 
   // Step 7: Indexers (concept map service + all six indexers + orchestrator)
@@ -305,6 +323,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     promptCustomization: sessionPrecursors.promptCustomizationService,
     secretStorage: secrets.secretStorage,
     sessionPromotionRegistry: sessionPrecursors.sessionPromotionRegistry,
+    // Thread PID callbacks into the session engine manager so CLI subprocesses
+    // opened by the main session loop are also tracked in the orphan registry.
+    onEngineProcessSpawned: onProcessSpawned,
+    onEngineProcessExited: onProcessExited,
   };
 
   // -------------------------------------------------------------------------
@@ -397,5 +419,6 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       embeddings: embeddings.embeddingsWorker,
     },
     getDefaultStudentId: () => getOrCreateDefaultStudentId(db),
+    pidRegistry,
   };
 }

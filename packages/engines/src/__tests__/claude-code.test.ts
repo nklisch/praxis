@@ -768,4 +768,75 @@ describe("ClaudeCodeEngine — lifecycle", () => {
 
     await session.close();
   });
+
+  // Security regression: Praxis-spawned CLI subprocess was inheriting the
+  // user's personal MCP servers from ~/.claude/settings.json even when Praxis
+  // passed --tools "" and --mcp-config pointing only at first-party tools.
+  // Symptom: krometrail MCP server (user's personal server) appeared as a child
+  // of the course-create drafter via pstree. The user did NOT consent to giving
+  // Praxis agents access to their personal MCP tooling.
+  //
+  // Fix: pass strictMcpConfig: true so the CLI honors --strict-mcp-config,
+  // which instructs it to ONLY load MCP servers from our explicit --mcp-config
+  // and ignore all other MCP configurations (including user-level settings).
+  it("open() passes strictMcpConfig: true to prevent the CLI from loading user-level MCP servers", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: echoRegistry });
+
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    const sdkOpts = vi.mocked(createConversation).mock.calls[0]?.[0];
+    // Must be true so --strict-mcp-config is emitted by the SDK.
+    expect(sdkOpts?.strictMcpConfig).toBe(true);
+
+    await session.close();
+  });
+
+  // Crash-survival cleanup: the adapter threads PID callbacks through to
+  // createConversation so the desktop layer can register/deregister CLI
+  // subprocess PIDs in the orphan-sweep registry.
+  it("open() threads onProcessSpawned and onProcessExited callbacks to createConversation", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const onProcessSpawned = vi.fn();
+    const onProcessExited = vi.fn();
+
+    const engine = new ClaudeCodeEngine({
+      config: { engineId: "claude-code" },
+      deps,
+      onProcessSpawned,
+      onProcessExited,
+    });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    const sdkOpts = vi.mocked(createConversation).mock.calls[0]?.[0];
+    // Callbacks must be present so the conversation layer can fire them on
+    // spawn and exit — the registry wires actual register/deregister to them.
+    expect(typeof sdkOpts?.onProcessSpawned).toBe("function");
+    expect(typeof sdkOpts?.onProcessExited).toBe("function");
+
+    await session.close();
+  });
 });

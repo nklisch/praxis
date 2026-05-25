@@ -1,8 +1,10 @@
 import type { ChildProcess } from "node:child_process";
+import os from "node:os";
 import { createInterface } from "node:readline";
 import {
   attachSpawnErrorHandler,
   buildConversationArgs,
+  killProcessGroup,
   parseStreamLine,
   spawnCli,
 } from "./cli/index.js";
@@ -230,6 +232,13 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     proc = spawnResult.proc;
     _isOpen = true;
 
+    // Notify caller of the OS PID immediately after spawn so they can
+    // register it with an orphan-sweep registry. This fires before the
+    // first event arrives from the CLI.
+    if (proc.pid !== undefined) {
+      options.onProcessSpawned?.(proc.pid);
+    }
+
     // Collect stderr for error reporting
     proc.stderr?.on("data", (chunk: unknown) => {
       stderrChunks.push(Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk));
@@ -254,12 +263,22 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     proc.on("close", (code: number | null) => {
       _isOpen = false;
       closeHandler?.(code);
+      // Notify caller that this PID is done so it can be deregistered from
+      // the orphan-sweep registry. Best-effort: no error propagation.
+      if (proc?.pid !== undefined) {
+        options.onProcessExited?.(proc.pid);
+      }
     });
 
     ac.signal.addEventListener(
       "abort",
       () => {
-        proc?.kill("SIGTERM");
+        const pid = proc?.pid;
+        if (pid !== undefined && os.platform() !== "win32") {
+          killProcessGroup(pid);
+        } else {
+          proc?.kill("SIGTERM");
+        }
         _isOpen = false;
       },
       { once: true },
@@ -531,7 +550,17 @@ export function createConversation(options: ConversationOptions = {}): Conversat
   async function close(): Promise<void> {
     if (proc && _isOpen) {
       proc.stdin?.end();
-      proc.kill("SIGTERM");
+      // Kill the entire process group so MCP workers, Electron shims, and
+      // any other descendants of the CLI are also terminated — not just the
+      // CLI root process. Spawning with `detached:true` placed the CLI in its
+      // own process group; `kill(-pgid, SIGTERM)` reaches all members.
+      // On Windows we fall back to a plain process SIGTERM.
+      const pid = proc.pid;
+      if (pid !== undefined && os.platform() !== "win32") {
+        killProcessGroup(pid);
+      } else {
+        proc.kill("SIGTERM");
+      }
       await new Promise<void>((resolve) => {
         proc!.on("close", () => resolve());
         setTimeout(resolve, 5_000);

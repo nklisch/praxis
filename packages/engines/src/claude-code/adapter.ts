@@ -30,6 +30,20 @@ const DEFAULT_MAX_TURNS = 100;
 export interface ClaudeCodeEngineOptions {
   config: EngineConfig;
   deps: EngineDeps;
+  /**
+   * Called immediately after the CLI subprocess is spawned, with its OS PID.
+   *
+   * The desktop layer passes a callback here to register the PID with the
+   * spawned-pid registry so orphaned subprocesses can be swept on the next
+   * startup if the current process crashes without running shutdown handlers.
+   */
+  onProcessSpawned?: (pid: number) => void;
+  /**
+   * Called after the CLI subprocess exits (either naturally or via `close()`).
+   * Paired with `onProcessSpawned` — used to deregister the PID from the
+   * orphan-sweep registry on a clean close.
+   */
+  onProcessExited?: (pid: number) => void;
 }
 
 export class ClaudeCodeEngine implements Engine {
@@ -106,11 +120,28 @@ export class ClaudeCodeEngine implements Engine {
               },
             }
           : {},
+        // Prevent the CLI from merging user-level MCP servers from
+        // ~/.claude/settings.json. Without this flag the CLI silently loads
+        // ALL user-configured MCP servers alongside our --mcp-config ones —
+        // the reported symptom was krometrail running as a child of the
+        // course-create drafter despite Praxis passing tools:"none".
+        // The user opted into Praxis tools when they launched the app; they
+        // did NOT consent to giving Praxis agents access to their personal
+        // MCP servers. --strict-mcp-config makes our config exclusive.
+        strictMcpConfig: true,
         onSessionReady: (id) => {
           realSessionId = id;
           this.opts.deps.log.info("engine.claude-code.session_ready", { sessionId: id });
           openOpts.onEngineSessionReady?.(id);
         },
+        // Thread PID registration/deregistration callbacks so the desktop
+        // layer can sweep orphaned processes on next startup after a crash.
+        ...(this.opts.onProcessSpawned !== undefined && {
+          onProcessSpawned: this.opts.onProcessSpawned,
+        }),
+        ...(this.opts.onProcessExited !== undefined && {
+          onProcessExited: this.opts.onProcessExited,
+        }),
       });
     } catch (err) {
       if (bridge) {

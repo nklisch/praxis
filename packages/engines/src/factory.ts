@@ -8,6 +8,17 @@ import type { EngineDeps } from "./types.js";
 export interface CreateEngineInput {
   config: EngineConfig;
   deps: EngineDeps;
+  /**
+   * Called immediately after the CLI subprocess is spawned (claude-code only).
+   * The desktop layer threads this through to register the PID with an
+   * orphan-sweep registry for crash-survival cleanup on next startup.
+   */
+  onProcessSpawned?: (pid: number) => void;
+  /**
+   * Called after the CLI subprocess exits (claude-code only). Paired with
+   * `onProcessSpawned` — used to deregister the PID on clean close.
+   */
+  onProcessExited?: (pid: number) => void;
 }
 
 /**
@@ -16,11 +27,16 @@ export interface CreateEngineInput {
  * MCP server start) lazily inside `run()` so construction is cheap and
  * health() can probe without committing resources.
  */
-export function createEngine({ config, deps }: CreateEngineInput): Engine {
+export function createEngine({
+  config,
+  deps,
+  onProcessSpawned,
+  onProcessExited,
+}: CreateEngineInput): Engine {
   const id: EngineId = config.engineId;
   switch (id) {
     case "claude-code":
-      return new ClaudeCodeEngine({ config, deps });
+      return new ClaudeCodeEngine({ config, deps, onProcessSpawned, onProcessExited });
     case "codex":
       return new CodexEngine({ config, deps });
     case "direct.anthropic":

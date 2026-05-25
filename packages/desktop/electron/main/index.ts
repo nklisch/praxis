@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { readLoggingConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
 import { serializeErrorRedacted } from "@praxis/core/types";
@@ -10,6 +10,7 @@ import { createMainLogger } from "./logger.js";
 import { applyMigrations, resolveDbPath } from "./migrations.js";
 import type { Services } from "./services.js";
 import { buildServices } from "./services.js";
+import { sweepOrphanedPids } from "./spawned-pid-registry.js";
 import { createMainWindow } from "./window.js";
 
 let services: Services | null = null;
@@ -44,6 +45,11 @@ async function bootstrap(): Promise<void> {
 
   log = await createBootstrapLogger(dbPath);
   const bootLog = log.child({ component: "bootstrap" });
+
+  // Sweep any CLI subprocesses orphaned by a prior crash. Must run before
+  // buildServices() so no new PIDs are registered into a stale file.
+  // Non-fatal: sweep errors are logged and swallowed.
+  await sweepOrphanedPids(dirname(dbPath), bootLog);
 
   bootLog.info("bootstrap.start", { dbPath });
   bootLog.info("bootstrap.migrations_applied");
@@ -137,6 +143,13 @@ app.on("before-quit", async (event) => {
         log?.warn("worker.shutdown_failed", { name, err: serializeErrorRedacted(err) });
       });
     }
+    // 5. Clear the PID registry. By this point all sessions are closed
+    //    (step 1 above) so the registry should already be empty — this is a
+    //    final safety net to remove the file on clean exit so the next launch
+    //    doesn't attempt to sweep already-dead PIDs.
+    await services.pidRegistry.clear().catch((err: unknown) => {
+      log?.warn("pid-registry.clear_failed", { err: serializeErrorRedacted(err) });
+    });
   } finally {
     await log?.shutdown();
     app.exit(0);

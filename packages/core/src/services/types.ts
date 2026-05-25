@@ -180,4 +180,17 @@ export interface ServiceDeps {
    * Optional so existing tests that don't exercise lazy-persist stay unaffected.
    */
   sessionPromotionRegistry?: SessionPromotionRegistry;
+  /**
+   * Called immediately after a `claude` CLI subprocess is spawned, with its
+   * OS PID. The desktop layer passes this to register the PID with the
+   * spawned-pid registry for crash-survival orphan cleanup on next startup.
+   * Optional — omit in tests and non-Electron deployments.
+   */
+  onEngineProcessSpawned?: (pid: number) => void;
+  /**
+   * Called after a `claude` CLI subprocess exits. Paired with
+   * `onEngineProcessSpawned` — used to deregister the PID on clean close.
+   * Optional — omit in tests and non-Electron deployments.
+   */
+  onEngineProcessExited?: (pid: number) => void;
 }

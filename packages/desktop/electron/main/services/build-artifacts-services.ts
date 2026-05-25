@@ -52,6 +52,10 @@ export interface ArtifactsServiceDeps {
   memoryService: MemoryServiceImpl;
   sympy: PyodideSymPyService;
   sandbox: CodeSandboxImpl;
+  /** Called immediately after the CLI subprocess is spawned with its OS PID. */
+  onProcessSpawned?: (pid: number) => void;
+  /** Called after the CLI subprocess exits; used to deregister from the orphan-sweep registry. */
+  onProcessExited?: (pid: number) => void;
 }
 
 export interface ArtifactsServices {
@@ -90,7 +94,8 @@ export interface ArtifactsServices {
  * completing the Phase-16 ref-cell bridge.
  */
 export function buildArtifactsServices(deps: ArtifactsServiceDeps): ArtifactsServices {
-  const { db, log, secretStorage, memoryService, sympy, sandbox } = deps;
+  const { db, log, secretStorage, memoryService, sympy, sandbox, onProcessSpawned, onProcessExited } =
+    deps;
 
   // -------------------------------------------------------------------------
   // Engine resolvers — look up the active engine config at call time so
@@ -109,15 +114,16 @@ export function buildArtifactsServices(deps: ArtifactsServiceDeps): ArtifactsSer
   };
 
   // Bootstrap engine resolver: used by CourseCreateServiceImpl and indexers.
+  // Threads PID callbacks so spawned CLI processes are tracked for crash-survival sweep.
   const bootstrapEngineResolver = (): Engine => {
     const engineConfig = readEngineConfig(db, secretStorage, log);
-    return createEngine({ config: engineConfig, deps: { log } });
+    return createEngine({ config: engineConfig, deps: { log }, onProcessSpawned, onProcessExited });
   };
 
   // Assignment engine resolver: dedicated instance with same semantics.
   const assignmentEngineResolver = (): Engine => {
     const engineConfig = readEngineConfig(db, secretStorage, log);
-    return createEngine({ config: engineConfig, deps: { log } });
+    return createEngine({ config: engineConfig, deps: { log }, onProcessSpawned, onProcessExited });
   };
 
   // -------------------------------------------------------------------------

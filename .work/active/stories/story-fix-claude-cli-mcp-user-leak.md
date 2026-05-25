@@ -1,14 +1,14 @@
 ---
 id: story-fix-claude-cli-mcp-user-leak
 kind: story
-stage: implementing
+stage: review
 tags: [bug, security, engines]
 parent: feature-claude-cli-spawn-hardening
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Fix: Praxis-spawned claude CLI inherits user-level MCP servers despite explicit tool restrictions
@@ -37,3 +37,17 @@ The spawned CLI's tool surface is hard-limited to exactly what Praxis passes via
 
 ## Source idea
 `idea-claude-cli-mcp-user-leak` (parked 2026-05-24).
+
+## Implementation discovery (2026-05-25)
+
+**Finding**: The Claude Code CLI (v2.1.150) has `--strict-mcp-config` which does exactly what we need: "Only use MCP servers from --mcp-config, ignoring all other MCP configurations". This is already surfaced in `@praxis/claude-cli-sdk` as the `strictMcpConfig: boolean` option on `OptionsBase`, and `buildCommonArgs` already emits the flag when `strictMcpConfig: true` is passed.
+
+**Fix**: One-line change in `packages/engines/src/claude-code/adapter.ts` — add `strictMcpConfig: true` to the `createConversation()` call. This is emitted alongside our `--mcp-config <tmp-file>` and makes the two flags work together: the config file defines exactly which MCP servers are available, and `--strict-mcp-config` prevents the CLI from merging in user-level servers from `~/.claude/settings.json`.
+
+**Why not HOME sandbox**: The `--strict-mcp-config` approach is cleaner — no env override needed, no risk of side-effects from changing the home directory, and it's the officially documented flag for this exact use case.
+
+## Implementation notes (2026-05-25)
+
+- `packages/engines/src/claude-code/adapter.ts`: Added `strictMcpConfig: true` to the `createConversation()` call (11 lines of comment + 1 line of code). See the comment block explaining the security rationale.
+- `packages/engines/src/__tests__/claude-code.test.ts`: Added regression test `"open() passes strictMcpConfig: true to prevent the CLI from loading user-level MCP servers"` which asserts `sdkOpts?.strictMcpConfig === true`.
+- `packages/claude-cli-sdk/src/cli/__tests__/spawn-hardening.test.ts`: Added `buildConversationArgs — --strict-mcp-config` describe block with 3 tests covering the emission and non-emission cases.

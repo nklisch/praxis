@@ -61,6 +61,12 @@ export class SessionServiceImpl implements SessionService {
         promptCustomization: deps.promptCustomization,
       }),
       ...(deps.engineFactory !== undefined && { engineFactory: deps.engineFactory }),
+      ...(deps.onEngineProcessSpawned !== undefined && {
+        onEngineProcessSpawned: deps.onEngineProcessSpawned,
+      }),
+      ...(deps.onEngineProcessExited !== undefined && {
+        onEngineProcessExited: deps.onEngineProcessExited,
+      }),
     });
     this.promoter =
       deps.sessionPromotionRegistry !== undefined

@@ -439,4 +439,19 @@ export type ConversationOptions = Omit<OptionsBase, "fallbackModel"> & {
    * time, before any send).
    */
   onSessionReady?: (sessionId: string) => void;
+  /**
+   * Called synchronously immediately after the CLI subprocess is spawned,
+   * with its OS PID. Fires before the first turn completes.
+   *
+   * Use this to register the PID with an orphan-sweep registry so that
+   * a future restart can terminate the process if the current desktop
+   * crashes without running shutdown handlers.
+   */
+  onProcessSpawned?: (pid: number) => void;
+  /**
+   * Called after the CLI subprocess exits (either naturally or via `close()`).
+   * Paired with `onProcessSpawned` — use this to deregister the PID from
+   * the orphan-sweep registry on a clean close.
+   */
+  onProcessExited?: (pid: number) => void;
 };
