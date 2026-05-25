@@ -49,6 +49,7 @@ import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/ass
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
 import { startDraftingTool } from "@praxis/tools/course/start-drafting";
+import { createDevReportsWriter, DEV_TOOLS } from "@praxis/tools/dev";
 import { DIALOG_TOOLS } from "@praxis/tools/dialog";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { EXAM_TOOLS } from "@praxis/tools/exam";
@@ -140,6 +141,8 @@ export interface Services {
 }
 
 export function buildServices(dbPath: string, log: MainLogger): Services {
+  const IS_DEV = process.env.PRAXIS_DEV === "true";
+
   const { db, sqlite } = openDb({ path: dbPath });
 
   // Step 1: Infrastructure (activity registry, sub-agent registry, quick check)
@@ -250,6 +253,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ...DIALOG_TOOLS, // ← Phase 17 structured-question dialog
   ];
 
+  if (IS_DEV) {
+    toolDefinitions.push(...DEV_TOOLS);
+  }
+
   // -------------------------------------------------------------------------
   // ServiceDeps assembly — the composition root's public contract
   // -------------------------------------------------------------------------
@@ -288,6 +295,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       courseCreateConfigResolver: () => readCourseCreateConfig(db),
       quickCheck: infra.quickCheckService, // ← Phase 17
       subAgent: infra.subAgentRegistry,
+      ...(IS_DEV && { devReportsWriter: createDevReportsWriter() }),
     },
     indexerOrchestrator: indexers.indexerOrchestrator, // ← Phase 7
     lockService: workspace.lockService, // ← Phase 11
