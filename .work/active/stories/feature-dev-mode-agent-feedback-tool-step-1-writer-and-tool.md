@@ -80,3 +80,15 @@ Create `packages/tools/src/dev/` with the writer (filesystem output to `.praxis/
 - `pnpm typecheck`: all green
 - `pnpm biome check packages/tools/src/dev/ tests/helpers/tool-context.ts packages/core/src/types/tool.ts`: clean
 - Pre-existing failures in `tests/` (root integration tests) and `src/runtime/__tests__/sqlite-stores.test.ts` are unrelated Electron ABI rebuild issues (better-sqlite3 won't load in Node ABI without `pnpm rebuild better-sqlite3`).
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean implementation of writer + `dev.report_issue` tool. Two documented deviations from spec are both improvements: `DevReport`/`DevReportsWriter` interfaces declared in `@praxis/core/types/tool.ts` (avoids `@praxis/tools` ↔ `@praxis/core` cycle) and `modeId?: string` forward-staged onto `ToolContext` (handler needs it immediately, avoids `"unknown"` fallback). 43 tests cover filename building, render formatting, concurrent writes, INDEX truncation, archive overflow, Zod validation, handler paths. Filesystem writes constrained to `.praxis/dev-reports/` rooted at `process.cwd()`; summary-slug sanitization closes any path-traversal vector. Promise-chain mutex correctly serializes INDEX writes while per-file writes proceed in parallel. Comments explain *why* (trust-the-gate, cycle-avoidance, mutex rationale).
+
+What's now possible: the `dev.report_issue` tool is registered and functional behind the env gate (wired by step-2). The writer is ready to accept reports from any in-flight session.
