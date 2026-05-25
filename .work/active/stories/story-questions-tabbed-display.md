@@ -1,7 +1,7 @@
 ---
 id: story-questions-tabbed-display
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-question-panel-rework
 depends_on: []
@@ -40,3 +40,11 @@ Compounds with the sibling bug-fix story `story-fix-user-question-no-dismiss-on-
 **Decision note:** Per the design-flaw escape hatch instruction, the multi-question detection (routing N > 1 questions to InlineQuestionSet) is deferred. `StructuredQuestionCard` already handles 1-to-4 questions per call with its fieldset-per-question layout; the InlineQuestionSet provides the paged chassis for when multiple *separate* tool calls arrive in one turn. The detection logic in `chat-tab-body.tsx` is left for a follow-up story.
 
 - NEW: `packages/ui/src/__tests__/inline-question-set.test.tsx` — 18 tests covering tab rendering, tab state glyphs, navigation, submit/clarify, and free-form.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: `<InlineQuestionSet>` (NEW, 18 tests) provides paged chassis with tab strip + progress counter + prev/next nav. Tab states (answered/current/unanswered) drive from local answers map. Renders active question as bare (no chassis chrome — set provides it). Bundled commit `48c11ebb`.

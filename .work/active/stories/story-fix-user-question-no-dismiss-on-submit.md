@@ -1,7 +1,7 @@
 ---
 id: story-fix-user-question-no-dismiss-on-submit
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: feature-question-panel-rework
 depends_on: []
@@ -45,3 +45,11 @@ Decouple the dismiss transition from the response-arrival event. Currently the c
 - `quick-check-card.test.tsx`: updated 4 tests to match the new ThreadChip → expand → read-only card flow. Badge tests now expand the chip first.
 
 - NEW: `packages/ui/src/__tests__/thread-chip.test.tsx` — 11 tests covering both variants, time formatting, expand callback, and dismissed non-interactivity.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Bug fix shipped via the consolidated bundle agent (`48c11ebb`). `<ThreadChip>` component (NEW, 11 tests) replaces greyed-out post-submit card; dismiss state is local + immediate; tool_result fires fire-and-forget; click-to-expand returns to read-only card. Verdict text + `--dismissed` variant correct per mockup. Minor typecheck fix (`(selections[i]?.size ?? 0) > 0`) applied post-bundle in commit `41d7c196`.

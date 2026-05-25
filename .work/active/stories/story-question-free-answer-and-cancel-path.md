@@ -1,7 +1,7 @@
 ---
 id: story-question-free-answer-and-cancel-path
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-question-panel-rework
 depends_on: []
@@ -54,3 +54,11 @@ Together these stop the question UI from being a forced funnel.
 **Tests added:**
 - `ask-student-question.test.ts`: 5 new schema validation tests for the reject-list refine (tell me in chat, explain in chat, ask in chat, discuss in chat, and a passing case).
 - Existing structured-question-card and quick-check-card tests already cover the clarify path via the ThreadChip tests above.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Free-form `<textarea>` always visible below choices; submit prefers free-form text when populated. "clarify in chat" sends `{ kind: "abandoned" }` envelope so the agent resumes conversation. Tool schema `.refine()` rejects 7 chat-deflection patterns (tell me in chat, explain in chat, ask in chat, discuss in chat, chat about, in the chat, clarify in chat) — agent gets back a descriptive error if it tries to add a "tell me in chat" choice. 5 new schema tests. Bundled commit `48c11ebb`.
