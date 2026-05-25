@@ -1,7 +1,7 @@
 ---
 id: gate-tests-useingestion-duplicate-paths-spec
 kind: story
-stage: review
+stage: done
 tags: [testing, ui, documentation]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []

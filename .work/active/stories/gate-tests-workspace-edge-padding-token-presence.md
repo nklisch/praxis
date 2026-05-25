@@ -1,7 +1,7 @@
 ---
 id: gate-tests-workspace-edge-padding-token-presence
 kind: story
-stage: review
+stage: done
 tags: [testing, ui]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []

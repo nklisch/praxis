@@ -1,7 +1,7 @@
 ---
 id: gate-tests-recordcitation-error-message-text
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-session-list-empty-excludemodeids-envelope
 kind: story
-stage: review
+stage: done
 tags: [testing, ipc]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []

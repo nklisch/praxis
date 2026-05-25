@@ -1,7 +1,7 @@
 ---
 id: gate-tests-library-picker-drag-overlay-child-leave-guard
 kind: story
-stage: review
+stage: done
 tags: [testing, ui]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []

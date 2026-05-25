@@ -1,7 +1,7 @@
 ---
 id: gate-tests-vitest-filter-desktop-ci-smoke
 kind: story
-stage: review
+stage: done
 tags: [testing, infra]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []
