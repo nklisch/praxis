@@ -31,6 +31,9 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 - **kind-adapter-registry**: Per-variant logic for a discriminated union exposed as `buildXxxRegistry(): Record<Union["kind"], Adapter>`; TS exhaustiveness forces every new union member to register an adapter; dispatch sites become `registry[obj.kind].method(...)` → [kind-adapter-registry.md]
 - **row-to-domain-mapper**: Per-service `function rowToX(row: typeof tableName.$inferSelect): X` colocated with the service; all read methods funnel rows through it so JSON-parsing, brand-id wrapping, and Date→Timestamp normalization live in one place → [row-to-domain-mapper.md]
 
+## Async dispatch patterns
+- **optimistic-dispatch**: Every UI affordance triggering engine / IPC work uses `useOptimisticAction` for inline pip state + `useActionEscalation` for activity-strip fallback after 30 s; never re-implement the state machine inline → [optimistic-dispatch.md]
+
 ## UI data patterns
 - **use-resource-hook**: `useResource(loader)` returns `{ data, loading, error, refresh, setData }`; loads on mount via useEffect; layer mutations on top using `setData` for optimistic updates; never inline the `setLoading/try/catch/finally` block → [use-resource-hook.md]
 - **use-resource-aggregation-loader**: Page-level surfaces with N independent reads pass a `useCallback`'d `Promise.all` loader to `useResource`; the aggregated object becomes `data`, with one shared `loading`/`error`/`refresh`/`setData` — never inline `setLoading/try/finally` per slice → [use-resource-aggregation-loader.md]
