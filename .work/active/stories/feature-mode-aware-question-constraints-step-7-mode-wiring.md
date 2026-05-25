@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-7-mode-wiring
 kind: story
-stage: implementing
+stage: review
 tags: [content, agent-prompt, curriculum]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults, feature-mode-aware-question-constraints-step-4-prompt-fragment]
@@ -31,12 +31,24 @@ Wire `questionToolFragment` into every mode that uses question tools. Backfill `
   - Non-question-using modes don't include the fragment
 
 ## Acceptance Criteria
-- [ ] All question-using modes register `questionToolFragment` in their `promptFragments`
-- [ ] `composeSystemPrompt` per mode includes the fragment with correct cap values
-- [ ] Non-question-using modes do NOT include the fragment
-- [ ] Integration tests cover per-mode composition
-- [ ] No regression on existing mode composition tests
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+- [x] All question-using modes register `questionToolFragment` in their `promptFragments`
+- [x] `composeSystemPrompt` per mode includes the fragment with correct cap values
+- [x] Non-question-using modes do NOT include the fragment
+- [x] Integration tests cover per-mode composition
+- [x] No regression on existing mode composition tests
+- [x] `pnpm typecheck && pnpm lint && pnpm test` green
+
+## Implementation notes (2026-05-24)
+
+**Approach chosen:** (a) — pass defaults via `resolveQuestionConstraints(modeId)` at module load time. Each mode imports `resolveQuestionConstraints` from `../question-constraints.js` and calls the fragment factory with the resolved constraints and a string label. The `?? FALLBACK_QUESTION_CONSTRAINTS` guard at the call site satisfies `noUncheckedIndexedAccess` and makes fallback behavior explicit.
+
+**Modes wired (6):** `teach`, `quiz`, `homework`, `exam`, `course-create`, `study-skills`. All get the fragment at the `constraints` position, placed after `constraintsFragment` (productive-struggle) and before `postamble`.
+
+**Modes excluded (1):** `configure` — its `ask_student_question` usage is configurator-facing authoring, not the student question-tool flow the fragment governs. Verified by toolNames audit: no `quick_check.*` tools.
+
+**Tests added:** `packages/curriculum/src/__tests__/mode-question-fragment.test.ts` — 22 assertions covering registration, position, composed-prompt cap values, teach/exam differentiation, and mode label in template.
+
+**Existing tests updated:** hardcoded fragment-count assertions in `teach-mode.test.ts` (11→12), `quiz-mode.test.ts` (11→12), and `packages/curriculum/src/modes/__tests__/study-skills.test.ts` (8→9).
 
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 7

@@ -1,4 +1,5 @@
 import type { Mode } from "@praxis/core/types";
+import { DEFAULT_QUESTION_CONSTRAINTS_BY_MODE, FALLBACK_QUESTION_CONSTRAINTS } from "../question-constraints.js";
 import { assignmentContextFragmentDefault } from "./fragments/assignment-context.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
@@ -9,6 +10,7 @@ import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
+import { questionToolFragment } from "./fragments/question-tool.js";
 import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 
 export const examMode: Mode = {
@@ -31,6 +33,7 @@ export const examMode: Mode = {
     behaviorInCourseFragmentDefault.exam, // ← course-aware behavior addendum
     assignmentContextFragmentDefault,
     constraintsFragment,
+    questionToolFragment(DEFAULT_QUESTION_CONSTRAINTS_BY_MODE.exam ?? FALLBACK_QUESTION_CONSTRAINTS, "Exam"), // ← question caps + content conventions
     postambleFragment,
   ],
   toolNames: [

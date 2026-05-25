@@ -1,4 +1,5 @@
 import type { Mode } from "@praxis/core/types";
+import { DEFAULT_QUESTION_CONSTRAINTS_BY_MODE, FALLBACK_QUESTION_CONSTRAINTS } from "../question-constraints.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
@@ -7,10 +8,13 @@ import { noteBriefAwarenessFragment } from "./fragments/note-brief-awareness.js"
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
+import { questionToolFragment } from "./fragments/question-tool.js";
 import { roleFragment } from "./fragments/role.js";
 import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 import { toolsFragment } from "./fragments/tools.js";
 
+// Approach (a): pass defaults table literals directly; DEFAULT_QUESTION_CONSTRAINTS_BY_MODE
+// is the SSOT for per-mode caps. If those defaults change, this fragment regenerates trivially.
 export const teachMode: Mode = {
   id: "teach",
   label: "Teach",
@@ -31,6 +35,7 @@ export const teachMode: Mode = {
     behaviorInCourseFragmentDefault.teach, // ← course-aware behavior addendum (replaced when courseId is set)
     noteBriefAwarenessFragment, // ← note-briefed session opening + note.update offer at close
     constraintsFragment,
+    questionToolFragment(DEFAULT_QUESTION_CONSTRAINTS_BY_MODE.teach ?? FALLBACK_QUESTION_CONSTRAINTS, "Teach"), // ← question caps + content conventions
     postambleFragment,
   ],
   toolNames: [

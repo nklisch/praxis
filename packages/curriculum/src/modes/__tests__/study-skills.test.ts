@@ -48,8 +48,8 @@ describe("study-skills mode shape", () => {
 });
 
 describe("study-skills mode prompt fragments", () => {
-  it("has 8 prompt fragments (preamble + role + principles + tools + course-context + in-course behavior + constraints + postamble)", () => {
-    expect(studySkillsMode.promptFragments).toHaveLength(8);
+  it("has 9 prompt fragments (preamble + role + principles + tools + course-context + in-course behavior + constraints + question-tool-guidance + postamble)", () => {
+    expect(studySkillsMode.promptFragments).toHaveLength(9);
   });
 
   it("has a 'role' position fragment with id 'role.study-skills'", () => {
