@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-4-queued-bubble
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-1-pending-message-failure-state]
@@ -67,3 +67,11 @@ Single component that renders all three sub-states of a `PendingMessageItem` (qu
 - `motions.css` keyframes are reproduced locally in the module (`chatRiseIn`, `chatFadeIn`) since CSS modules don't compose keyframe definitions from other files.
 
 **Acceptance criteria**: all ✓ (22 tests green)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: `<QueuedMessageBubble>` (NEW, 22 tests) renders 3 sub-states with appropriate action pips. Inline edit via local state + Save/Cancel. errorReason truncated to 120 chars with `title` for full. Keyframes reproduced locally in CSS module (limitation of CSS Modules — no cross-file keyframe composition). All COPY through `copy.ts`. Position pip omitted — overlaid at integration. Bundled commit `71fbc476`.

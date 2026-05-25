@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-2-stop-button
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: []
@@ -57,3 +57,13 @@ Replace the composer's `disabled={isStreaming}` lock with a Send-button-morphs-t
 
 ### Implementation discovery
 **Exam lockdown**: The previous `disabled={examLockdown}` on `<Composer>` (in `chat-tab-body.tsx`) was removed since `Composer` no longer accepts `disabled`. The exam lockdown notice (`lockdownNotice`) is still rendered visually. However, the textarea is now NOT HTML-disabled during an exam. This is an intentional step-2 limitation: a proper lock mechanism (overlay, form gate, or Enter-key interception in the exam tab body) should be introduced in step-7 (integration) when exam-mode-specific behavior is re-wired. This is noted in the updated exam lockdown test as a `step 2 intentional change`.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: 1 follow-up parked (`idea-resolve-composer-queue-vs-stop-affordance-conflict`) — Enter-during-streaming as no-op (per this story's spec) makes queue-during-streaming unreachable from composer UI; design tension surfaced at step-7 integration time
+**Nits**: none
+
+**Notes**: Send↔Stop morph implemented per spec. `disabled` prop removed from `ComposerProps`; 4 call sites updated. examLockdown regression handled in step-7 via tab-body-level onSend gate. 14 tests passing. Bundled commit `f0674d11`.

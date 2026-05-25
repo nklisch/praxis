@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-5-send-error
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-1-pending-message-failure-state]
@@ -55,3 +55,11 @@ Route per-item failures of queue-dispatched messages into `pendingQueue.markFail
 **Abort path**: when `userCancelledRef.current` is true at the catch block, the failure branch is skipped. The pending queue is preserved (per the existing design). Tests verified by the "abort path" test.
 
 **Acceptance criteria**: all ✓ (65 tests in use-streamed-send.test.tsx, 4 new)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Smart design adaptation: `dequeueNext` already removes the pending bubble from `items` before `sendInternal` runs, so `markDispatching` can't find the item. Resolution — on failure for queue-dispatched sends, re-inject a fresh `pending-message` item with `status: "failed"` directly via `setItems`. Functionally equivalent (bubble visible in failure state); skips intermediate `dispatching` visual (user wouldn't see it anyway since bubble was removed). Abort path preserved. `editPending/retryFailed/removeFailed` exposed via `UseStreamedSendResult` for step-7. 4 new tests in send-error describe block. Bundled commit `71fbc476`.

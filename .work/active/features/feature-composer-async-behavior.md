@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior
 kind: feature
-stage: implementing
+stage: done
 tags: [ui, ux]
 parent: epic-chat-interaction-ux-overhaul
 depends_on: []
@@ -364,3 +364,27 @@ Parallel-friendly: steps 1, 2, 3 ship without waiting (1 unlocks the rest); 4 / 
 - **Activity-strip flooding**: 10 failed messages all escalate after 30s — does the strip flood? Activity registry's `quietPeriodMs` should debounce, but worth verifying. **Mitigation**: integration test creates 5 simultaneous failed messages and asserts ≤ 1 status-strip entry visible. If the registry doesn't deduplicate, the escalation hook should — group by message-failed kind.
 
 - **Refactor in flight**: `feature-refactor-use-streamed-send-hook-decomposition` is at `stage: implementing` with 5 child stories. The hook decomposition is already in code (`use-pending-queue.ts`, `use-streamed-bubbles.ts`, etc. exist), so this feature designs against the post-refactor shape — correct. But if the refactor stories haven't all merged when this feature implements, there may be small landing-order conflicts. **Mitigation**: each story imports from the post-refactor file paths; if a path doesn't yet exist when implementation starts, that story rebases against the refactor work first.
+
+## Implementation summary + Review (2026-05-24)
+
+All 7 child stories landed across 4 orchestrator waves (consolidation: waves 2 & 3 each bundled multiple stories per the user's guidance):
+
+- `step-1-pending-message-failure-state` (done, `f0674d11`) — type extensions + queue methods
+- `step-2-stop-button` (done, `f0674d11`, with comments) — Composer Send↔Stop morph; `disabled` prop removed
+- `step-3-status-row` (done earlier) — `<ComposerStatus>` component
+- `step-4-queued-bubble` (done, `71fbc476`) — `<QueuedMessageBubble>` component
+- `step-5-send-error` (done, `71fbc476`) — send error → re-inject failed item
+- `step-6-escalation` (done, `71fbc476`) — `useFailedEscalation` hook
+- `step-7-integration` (done, `afeccb26`, with comments) — merge across tab bodies + examLockdown gate
+
+**Important follow-up parked**: `idea-resolve-composer-queue-vs-stop-affordance-conflict` — design tension between step-2's "Enter-during-streaming is no-op" and the feature's "queue during streaming" intent. Queue infrastructure works at the hook level; only the composer-UI trigger path is unreachable during streaming. Resolution is a small follow-on design call (recommended: Stop chip on streaming turn + Enter-to-send always live).
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: 1 follow-up parked (queue-vs-stop affordance conflict)
+**Nits**: none
+
+**Notes**: 7 stories shipped end-to-end. Composer rework + queue infrastructure + escalation hook + per-mode integration. ExamLockdown gate moved up one semantic layer (tab-body onSend wrapper) per the new "Composer never disables" contract. Parent epic `epic-chat-interaction-ux-overhaul` still active (1 sibling feature implementing) → feature stays in `.work/active/`.
+
+What's now possible: composer never blocks during streaming — textarea always accepts input. Send button morphs to Stop during in-flight turns. Failed pending messages render as inline bubbles with retry+remove; unattended failures escalate to activity strip after threshold (when client-side activity producer lands). Cancel from Stop button aborts the tutor turn via existing AbortController path. Tab body integration drops legacy disabled-during-streaming locks across 4 surfaces.

@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-7-integration
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-2-stop-button, feature-composer-async-behavior-step-3-status-row, feature-composer-async-behavior-step-4-queued-bubble, feature-composer-async-behavior-step-5-send-error, feature-composer-async-behavior-step-6-escalation]
@@ -58,3 +58,17 @@ Only two callers of `useStreamedSend` required integration: `TeachChatTabBody` i
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 7
 - Depends on Steps 2 / 3 / 4 / 5 / 6 (the merge point)
 - Pattern: `.claude/skills/patterns/ui-test-helper.md`, `.claude/skills/patterns/tab-body-isolation.md`
+
+## Review (2026-05-24)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- `idea-resolve-composer-queue-vs-stop-affordance-conflict` (parked) — Enter-during-streaming no-op (from step-2) makes queue-during-streaming unreachable from composer UI
+- examLockdown gate option 2 (onSend early-return) implemented — sound, but composer textarea is no longer HTML-disabled during exams; UI lockdown notice + accessibility unchanged
+- `useFailedEscalation` passed `activity: null` — no client-side ActivityRegistry yet (server-side abstraction); strip escalation degrades gracefully
+
+**Nits**: none
+
+**Notes**: Only 2 callers of `useStreamedSend` needed integration (TeachChatTabBody, AuthoringChatPane) — quiz/homework/exam/study-skills delegate. `onRemove` routing via caller-wrap (`item.status === "failed" ? removeFailed : cancelPending`). 3 smoke tests in `teach-tab-body-integration.test.tsx`. The full queue→dispatch→fail→retry cycle is covered at the hook level via `use-streamed-send.test.tsx`. Closes composer-async-behavior feature (7/7 stories).

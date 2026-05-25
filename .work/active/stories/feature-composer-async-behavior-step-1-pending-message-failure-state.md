@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-1-pending-message-failure-state
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: []
@@ -56,3 +56,11 @@ Extend the `PendingMessageItem` type with status / errorReason / failedAt fields
 - **`retryFailed` synchronous return**: The `setItems` updater runs asynchronously (batched by React 18), so capturing a value inside it and returning it synchronously doesn't work. Fixed via `failedItemsRef` — `markFailed` populates it synchronously inside the updater (which runs within `act()`), and `retryFailed` reads from it before calling `setItems`.
 - **`pendingCount` vs `failedCount`**: `usePendingQueue.pendingCount` reflects only the raw queue (pre-dispatch items). The accurate `pendingCount` (queued+dispatching) and `failedCount` (failed) are derived from the live `items` array via `derivePendingCounts` in `useStreamedSend` — no state duplication, no Strict Mode double-invocation bugs.
 - **Field rename `content → text`**: Per design spec. Updated all consumers (chat-tab-body, use-pending-queue internals, use-streamed-send). The `role: "user"` field was also removed from `PendingMessageItem` as it's not in the spec and was unused in rendering.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: `PendingMessageItem` extended; queue hook gained 5 new methods; `derivePendingCounts` pure helper for accurate counts (avoids Strict Mode double-invocation). `failedItemsRef` for synchronous `retryFailed` return — sharp React-18 batching workaround. 25 new tests + field rename `content → text` propagated cleanly. Bundled commit `f0674d11`.

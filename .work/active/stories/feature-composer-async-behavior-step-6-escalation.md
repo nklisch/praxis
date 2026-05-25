@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-6-escalation
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-1-pending-message-failure-state]
@@ -62,3 +62,11 @@ A small per-tab hook that watches `failedItems` and, for each failed message, sc
 **Timer closure**: `setTimeout` callback captures `capturedId` (not `item.id` directly) to avoid any closure issues with the loop variable. The callback checks `entries.has(capturedId)` to handle the race where the item disappears in the same tick the timer fires.
 
 **Acceptance criteria**: all ✓ (14 tests, all deterministic with `vi.useFakeTimers()`)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: `useFailedEscalation` hook (NEW, 14 tests, all `vi.useFakeTimers()`). Two `useEffect`s: one reactive on `[failedItems, activity, thresholdMs]`, one cleanup-only on `[]` for unmount — separates React-lifecycle from timer-lifecycle cleanly. Past-threshold items use `Math.max(0, remaining)` to fire on next tick. `setTimeout` callback captures `capturedId` to avoid loop-variable closure issues. Local `ActivityRegistryClient` interface (forward declaration — no client-side activity producer exists yet; caller supplies). Bundled commit `71fbc476`.
