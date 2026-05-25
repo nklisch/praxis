@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline
 kind: feature
-stage: review
+stage: done
 tags: [content, rendering, design-system]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -441,3 +441,18 @@ All 8 child stories landed across multiple orchestrator runs (consolidated where
 **Verification at advance time**: 1939 tests pass; lint clean; typecheck clean (only pre-existing Drizzle duplicate-module error, unrelated).
 
 What's now possible: every text-bearing surface in the chat composes against a unified renderer pipeline with conditional plugin loading. The 8 design decisions all landed. Sibling feature `feature-math-rendering` step-5 (pipeline wiring for math glyphs + KaTeX options) is now unblocked. The 2 parked follow-ups can ship as standalone stories without blocking math-rendering or the wider epic.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- `::: figure :::` directive parsing currently broken — `idea-resolve-remark-directive-definitions-conflict` parked
+- `useFirstOccurrence` NOOP because IPC channels not wired — `idea-term-first-occurrences-ipc-channels` parked
+
+**Nits**: none
+
+**Notes**: All 8 child stories individually reviewed + approved. Feature-level capability check: end-to-end renderer pipeline composes 4 new plugins (admonitions, definitions, file-paths, units) + 5 new component overrides (Callout, Figure, Definition, ConceptRef, abbr) on top of the existing react-markdown stack. Per-mode toggle propagation works via `resolveRenderToggles(mode)` from `chat-tab-body.tsx`. Kitchen-sink integration test confirms every primitive renders cleanly under one render. Two parked follow-ups are honest architectural surfacings — both have clear resolution paths and don't block. Parent epic `epic-educational-content-rendering` still active (math-rendering still implementing) → feature stays in `.work/active/`.
+
+What's now possible: every text-bearing surface in the chat automatically composes against the unified renderer pipeline. Sibling feature `feature-math-rendering` step-5 (the final merge for math) is now unblocked — once it lands, the math feature can also advance. The 2 parked follow-ups can ship as standalone stories without coupling.
