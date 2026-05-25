@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-3-status-row
 kind: story
-stage: review
+stage: done
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: []
@@ -52,3 +52,11 @@ New pure presentational component that renders the status row beneath the compos
 - Extended `packages/ui/src/lib/copy.ts` with `COPY.composer.status.{failed, streaming, queued}` for the three displayable strings.
 - Created `packages/ui/src/__tests__/composer-status.test.tsx` — 10 tests covering all variants, priority ladder (failed > streaming > queued > null), and pip element presence in streaming variant. All pass.
 - Pre-existing typecheck failure in `@praxis/desktop` (missing `@praxis/curriculum/modes/fragments/dev-mode`) and lint errors in `.mockups/` files are unrelated to this story.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 56 LoC pure presentational component + 44 LoC CSS module + 100 LoC tests + 5 LoC COPY extension. Priority ladder implemented correctly (failed > streaming > queued > null). No `useState` or `useEffect` — purely a function of props. CSS module token-only values with `prefers-reduced-motion` opt-out for the pip pulse animation. COPY routed through `packages/ui/src/lib/copy.ts`'s new `COPY.composer.status.{failed, streaming, queued}` sub-object — keeps strings centralized for future i18n. 10 tests cover all 4 variants + priority assertions + pip presence in streaming variant.

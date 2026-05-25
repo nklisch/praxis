@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-1-types-and-defaults
 kind: story
-stage: review
+stage: done
 tags: [content, tool-schema, config]
 parent: feature-mode-aware-question-constraints
 depends_on: []
@@ -50,3 +50,11 @@ Add the `QuestionConstraints` interface to `@praxis/core`, extend `Mode` with `q
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 1
 - File: `packages/core/src/types/mode.ts`
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 8-line addition to `mode.ts` for `QuestionConstraints` interface + optional `Mode.questionConstraints` field. 32 LoC for `question-constraints.ts` covering `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE` (all 7 modes with documented defaults), `FALLBACK_QUESTION_CONSTRAINTS`, and `resolveQuestionConstraints(modeId, override?)`. Resolver uses field-by-field merge (not spread) to correctly handle `undefined`-valued override keys — the right pattern for `Required<T>` semantics. Barrel-exported from `@praxis/curriculum/index.ts`. 4 tests cover all-modes-defaults, unknown-mode fallback, partial override, empty override. All existing modes typecheck unchanged.
