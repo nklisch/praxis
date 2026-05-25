@@ -1,7 +1,7 @@
 ---
 id: story-create-course-pack-upload-polish
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-course-create-improvements
 depends_on: []

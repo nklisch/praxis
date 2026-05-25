@@ -1,7 +1,7 @@
 ---
 id: story-fix-create-to-design-docs-missing
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: feature-course-create-improvements
 depends_on: []
