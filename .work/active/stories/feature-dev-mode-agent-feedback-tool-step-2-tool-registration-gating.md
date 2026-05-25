@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool-step-2-tool-registration-gating
 kind: story
-stage: review
+stage: done
 tags: [dev, observability, dx]
 parent: feature-dev-mode-agent-feedback-tool
 depends_on: [feature-dev-mode-agent-feedback-tool-step-1-writer-and-tool]
@@ -61,3 +61,13 @@ Conditionally append `DEV_TOOLS` to `toolDefinitions` and conditionally construc
 **Test approach:** `buildServices` is too heavy to invoke in unit tests (DB, Pyodide, embeddings worker, etc.). Tests instead import `DEV_TOOLS` and `createDevReportsWriter` directly and apply the same gate predicate inline — the logic under test is `process.env.PRAXIS_DEV === "true"` and the composition of `DEV_TOOLS` into a name set.
 
 **Test results:** 532/532 desktop tests pass; 35/35 test files pass. Typecheck clean. Biome clean on changed files.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean single-site env gate. `IS_DEV = process.env.PRAXIS_DEV === "true"` read once at `services.ts:144` and used at both registration sites (DEV_TOOLS push + devReportsWriter construction). The `...(IS_DEV && { devReportsWriter: ... })` spread is the correct shape under `exactOptionalPropertyTypes: true` — straightforward TypeScript correctness. 163 lines of tests covering gate-on, gate-off (unset), gate-off-explicit-false, step-1 contract assertions, and prod-tool isolation. Test approach (inline-replicate the gate predicate rather than invoke full `buildServices`) is a sensible trade-off — the gate logic is small and the test stays fast.
