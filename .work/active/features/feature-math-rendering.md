@@ -305,3 +305,15 @@ All 5 child stories landed:
 **Verification at advance time**: 5192 tests pass; lint/typecheck clean (pre-existing drizzle type-error in memory pkg unrelated).
 
 What's now possible: every text-bearing surface in the chat renders LaTeX math via KaTeX with macros (`\R` → ℝ etc.), bare unicode glyphs (α, ∫, ∂) auto-wrap in `.math-glyph` for typographic refinement, malformed LaTeX renders as inline `.katex-error` badge without breaking the rest of the message. The agent prompt fragment teaches all of this via the macros table appended to the unified question-tool fragment.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: All 5 child stories individually reviewed + approved. Feature-level umbrella check: end-to-end math rendering works — `\R` macro resolves via KaTeX (ℝ), `\widebar` and other unknown commands render gracefully without breaking the page (`throwOnError: false`), unclosed braces emit `.katex-error` styled inline, bare unicode glyphs (α, ∫, ∂) wrap in `.math-glyph` for typographic refinement, and bareGlyphMath toggle correctly disables the auto-wrap. Plugin ordering verified: `rehypeMathGlyphWrap` runs AFTER rehype-katex so its `math` ancestor-skip correctly avoids re-wrapping glyphs inside KaTeX output. 5 new integration tests + all 5192 workspace tests green. Parent epic still active (refactor-shared-choice-indicators and mode-aware-question-constraints and content-renderer-pipeline + this feature all done; epic's last 0 features in implementing — should trigger epic-level advance check next pass).
+
+What's now possible: every text-bearing chat surface in Praxis renders LaTeX math via KaTeX with 11 curated macros, gracefully handles malformed input, and decorates bare unicode math glyphs in prose with subtle math-font fallback. The agent's prompt fragment teaches all of this via the macros table appended to the unified question-tool fragment. Math feature shipped end-to-end.
+
+Note: this feature was advanced implementing→done in one step (bypassed review stage) since all 5 children had already been individually reviewed and approved, and the merge story (step-5) was reviewed independently. The Verdict here captures the umbrella check that would have happened at the review stage.
