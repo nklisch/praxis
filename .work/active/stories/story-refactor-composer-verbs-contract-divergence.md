@@ -1,7 +1,7 @@
 ---
 id: story-refactor-composer-verbs-contract-divergence
 kind: story
-stage: review
+stage: done
 tags: [refactor, design-system, cleanup]
 parent: feature-design-system-polish-sweep
 depends_on: []

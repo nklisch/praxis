@@ -1,7 +1,7 @@
 ---
 id: story-leading-symbol-spacing
 kind: story
-stage: review
+stage: done
 tags: [ui, design-system]
 parent: feature-design-system-polish-sweep
 depends_on: []

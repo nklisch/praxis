@@ -1,7 +1,7 @@
 ---
 id: story-index-ready-badge-alignment
 kind: story
-stage: review
+stage: done
 tags: [ui, design-system]
 parent: feature-design-system-polish-sweep
 depends_on: []
