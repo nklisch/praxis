@@ -24,7 +24,7 @@
   cursor: pointer;
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
+  gap: var(--space-leading-symbol, var(--space-2));
   margin-bottom: -1px;
   transition: color var(--dur-quick, 160ms);
 }
@@ -112,7 +112,7 @@
   font: italic 13px / 1.4 var(--font-serif, serif);
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-1-5);
+  gap: var(--space-leading-symbol, var(--space-1-5));
   transition:
     color var(--dur-quick, 160ms),
     border-color var(--dur-quick, 160ms);
@@ -172,7 +172,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2-5);
+  gap: var(--space-3);
 }
 
 .packRow {
@@ -182,7 +182,7 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--space-4);
-  align-items: center;
+  align-items: baseline;
   cursor: pointer;
   transition: border-color var(--dur-quick, 160ms);
   border-radius: var(--radius-sm, 4px);
@@ -371,4 +371,98 @@
 .pasteSaveBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* ── Library pane ────────────────────────────────────────────────────────────── */
+
+.libraryPane {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.libraryIntro {
+  font: italic 14px / 1.55 var(--font-serif, serif);
+  color: var(--color-text-secondary);
+  max-width: 60ch;
+  margin: 0 0 var(--space-5);
+}
+
+.libraryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.libraryRow {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-4);
+  align-items: baseline;
+  border-radius: var(--radius-sm, 4px);
+  transition: border-color var(--dur-quick, 160ms);
+}
+
+.libraryRow:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.libraryRowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.libraryFilename {
+  font: 500 italic 14px / 1.25 var(--font-display, var(--font-serif, serif));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.libraryMeta {
+  font: 11px / 1.4 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.librarySelectBtn {
+  font: 500 12px / 1 var(--font-sans, sans-serif);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background var(--dur-quick, 160ms),
+    color var(--dur-quick, 160ms),
+    border-color var(--dur-quick, 160ms);
+}
+
+.librarySelectBtn:hover {
+  background: var(--color-bg-inverse, #111);
+  color: var(--color-text-inverse, #fff);
+  border-color: var(--color-bg-inverse, #111);
+}
+
+.librarySelectedBadge {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+  flex-shrink: 0;
+  align-self: center;
 }

@@ -22,6 +22,18 @@ import type { NavigateFn } from "@tanstack/react-router";
 const pendingInitialMessages = new Map<string, string>();
 
 /**
+ * Store an initial message for a session so the tab body can pick it up on
+ * mount via `consumeInitialMessage`. Use this when you start the session
+ * manually (e.g. to attach documents before opening the tab) instead of
+ * delegating fully to `openSessionInTab`.
+ */
+export function storeInitialMessage(sessionId: SessionId, message: string): void {
+  if (message.trim() !== "") {
+    pendingInitialMessages.set(sessionId, message);
+  }
+}
+
+/**
  * Pop the pending initial message for a session, if any.
  * Call this once from the tab body component on mount; it clears the entry so
  * subsequent mounts don't replay the message.

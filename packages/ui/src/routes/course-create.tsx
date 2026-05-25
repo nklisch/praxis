@@ -8,8 +8,8 @@
  *
  * Per the locked Option 4 mock
  * (`.mockups/screens/epic-course-create-readiness-unified-landing-source-picker/option-4.html`):
- *   - 3-tab source picker: Pack (landing) / Upload (tagged "create your own") / Paste
- *   - Below the active tab, italic "Or —" bar names the other two tabs as switch links
+ *   - 4-tab source picker: Pack (landing) / Upload (tagged "create your own") / Paste / Library
+ *   - Below the active tab, italic "Or —" bar names the other tabs as switch links
  *   - Attached sources list with per-source status (indexing / ready)
  *   - Optional context textarea (audience / goal / notes)
  *   - "Start Praxis →" CTA
@@ -18,8 +18,14 @@
  * pack as source on mount. Validated via TanStack Router `validateSearch`.
  *
  * Stepper: Material · Create · Confirm · Open (step 2 renamed from "Explore").
+ *
+ * Story fix-create-to-design-docs-missing: after starting the session, all
+ * document-backed attached sources are attached to the session scope so
+ * `useDerivedScope` → `listForScope({ kind: "session", id })` surfaces them
+ * in the documents panel.
  */
-import type { PackSummaryClient } from "@praxis/core/types";
+import type { DocumentId, PackSummaryClient, SessionId } from "@praxis/core/types";
+import { brandId } from "@praxis/core/types";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import type { SourceTab } from "../components/source-picker.js";
@@ -28,12 +34,12 @@ import { usePraxisClient } from "../context/client-context.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { usePacks } from "../hooks/use-packs.js";
 import { useTabs } from "../hooks/use-tabs.js";
-import { openSessionInTab } from "../lib/open-session-in-tab.js";
+import { storeInitialMessage } from "../lib/open-session-in-tab.js";
 import styles from "./course-create.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AttachedSourceKind = "file" | "pack" | "paste";
+type AttachedSourceKind = "file" | "pack" | "paste" | "library";
 
 interface AttachedSource {
   /** Unique key for React rendering. */
@@ -196,21 +202,81 @@ export function CourseCreateRoute() {
     setAttachedSources((prev) => prev.filter((s) => s.key !== key));
   }, []);
 
+  // ── Library document selection (story-create-course-select-existing-docs) ────
+
+  /**
+   * Called when the user selects a document from the library pane in the
+   * source picker. Adds it to `attachedSources` as a ready library source.
+   * The documentId will be attached to the session scope in handleStart.
+   */
+  const handleLibrarySelect = useCallback((documentId: string, filename: string) => {
+    setAttachedSources((prev) => {
+      const alreadyAttached = prev.find((s) => s.kind === "library" && s.key === documentId);
+      if (alreadyAttached) return prev;
+      return [
+        ...prev,
+        {
+          key: documentId,
+          kind: "library",
+          label: filename,
+          status: "ready" as const,
+          documentId,
+        },
+      ];
+    });
+  }, []);
+
   const handleStart = useCallback(async () => {
     setStarting(true);
     try {
       const trimmedContext = context.trim();
-      await openSessionInTab({
-        client,
-        navigate,
-        openTab,
-        startOpts: { modeId: "course-create" },
-        ...(trimmedContext !== "" && { initialMessage: trimmedContext }),
-      });
+
+      // Start the session, capture the sessionId, then attach all document-backed
+      // sources to the session scope before opening the tab. This is the fix for
+      // story-fix-create-to-design-docs-missing: without these attach calls,
+      // listForScope({ kind: "session", id }) returns empty and the documents panel
+      // shows nothing in the design session.
+      const handle = await client.session.start({ modeId: "course-create" });
+      const newSessionId = handle.sessionId as SessionId;
+
+      // Collect document IDs from all ready attached sources.
+      const documentIds = attachedSources
+        .filter(
+          (s): s is AttachedSource & { documentId: string } =>
+            s.status === "ready" && s.documentId !== undefined,
+        )
+        .map((s) => brandId<"DocumentId">(s.documentId) as DocumentId);
+
+      if (documentIds.length > 0) {
+        // Non-blocking: attach each doc to the new session scope. Fire sequentially
+        // (not Promise.all) so we don't overload the IPC channel; errors are
+        // swallowed per session-scoped attachment contract — the course-create
+        // session is already started and must open regardless.
+        for (const documentId of documentIds) {
+          try {
+            await client.documentScopes.attach({
+              scope: { kind: "session", id: newSessionId },
+              documentId,
+              source: "course-create",
+            });
+          } catch {
+            // Non-fatal: user will still reach the design session; docs can be
+            // re-attached manually via the library picker.
+          }
+        }
+      }
+
+      // Store initial message (context textarea) so the tab body picks it up.
+      if (trimmedContext !== "") {
+        storeInitialMessage(newSessionId, trimmedContext);
+      }
+
+      const tab = await openTab({ sessionId: newSessionId });
+      await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });
     } finally {
       setStarting(false);
     }
-  }, [client, navigate, openTab, context]);
+  }, [client, navigate, openTab, context, attachedSources]);
 
   const indexingCount = attachedSources.filter((s) => s.status === "indexing").length;
 
@@ -242,7 +308,7 @@ export function CourseCreateRoute() {
           <span className={styles.stepPending}>Open</span>
         </div>
 
-        {/* Source picker — 3-tab: Pack / Upload / Paste */}
+        {/* Source picker — 4-tab: Pack / Upload / Paste / Library */}
         <SourcePicker
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -253,6 +319,10 @@ export function CourseCreateRoute() {
           onBrowse={handleBrowse}
           onPasteSubmit={handlePasteSubmit}
           pasteSubmitting={pasteSubmitting}
+          onLibrarySelect={handleLibrarySelect}
+          selectedLibraryDocumentIds={
+            new Set(attachedSources.filter((s) => s.kind === "library").map((s) => s.key))
+          }
         />
 
         {/* Attached sources */}

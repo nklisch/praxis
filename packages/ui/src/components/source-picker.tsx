@@ -1,23 +1,30 @@
 /**
- * SourcePicker — 3-tab source selector for the /course-create landing.
+ * SourcePicker — 4-tab source selector for the /course-create landing.
  *
  * Tab 1 (default): Pack — lists canonical packs; selecting one calls onPackSelect.
  * Tab 2: Upload — existing drop-zone + browse behavior; carries a "create your own" tag.
  * Tab 3: Paste — textarea + "Save as source" button; calls onPasteSubmit with pasted text.
+ * Tab 4: Library — lists the student's already-ingested documents; selecting calls onLibrarySelect.
  *
- * Below the active surface, an italic "Or —" bar names the OTHER two options as
+ * Below the active surface, an italic "Or —" bar names the OTHER tabs as
  * tab-switching links (Option 4 mock: below-hints pattern).
  *
  * Props surface: parent (CourseCreateRoute) owns state; this component is
  * purely presentational + event-dispatching.
  */
-import type { PackSummaryClient } from "@praxis/core/types";
+import type { DocumentSummary, PackSummaryClient } from "@praxis/core/types";
 import { useCallback, useRef, useState } from "react";
+import { usePraxisClient } from "../context/client-context.js";
+import { useResource } from "../hooks/use-resource.js";
+import { COPY } from "../lib/copy.js";
+import { EmptyState } from "./empty-state.js";
+import { ErrorMessage } from "./error-message.js";
+import { LoadingState } from "./loading-state.js";
 import styles from "./source-picker.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type SourceTab = "pack" | "upload" | "paste";
+export type SourceTab = "pack" | "upload" | "paste" | "library";
 
 interface SourceTabMeta {
   id: SourceTab;
@@ -30,6 +37,7 @@ const TABS: SourceTabMeta[] = [
   { id: "pack", glyph: "‡", label: "Pack", altLabel: "pick a canonical pack" },
   { id: "upload", glyph: "⤓", label: "Upload", altLabel: "upload your own files" },
   { id: "paste", glyph: "¶", label: "Paste", altLabel: "paste source text" },
+  { id: "library", glyph: "§", label: "Library", altLabel: "select from your library" },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -51,6 +59,18 @@ export interface SourcePickerProps {
   onPasteSubmit: (text: string) => void;
   /** Whether a paste-ingest is currently in flight (disables the button). */
   pasteSubmitting?: boolean;
+  /**
+   * Called when the user clicks "Select" on a library document row.
+   * Receives the document id and filename so the parent can add it to
+   * `attachedSources` and wire it to the session scope on Start.
+   */
+  onLibrarySelect?: (documentId: string, filename: string) => void;
+  /**
+   * Document ids already selected from the library (controlled by parent).
+   * Library rows whose id is in this set show a "selected" badge instead
+   * of a "Select" button.
+   */
+  selectedLibraryDocumentIds?: ReadonlySet<string>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -65,6 +85,8 @@ export function SourcePicker({
   onBrowse,
   onPasteSubmit,
   pasteSubmitting = false,
+  onLibrarySelect,
+  selectedLibraryDocumentIds,
 }: SourcePickerProps) {
   const [internalTab, setInternalTab] = useState<SourceTab>("pack");
   const active = controlledActiveTab ?? internalTab;
@@ -111,6 +133,12 @@ export function SourcePicker({
         )}
         {active === "upload" && <UploadPane onBrowse={onBrowse} />}
         {active === "paste" && <PastePane onSubmit={onPasteSubmit} submitting={pasteSubmitting} />}
+        {active === "library" && (
+          <LibraryPane
+            onSelect={onLibrarySelect ?? (() => {})}
+            selectedIds={selectedLibraryDocumentIds ?? new Set()}
+          />
+        )}
       </div>
 
       {/* ── Or — bar ─────────────────────────────────────────────────────── */}
@@ -252,6 +280,70 @@ function PastePane({
           {submitting ? "Saving…" : "Save as source"}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Library pane ─────────────────────────────────────────────────────────────
+
+/**
+ * Inline pane listing the student's already-ingested documents. Each row has a
+ * "Select" button that calls `onSelect(documentId, filename)`. Already-selected
+ * documents show a "selected" badge instead.
+ *
+ * Documents load from `client.documents.list()`. The parent owns selection state.
+ */
+function LibraryPane({
+  onSelect,
+  selectedIds,
+}: {
+  onSelect: (documentId: string, filename: string) => void;
+  selectedIds: ReadonlySet<string>;
+}) {
+  const client = usePraxisClient();
+
+  const loader = useCallback(async () => client.documents.list(), [client]);
+  const { data: documents, loading, error } = useResource(loader);
+
+  if (loading) return <LoadingState message={COPY.loading.documents} />;
+  if (error) return <ErrorMessage error={error} />;
+  if (!documents || documents.length === 0) {
+    return <EmptyState message={COPY.empty.libraryPickerEmpty} compact />;
+  }
+
+  return (
+    <div className={styles.libraryPane}>
+      <p className={styles.libraryIntro}>
+        Select documents you&apos;ve already uploaded — they&apos;ll be available to the drafter
+        without re-indexing.
+      </p>
+      <ul className={styles.libraryList}>
+        {(documents as DocumentSummary[]).map((doc) => {
+          const isSelected = selectedIds.has(doc.documentId);
+          return (
+            <li key={doc.documentId} className={styles.libraryRow}>
+              <div className={styles.libraryRowInfo}>
+                <span className={styles.libraryFilename}>{doc.filename}</span>
+                <span className={styles.libraryMeta}>
+                  {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                </span>
+              </div>
+              {isSelected ? (
+                <span className={styles.librarySelectedBadge}>selected</span>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.librarySelectBtn}
+                  onClick={() => onSelect(doc.documentId, doc.filename)}
+                  aria-label={`Select ${doc.filename}`}
+                >
+                  Select
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
