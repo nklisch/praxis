@@ -1,7 +1,7 @@
 ---
 id: epic-educational-content-rendering
 kind: epic
-stage: implementing
+stage: done
 tags: [content, rendering, design-system, cross-cutting]
 parent: null
 depends_on: []
@@ -137,3 +137,40 @@ These are documented once in the fragment; the agent reads them every turn along
 ## Next
 
 `/agile-workflow:epic-design epic-educational-content-rendering` decomposes the anticipated children into actual feature files at `stage: drafting` with declared `depends_on` chains. Each child feature then enters the design family per its tag.
+
+## Implementation summary + Review (2026-05-24)
+
+**All 4 child features shipped to done:**
+
+1. `feature-refactor-shared-choice-indicators` (3 stories) — `.choice-indicator` primitive extracted; body components compose against it; `assignment-item-card.module.css` deduped. Important honest deviation: 2 additional consumers (`ordering-body.tsx`, `matching-body.tsx`) discovered + classes preserved instead of breaking them; follow-on flagged.
+
+2. `feature-mode-aware-question-constraints` (7 stories) — `QuestionConstraints` interface + per-mode defaults + `validateQuestionConstraints` helper + threading through `ToolContext` + wiring into `ask_student_question` + all 5 quick-check variants + unified `questionToolFragment` registered in 6 modes. End-to-end agent-side validation works.
+
+3. `feature-content-renderer-pipeline` (8 stories) — 3-stage pipeline established. `Mode.renderToggles?` field + Studio Quiet hljs theme + 30+ CSS primitives + `Callout`/`Figure`/`Definition`/`ConceptRef` components + `remarkAdmonitions`/`remarkDefinitions`/`rehypeFilePaths`/`rehypeUnits` plugins + first-introduction definition tracking projection in `@praxis/memory` + merge wiring. **2 parked follow-ups**: `idea-resolve-remark-directive-definitions-conflict` (figure directive vs `[[def:]]` syntax conflict), `idea-term-first-occurrences-ipc-channels` (client-side IPC wiring for first-occurrence tracking).
+
+4. `feature-math-rendering` (5 stories) — KaTeX `macros` config (11 macros) + `rehypeMathGlyphWrap` bare-glyph post-pass (66 codepoints) + `.katex-error` styling + macros table appended to question-tool fragment + merge wiring. Math renders end-to-end across every chat-bearing surface.
+
+**Epic-level lenses** (per review skill Phase 5):
+
+- **Design alignment**: realized decomposition matches the epic brief — foundation feature (`content-renderer-pipeline`) shipped first, sibling features (`math-rendering`, `mode-aware-question-constraints`, `refactor-shared-choice-indicators`) layered on top. Cross-feature contracts (mode `renderToggles?` + `questionConstraints?`, `questionToolFragment` factory + macros table) coordinated correctly.
+
+- **Foundation-doc alignment**: no drift discovered during implementation. Epic-level changes to `docs/SPEC.md` § "Math verification round-trip" and `docs/ARCHITECTURE.md` § `@praxis/curriculum` / `@praxis/tools` were honored.
+
+- **Breaking changes**: none — all extensions are additive optional fields on `Mode`, `ToolContext`, `ToolServices` + new opt-in plugins.
+
+- **Capability completeness end-to-end**: agent writes LaTeX math + admonitions + `[[def:term]]` markers + `concept:` links + GitHub callouts + auto-detected bare glyphs + units + file paths + figures (via component, not yet via directive — see follow-up) → renderer composes all into the chat-bearing surfaces with per-mode toggle propagation. Per-mode question caps enforced at dispatch with agent-friendly error messages. Choice-indicator primitive shared across in-chat questions + tab-body assignment items.
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: 2 follow-ups parked (both surfaced as honest design discoveries during integration):
+- `idea-resolve-remark-directive-definitions-conflict` — `::: figure :::` directive syntax currently doesn't parse
+- `idea-term-first-occurrences-ipc-channels` — client-side IPC for `hasSeenTerm`/`markTermSeen` not wired
+
+**Nits**: none
+
+**Notes**: Epic delivered as briefed. 23 child stories shipped across 4 features. The two follow-ups are real but non-blocking — both have clear paths forward and ship as standalone stories. The unified `questionToolFragment` is now the single SOT for "how to write educational content", composing math + citations + definitions + callouts + concept refs + figures into one fragment that every mode reads.
+
+What's now possible: the educational-content renderer foundation is in place. Every text-bearing chat surface composes against the unified pipeline. Math, callouts, definitions, units, file-paths, concept-refs all auto-style. Per-mode question caps prevent agent-generated questions from blowing up the UI. The follow-on epic (`epic-chat-interaction-ux-overhaul`) can now design its question chassis against the locked primitives.
+
+**No release_binding** + **parent: null** → epic archives on advance per Phase 8.
