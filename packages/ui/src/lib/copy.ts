@@ -112,6 +112,32 @@ export const COPY = {
     stackToggleBlocks: "Blocks",
     stackToggleComposed: "Composed",
   },
+  queuedBubble: {
+    /** Accessible article label — describes the bubble's current lifecycle state. */
+    articleAriaLabel: (status: "queued" | "dispatching" | "failed"): string => {
+      if (status === "failed") return "Message failed to send";
+      if (status === "dispatching") return "Message being sent";
+      return "Message queued";
+    },
+    speakerName: "You",
+    whenQueued: "· queued",
+    whenDispatching: "· sending…",
+    whenFailed: "· failed to send",
+    badgeQueued: "awaiting tutor turn",
+    badgeDispatching: "sending…",
+    badgeFailed: "⚠ send failed",
+    editLabel: "edit",
+    editAriaLabel: "Edit queued message",
+    removeLabel: "remove",
+    removeAriaLabel: "Remove message from queue",
+    retryLabel: "↺ retry",
+    retryAriaLabel: "Retry failed message",
+    saveLabel: "save",
+    saveDraftAriaLabel: "Save edited message",
+    cancelLabel: "cancel",
+    cancelEditAriaLabel: "Cancel edit",
+    editTextareaAriaLabel: "Edit message text",
+  },
   libraryPicker: {
     /** Deck copy for course-scope picker: clarifies no re-upload needed. */
     deckCourse: "Select a document to attach it to this course without re-uploading.",

@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-4-queued-bubble
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-1-pending-message-failure-state]
@@ -49,3 +49,21 @@ Single component that renders all three sub-states of a `PendingMessageItem` (qu
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 4
 - Mockup: `.mockups/screens/feature-composer-async-behavior/state-in-flight-queued.html`, `state-failed-retry.html`
 - Components.css: `.chat-turn` family
+
+## Implementation notes (2026-05-24)
+
+**Files**:
+- `packages/ui/src/components/queued-message-bubble.tsx` (NEW)
+- `packages/ui/src/components/queued-message-bubble.module.css` (NEW)
+- `packages/ui/src/lib/copy.ts` — added `queuedBubble` namespace
+- `packages/ui/src/__tests__/queued-message-bubble.test.tsx` (NEW, 22 tests)
+
+**Design decisions**:
+- Component renders `<article>` with `aria-label` from COPY. All action button labels and ARIA text route through `COPY.queuedBubble`.
+- CSS module promotes `.chat-turn--queued` / `.chat-turn--failed` rules from mockup design system. Position pip omitted from the component itself — will be overlaid at integration time (step-7) since the component has no knowledge of its queue position.
+- Inline edit uses local `{ editing, draft }` state. `handleSave` trims draft and skips `onEdit` when blank. `autoFocus` on textarea is suppressed from lint via biome-ignore (expected UX after user clicks edit).
+- Failed variant shows `errorReason` truncated to 120 chars inline, full text in `title`.
+- All animation uses design tokens (no bare ms). `prefers-reduced-motion` handled via `@media` in CSS module (collapses chatRiseIn, chatFadeIn, editTextarea animations).
+- `motions.css` keyframes are reproduced locally in the module (`chatRiseIn`, `chatFadeIn`) since CSS modules don't compose keyframe definitions from other files.
+
+**Acceptance criteria**: all ✓ (22 tests green)

@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-6-escalation
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-1-pending-message-failure-state]
@@ -46,3 +46,19 @@ A small per-tab hook that watches `failedItems` and, for each failed message, sc
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 6
 - Pattern: `.claude/skills/patterns/service-deps-injection.md` (activity-rail-producer entry)
 - Depends on Step 1's failure state types
+
+## Implementation notes (2026-05-24)
+
+**Files**:
+- `packages/ui/src/hooks/use-failed-escalation.ts` (NEW)
+- `packages/ui/src/__tests__/use-failed-escalation.test.tsx` (NEW, 14 tests)
+
+**Type note**: The feature design referenced `ActivityRegistryClient` — a type that doesn't exist in the codebase (the server-side interface is `ActivityRegistry`; the renderer-side is `ActivityClient`). This story defines `ActivityRegistryClient` as a local interface in `use-failed-escalation.ts` with just the `start()` method from `ActivityRegistry`. It's exported so the caller (step-7) can satisfy it with whatever mechanism is available (future IPC call, or server-injected instance).
+
+**`useRef<Map<id, EscalationEntry>>`**: Internal map tracks per-id `{ failedAt, timer, handle? }`. Two `useEffect`s: one reactive on `[failedItems, activity, thresholdMs]` that schedules/clears timers; one cleanup-only on `[]` that clears everything on unmount. This cleanly separates the "React lifecycle" concern from the "timer lifecycle" concern.
+
+**Past-threshold items**: `Math.max(0, thresholdMs - elapsed)` ensures items that were already past threshold when the component first mounts escalate immediately on next tick (timer fires at 0ms).
+
+**Timer closure**: `setTimeout` callback captures `capturedId` (not `item.id` directly) to avoid any closure issues with the loop variable. The callback checks `entries.has(capturedId)` to handle the race where the item disappears in the same tick the timer fires.
+
+**Acceptance criteria**: all ✓ (14 tests, all deterministic with `vi.useFakeTimers()`)

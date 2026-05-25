@@ -1,0 +1,231 @@
+/* ── QueuedMessageBubble ────────────────────────────────────────────────────
+ *
+ * Promotes relevant rules from .mockups/design-system/components.css for the
+ * .chat-turn--queued and .chat-turn--failed tier-2 variants. Class names follow
+ * the mockup contract so the design system stays the single source of truth for
+ * the visual language.
+ *
+ * All animation durations are token-only; no bare ms values.
+ * prefers-reduced-motion collapses every animation to no-op via the token
+ * overrides in motion.css — no local media query needed.
+ */
+
+/* ─── Entrance keyframes ──────────────────────────────────────────────────── */
+
+@keyframes chatRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chatFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ─── Base turn shell ─────────────────────────────────────────────────────── */
+
+.chatTurn {
+  margin-bottom: var(--space-6);
+  position: relative;
+}
+
+/* ─── Speaker row ─────────────────────────────────────────────────────────── */
+
+.speaker {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.when {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+/* ─── Badge (queued status / failed marker) ───────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  padding: 2px var(--space-2);
+  font-size: 9px;
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.badgeFailed {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+  border-color: var(--color-danger);
+}
+
+/* ─── Message body ────────────────────────────────────────────────────────── */
+
+.body {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ─── Error reason (failed state only) ───────────────────────────────────── */
+
+.errorReason {
+  margin-top: var(--space-1);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  animation: chatFadeIn var(--dur-ambient) var(--ease-standard) both;
+}
+
+/* ─── Actions row ─────────────────────────────────────────────────────────── */
+
+.actions {
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.action {
+  background: transparent;
+  border: 0;
+  padding: var(--space-1) 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: var(--t-quick);
+}
+
+.action:hover {
+  color: var(--color-text-primary);
+}
+
+.actionDanger:hover {
+  color: var(--color-danger);
+}
+
+.actionPrimary {
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+}
+
+.actionPrimary:hover {
+  opacity: 0.85;
+}
+
+/* ─── Queued variant ──────────────────────────────────────────────────────── */
+
+.queued {
+  padding-left: var(--space-6);
+  border-left: 2px dashed var(--color-border-strong);
+  opacity: 0.62;
+  animation: chatRiseIn var(--dur-quick) var(--ease-standard);
+}
+
+/* ─── Dispatching variant (queued styling, no edit) ──────────────────────── */
+
+/* No separate class — same .queued visual; actions differ in TSX. */
+
+/* ─── Failed variant ──────────────────────────────────────────────────────── */
+
+.failed {
+  padding-left: var(--space-6);
+  border-left: 3px solid var(--color-danger);
+  opacity: 1;
+}
+
+.failed .speaker {
+  color: var(--color-danger);
+}
+
+/* ─── Position pip (queue order indicator) ────────────────────────────────── */
+
+.position {
+  position: absolute;
+  left: -10px;
+  top: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 12px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.failed .position {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
+/* ─── Inline edit area ────────────────────────────────────────────────────── */
+
+.editTextarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  animation: chatFadeIn var(--dur-quick) var(--ease-standard) both;
+}
+
+.editTextarea:focus {
+  border-color: var(--color-accent);
+}
+
+/* ─── Reduced-motion: collapse all animations ─────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .queued,
+  .errorReason,
+  .editTextarea {
+    animation: none;
+  }
+}

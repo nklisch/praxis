@@ -1744,3 +1744,177 @@ describe("useStreamedSend", () => {
     expect(result.current.pendingCount).toBe(0);
   });
 });
+
+// ─── Step 5: send error → markFailed wiring ───────────────────────────────────
+
+describe("useStreamedSend — queue-dispatched send failure handling", () => {
+  it("3-message queue: first OK, middle markFailed, third OK", async () => {
+    // Use a streaming hold so we can queue messages while the first is in flight.
+    let resolveFirst: (() => void) | undefined;
+    const firstHold = new Promise<void>((r) => {
+      resolveFirst = r;
+    });
+    let sendCallIndex = 0;
+    const failError = new Error("Engine connection lost");
+
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* (_sid: unknown, message: unknown) {
+          sendCallIndex++;
+          if (sendCallIndex === 1) {
+            // First send — hold until we've queued the others.
+            await firstHold;
+            yield { type: "model_message", content: "first reply", partial: false } as EngineEvent;
+            yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+          } else if (message === "middle") {
+            throw failError;
+          } else {
+            yield { type: "model_message", content: "third reply", partial: false } as EngineEvent;
+            yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+          }
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Start the first send.
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // Queue middle and third while first is in flight.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "middle");
+    });
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "third");
+    });
+
+    expect(result.current.pendingCount).toBe(2);
+
+    // Release the first send.
+    resolveFirst?.();
+
+    // Wait for the queue to drain (middle fails, third succeeds).
+    await waitFor(
+      () => {
+        expect(result.current.isStreaming).toBe(false);
+        expect(result.current.pendingCount).toBe(0);
+      },
+      { timeout: 3000 },
+    );
+
+    // Middle item should be `failed`.
+    const failedItems = result.current.items.filter(
+      (i) => i.kind === "pending-message" && i.status === "failed",
+    );
+    expect(failedItems).toHaveLength(1);
+    expect(failedItems[0]?.kind === "pending-message" && failedItems[0].errorReason).toBe(
+      "Engine connection lost",
+    );
+
+    // Third message dispatched successfully — its assistant reply is in items.
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs.some((i) => i.kind === "message" && i.content === "third reply")).toBe(
+      true,
+    );
+
+    // failedCount exposed correctly.
+    expect(result.current.failedCount).toBe(1);
+  });
+
+  it("abort path: in-flight queued message + cancel → no markFailed (item stays queued)", async () => {
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    let callCount = 0;
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          callCount++;
+          yield { type: "model_message", content: "live text", partial: true } as EngineEvent;
+          await streamHold;
+          // After resolveStream(), the iterator will proceed — but we call .return() before that.
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Start a direct send.
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+    });
+
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(true);
+      expect(
+        result.current.items.some((i) => i.kind === "message" && i.content === "live text"),
+      ).toBe(true);
+    });
+
+    // Queue a pending message.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "queued");
+    });
+    expect(result.current.pendingCount).toBe(1);
+
+    // Cancel the in-flight turn.
+    act(() => {
+      result.current.cancel();
+    });
+
+    // Unblock the generator so it can exit cleanly (mirrors existing cancel test pattern).
+    resolveStream?.();
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+
+    // The pending item should still be queued (not failed) — user cancelled,
+    // so the pending queue is preserved (userCancelledRef prevents dequeueNext flush).
+    const pendingItems = result.current.items.filter((i) => i.kind === "pending-message");
+    expect(pendingItems).toHaveLength(1);
+    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].status).toBe("queued");
+    expect(result.current.failedCount).toBe(0);
+
+    // Only 1 send call — cancel preserved the queue, not auto-dispatched.
+    expect(callCount).toBe(1);
+  });
+
+  it("direct (non-queued) send errors still surface via lastError", async () => {
+    const failError = new Error("Direct fail");
+    const client = makeFakeClient({
+      session: {
+        // biome-ignore lint/correctness/useYield: test generator that throws without yielding
+        send: vi.fn(async function* () {
+          throw failError;
+          /* eslint-disable-next-line no-unreachable */
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hello");
+    });
+
+    expect(result.current.lastError).toBe("Direct fail");
+    expect(result.current.failedCount).toBe(0);
+  });
+
+  it("exposes editPending, retryFailed, removeFailed methods", () => {
+    const client = makeClient([]);
+    const { result } = renderHook(() => useStreamedSend(client));
+    expect(typeof result.current.editPending).toBe("function");
+    expect(typeof result.current.retryFailed).toBe("function");
+    expect(typeof result.current.removeFailed).toBe("function");
+  });
+});

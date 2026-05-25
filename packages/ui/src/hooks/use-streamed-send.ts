@@ -182,6 +182,21 @@ export interface UseStreamedSendResult {
   failedCount: number;
   clearMessages: () => void;
   /**
+   * Commit an inline text edit to a `queued` pending item.
+   * No-op + warn log if the item is `dispatching` or `failed`.
+   */
+  editPending: (id: string, newText: string) => void;
+  /**
+   * Transition a `failed` item back to `queued` and return its params for
+   * re-dispatch, or `null` if the item isn't currently `failed`.
+   */
+  retryFailed: (id: string) => { text: string; sketchId?: string } | null;
+  /**
+   * Remove a `failed` item from the item list entirely.
+   * No-op + warn log if the item is not `failed`.
+   */
+  removeFailed: (id: string) => void;
+  /**
    * Load the persisted transcript for an existing session and replace the
    * local item log with it. Call once per session-id on mount so the user
    * sees their prior conversation when re-opening a tab or relaunching the
@@ -218,15 +233,31 @@ export function useStreamedSend(
   const interstitial = useInterstitialLifecycle();
   const reasoning = useReasoningBlocks();
 
-  const send = async (sessionId: SessionId, message: string, sketchId?: string): Promise<void> => {
-    if (isStreaming) {
-      const pendingId = nextId();
-      const entry: PendingMessage = { id: pendingId, text: message };
-      if (sketchId !== undefined) entry.sketchId = sketchId;
-      queue.enqueue(entry, setItems);
-      return;
-    }
+  /**
+   * Extract a user-readable error message from an unknown thrown value.
+   * Keeps the direct-send and markFailed paths consistent.
+   */
+  const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
+  /**
+   * Core send dispatcher. Called both for:
+   *   - Direct user sends (pendingId = null, surface errors via lastError)
+   *   - Queue-dequeued sends (pendingId = string, surface errors via markFailed)
+   *
+   * `pendingId` is NOT part of the public API — callers use `send()` below.
+   *
+   * Note on the pending-bubble lifecycle for queue-dispatched sends:
+   *   `dequeueNext` (called from the previous turn's `finally`) removes the pending
+   *   bubble from items before `sendInternal` runs. So `markDispatching` cannot be
+   *   called here (the item is already gone). Instead, on failure we re-inject the
+   *   bubble as a `"failed"` item so the user can retry or discard it.
+   */
+  const sendInternal = async (
+    sessionId: SessionId,
+    message: string,
+    sketchId: string | undefined,
+    pendingId: string | null,
+  ): Promise<void> => {
     queue.userCancelledRef.current = false;
     setLastError(null);
 
@@ -298,7 +329,31 @@ export function useStreamedSend(
       }
     } catch (err) {
       setThinking(false);
-      setLastError(err instanceof Error ? err.message : String(err));
+      if (queue.userCancelledRef.current) {
+        // User-initiated cancel via Stop button — do NOT mark failed.
+        // The queue is preserved; the user can retry manually.
+        return;
+      }
+      if (pendingId !== null) {
+        // Queue-dispatched send failed. The pending bubble was already removed
+        // from items by `dequeueNext`, so we re-inject it as a "failed" item
+        // so the user can retry or discard inline.
+        setItems((prev) => [
+          ...prev,
+          {
+            kind: "pending-message",
+            id: pendingId,
+            text: message,
+            status: "failed",
+            errorReason: errorMessage(err),
+            failedAt: Date.now(),
+            ...(sketchId !== undefined && { sketchId }),
+          } satisfies PendingMessageItem,
+        ]);
+        return;
+      }
+      // Direct (non-queued) send error — fall back to the orchestrator-level banner.
+      setLastError(errorMessage(err));
     } finally {
       queue.iteratorRef.current = null;
       bubbles.closeAssistantBubble();
@@ -309,15 +364,39 @@ export function useStreamedSend(
       const next = queue.dequeueNext(setItems);
       if (next !== null) {
         setTimeout(() => {
-          void send(sessionId, next.text, next.sketchId);
+          void sendInternal(sessionId, next.text, next.sketchId, next.id);
         }, 0);
       }
       queue.userCancelledRef.current = false;
     }
   };
 
+  const send = async (sessionId: SessionId, message: string, sketchId?: string): Promise<void> => {
+    if (isStreaming) {
+      const pendingId = nextId();
+      const entry: PendingMessage = { id: pendingId, text: message };
+      if (sketchId !== undefined) entry.sketchId = sketchId;
+      queue.enqueue(entry, setItems);
+      return;
+    }
+
+    await sendInternal(sessionId, message, sketchId, null);
+  };
+
   const cancelPending = (pendingId: string): void => {
     queue.cancelPending(pendingId, setItems);
+  };
+
+  const editPending = (id: string, newText: string): void => {
+    queue.editPending(id, newText, setItems);
+  };
+
+  const retryFailed = (id: string): { text: string; sketchId?: string } | null => {
+    return queue.retryFailed(id, setItems);
+  };
+
+  const removeFailed = (id: string): void => {
+    queue.removeFailed(id, setItems);
   };
 
   const clearMessages = () => {
@@ -348,6 +427,9 @@ export function useStreamedSend(
     cancelPending,
     ...derivePendingCounts(items),
     clearMessages,
+    editPending,
+    retryFailed,
+    removeFailed,
     loadHistory,
   };
 }

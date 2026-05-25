@@ -1,7 +1,7 @@
 ---
 id: feature-composer-async-behavior-step-5-send-error
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ux]
 parent: feature-composer-async-behavior
 depends_on: [feature-composer-async-behavior-step-1-pending-message-failure-state]
@@ -39,3 +39,19 @@ Route per-item failures of queue-dispatched messages into `pendingQueue.markFail
 - Parent feature: `.work/active/features/feature-composer-async-behavior.md` § Unit 5
 - Existing file: `packages/ui/src/hooks/use-streamed-send.ts`
 - Depends on Step 1's `markDispatching` / `markFailed` queue methods
+
+## Implementation notes (2026-05-24)
+
+**Files**:
+- `packages/ui/src/hooks/use-streamed-send.ts` — extracted `sendInternal(sessionId, message, sketchId, pendingId)` from `send()`; added `editPending`, `retryFailed`, `removeFailed` passthroughs to return value.
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx` — 4 new tests in "queue-dispatched send failure handling" describe block.
+
+**Design deviation documented**: The feature design called for `markDispatching` before `handle.send()` and `markFailed` on failure. However, `dequeueNext` (called in the previous turn's `finally`) already removes the pending bubble from `items` before `sendInternal` runs — so `markDispatching` cannot find the item and `markFailed` would create a stale update.
+
+**Resolution**: For queue-dispatched sends, the failure path re-injects a fresh `pending-message` item with `status: "failed"`, `errorReason`, and `failedAt` directly via `setItems`. This is functionally equivalent — the bubble appears in the failure state — but skips the intermediate `dispatching` visual (which the user wouldn't see anyway since the bubble was removed at dequeue time). The `markDispatching` call is not made for queue-dispatched sends.
+
+**Additional exports**: Added `editPending`, `retryFailed`, `removeFailed` to `UseStreamedSendResult` and the return value, as step-7 integration will need them.
+
+**Abort path**: when `userCancelledRef.current` is true at the catch block, the failure branch is skipped. The pending queue is preserved (per the existing design). Tests verified by the "abort path" test.
+
+**Acceptance criteria**: all ✓ (65 tests in use-streamed-send.test.tsx, 4 new)
