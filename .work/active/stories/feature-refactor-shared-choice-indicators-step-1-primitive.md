@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators-step-1-primitive
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui, design-system]
 parent: feature-refactor-shared-choice-indicators
 depends_on: []
@@ -67,3 +67,11 @@ All tokens confirmed present in `packages/ui/src/styles/global.css`: `--color-su
 
 ### Deviations from spec
 - None. Existing `item-body-shared.module.css` is fully untouched.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Purely additive — 140 LoC new CSS module + 160 LoC tests + 89 LoC mockup additions. `data-selected="true"` attribute contract (not `:checked` peer-selector) makes the primitive self-contained and unblocks any consumer DOM shape. Local CSS custom properties (`--_indicator-fill`, `--_indicator-border-color`) as variant pivots is clean DRY pattern — feedback classes override only the pivots, geometry stays in the base. All values reference design tokens (`--color-success`, `--color-danger`, `--color-border-strong`, `--radius-sm`, `--font-mono`, etc.); zero hardcoded literals. 14 tests cover all 6 state combinations + module resolution + variant exclusivity. Mockup parity maintained.

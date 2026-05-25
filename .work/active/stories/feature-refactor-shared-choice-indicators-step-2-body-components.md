@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators-step-2-body-components
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-shared-choice-indicators
 depends_on: [feature-refactor-shared-choice-indicators-step-1-primitive]
@@ -60,3 +60,11 @@ Update `single-choice-body.tsx` and `multi-select-body.tsx` to render via the ne
 **Test results:** 168 test files, 1803 passed, 1 skipped — all green. No test modifications were required; all existing tests use semantic `getByRole` queries.
 
 **Typecheck/lint:** Clean on all changed files. Pre-existing lint errors in unrelated files (mockups HTML) were not introduced by this change.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Both body components refactored cleanly — `<span aria-hidden="true">` indicator alongside the native `<input>` with composed `choiceIndicator + Radio|Check + Correct|Incorrect` classes, driven by `data-selected` per the step-1 contract. `.feedbackGlyph` removed (was unused after the refactor). **Important deviation, handled correctly**: agent's pre-edit grep caught that `.correct` / `.incorrect` are ALSO consumed by `ordering-body.tsx` and `matching-body.tsx` — the original audit missed these. Agent kept those classes rather than break the other body types. Honest deviation, documented, followed by a real bug check ("removing would have silently broken those components"). Exactly the right move — flagged in the feature summary as a follow-on (ordering/matching body refactor when ready). 1803 tests pass unmodified (semantic queries throughout, as the audit predicted).

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators-step-3-assignment-card-dedupe
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-shared-choice-indicators
 depends_on: [feature-refactor-shared-choice-indicators-step-1-primitive]
@@ -64,3 +64,11 @@ These differences are irrelevant because the card's copy was dead code regardles
 - `pnpm typecheck` — pass (0 errors)
 - `pnpm --filter @praxis/ui test` — 1803 passed, 0 failed
 - Pre-existing biome lint errors in `.mockups/` and other unrelated files; none introduced by this change
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: Case A — pure dead-code removal. Agent's grep discovered `assignment-item-card.tsx` never references its module's `.optionLabel` / `.optionInput` / `.options` rules; the card dispatches all choice rendering through `<SingleChoiceBody>` / `<MultiSelectBody>` (which import from `item-body-shared.module.css`). 35 lines of dead CSS removed; no tsx changes needed. Side-by-side diff documented for the record (showed minor differences in the dead-code copy that were irrelevant since the copy was unreachable). 1803 tests pass.
