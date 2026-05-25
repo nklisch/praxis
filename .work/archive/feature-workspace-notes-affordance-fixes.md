@@ -1,7 +1,7 @@
 ---
 id: feature-workspace-notes-affordance-fixes
 kind: feature
-stage: implementing
+stage: done
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -27,3 +27,9 @@ Children are independent — `depends_on: []` each.
 ## Source ideas absorbed
 - `idea-cornell-cue-spawn-button-fixes` (3 sub-issues) → 3 bug child stories
 - `idea-new-note-button-always-available` → bug child story
+
+## Implementation summary + Review (2026-05-25)
+
+4 bug fixes shipped in consolidated commit. Bug 3 surfaced + fixed a real design gap: `spawnFromNote` was reading saved snapshot, dropping unsaved edits — added `seedText?` param threaded through service/IPC/client. Bugs 1+2 applied to both Cornell AND Feynman note formats (consistent affordance treatment). Bug 4 promoted "+ New note" into persistent header chrome alongside empty-state CTA. 5392 tests pass.
+
+**Verdict**: Approve. Feature has no parent → archives on advance.
