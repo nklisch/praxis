@@ -1,0 +1,245 @@
+/* ── ActionCard ──────────────────────────────────────────────────────────────
+ *
+ * Promotes the tier-2 .action-card contract from
+ * .mockups/design-system/components.css to production.
+ *
+ * A bordered card mid-thread offering a user-initiated action that fires
+ * an engine job (save thread to notes, generate flashcards, materialize a
+ * draft, etc). The PRINCIPLE: clicking the action never disables the button;
+ * instead an <ActionPip> appears beside it indicating pending state. The result
+ * lands wherever it lands (next chat turn, side panel, new tab).
+ *
+ * All animation durations are token-only; no bare ms/s values.
+ * prefers-reduced-motion support: motion.css collapses the token values used
+ * in transitions; the keyframe animation is suppressed locally below.
+ *
+ * Container query: .action-card adapts to the .chat-surface container width.
+ * Inner components MUST NOT use viewport media queries — they query @container.
+ */
+
+/* ─── Entrance keyframe ──────────────────────────────────────────────────── */
+
+@keyframes actionPipPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes failurePopoverRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── .action-card ───────────────────────────────────────────────────────── */
+
+.actionCard {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-6);
+  margin: var(--space-4) 0;
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.actionCard__body {
+  flex: 1;
+  min-width: 200px;
+}
+
+.actionCard__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.actionCard__title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.actionCard__action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ─── .action-pip ────────────────────────────────────────────────────────── */
+
+/* The pip — single element, state-driven via modifier class.
+ * No squash, no overshoot (locked motion attitude: Productive — anti-notification).
+ * Only opacity and color transitions; size is constant. */
+
+.actionPip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-quick) var(--ease-standard),
+    background-color var(--dur-quick) var(--ease-standard),
+    color var(--dur-quick) var(--ease-standard);
+}
+
+.actionPip--show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionPip--pending {
+  background: var(--color-text-tertiary);
+  animation: actionPipPulse var(--dur-pulse) var(--ease-linear) infinite;
+}
+
+.actionPip--pending::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-inverse);
+}
+
+.actionPip--success {
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+.actionPip--success::after {
+  content: "✓";
+}
+
+.actionPip--failed {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+
+.actionPip--failed::after {
+  content: "⚠";
+}
+
+.actionPip--retrying {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.actionPip--retrying::after {
+  content: "↺";
+  /* No spin — Productive attitude forbids decorative motion. */
+}
+
+/* ─── .failure-popover ───────────────────────────────────────────────────── */
+
+/* Appears below a clicked .action-pip--failed. Carries the error reason and
+ * retry/dismiss actions. Anchored via absolute positioning relative to
+ * .action-card__action (.actionCard__action). */
+
+.failurePopover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-danger);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  min-width: 320px;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  animation: failurePopoverRiseIn var(--dur-quick) var(--ease-standard);
+}
+
+.failurePopover__label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-danger);
+  margin-bottom: var(--space-2);
+}
+
+.failurePopover__reason {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3);
+}
+
+.failurePopover__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ─── Container query adaptations ────────────────────────────────────────── */
+
+/* Narrow chat surface (≤ 419px) — full-width popover, stacked action card. */
+@container chat (max-width: 419px) {
+  .actionCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actionCard__action {
+    justify-content: flex-end;
+  }
+
+  .failurePopover {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* Medium chat surface (≤ 599px) — tighter spacing. */
+@container chat (max-width: 599px) {
+  .actionCard {
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .actionCard__title {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────── */
+
+/* Keyframe animations must have their own opt-out. Token-based transitions
+ * are already handled by motion.css collapsing the duration tokens. */
+@media (prefers-reduced-motion: reduce) {
+  .actionPip--pending,
+  .failurePopover {
+    animation: none;
+  }
+}

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives
 kind: story
-stage: implementing
+stage: review
 tags: [ui, refactor, design-system]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: []
@@ -50,3 +50,17 @@ Ship the canonical primitives that every per-surface async refactor in this feat
 - Parent feature: `.work/active/features/feature-refactor-async-chat-interactions-audit.md` § Step 1
 - Mockups: `.mockups/flows/async-chat-interactions/03-action-card-pending.html`, `04-failed-retry.html`
 - Components.css source: `.mockups/design-system/components.css` § `.action-card`, `.action-pip`, `.failure-popover`
+
+## Implementation notes (2026-05-24)
+
+**Files landed:**
+- `packages/ui/src/components/action-card.module.css` — CSS for `.actionCard`, `.actionPip`, `.failurePopover` (BEM in CSS Modules camelCase), including keyframes, container queries, and `@media (prefers-reduced-motion: reduce)` opt-out. Token-only values throughout.
+- `packages/ui/src/components/action-card.tsx` — `<ActionCard label title action actionLabel children? actionAriaLabel?>` wires trigger/retry/dismiss from the hook; shows `<FailurePopover>` when `action.state === "failed"`.
+- `packages/ui/src/components/action-pip.tsx` — `<ActionPip state onClick? className?>`. Renders `<button>` in failed state (native a11y), `<span aria-hidden>` in all other states (presentational only).
+- `packages/ui/src/components/failure-popover.tsx` — `<FailurePopover label? reason? actions[]>` positioned absolutely inside `.actionCard__action`.
+- `packages/ui/src/hooks/use-optimistic-action.ts` — `useOptimisticAction<TParams>({ dispatch, onSuccess?, onError?, resetSuccessAfterMs? })`. State machine: `idle → pending → success/failed`, `failed → retrying → success/failed`. Includes `externalSettle("success"|"failed", reason?)` for streaming-driven completion (e.g. course-materialize step-4). Uses a `stateRef` shadow to guard `externalSettle` transitions without double `setState`.
+- `packages/ui/src/lib/copy.ts` — added `COPY.actionPip.{ failedLabel, retryLabel, dismissLabel }`.
+
+**Design-flaw escape hatch (externalSettle):** The hook exposes `externalSettle("success"|"failed", reason?)` as the clean solution for streaming-driven settle. When called while in `"pending"` or `"retrying"`, it immediately transitions state and fires the appropriate callback, then schedules the success-reset timer. The dispatched Promise continues in the background; when it resolves/rejects, the `stateRef` guard (`if (stateRef.current !== transitionalState) return`) prevents a double-settle. This is clean and doesn't need a separate `useExternalSettleAction` variant.
+
+**All acceptance criteria met.**

@@ -145,6 +145,14 @@ export const COPY = {
     deckSession:
       "Select a document to add to this session — the drafter will see it on its next turn.",
   },
+  actionPip: {
+    /** Kicker label in the FailurePopover header. */
+    failedLabel: "Failed",
+    /** Retry button label in FailurePopover. */
+    retryLabel: "↺ Retry",
+    /** Dismiss button label in FailurePopover. */
+    dismissLabel: "Dismiss",
+  },
   onboarding: {
     welcomeTitle: "Welcome to Praxis",
     welcomeBody:
