@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool
 kind: feature
-stage: review
+stage: done
 tags: [dev, observability, dx]
 parent: null
 depends_on: []
@@ -321,3 +321,15 @@ All 4 child stories landed under autopilot/implement-orchestrator:
 Verification at advance time: full workspace typecheck green; all changed files pass biome check.
 
 What's now possible: the agent has a structured channel to surface confusing tool descriptions, contradictory prompts, missing tools, broken results, and unexecutable instructions back to the developer via the `dev.report_issue` tool, gated behind `PRAXIS_DEV=true`. Reports land as markdown files in `.praxis/dev-reports/` with an auto-regenerated INDEX.md. Production builds carry zero trace of dev tooling — verified by the step-4 canary.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 4 child stories individually reviewed + approved. Feature-level umbrella check: end-to-end capability delivered — `dev.report_issue` tool invocable, writer persists to `.praxis/dev-reports/<file>.md` with regenerated INDEX, dev-mode prompt fragment teaches the agent to use it proactively. Production-safety canary (step-4) covers both gate-off cleanliness AND gate-on sanity to prevent vacuous-pass regression. Cross-cutting concern (env-gating consistency at both insertion sites — `services.ts` for tools, `engine-session-manager.ts` for fragment) explicitly tested in the canary. No foundation-doc drift, no breaking changes (additive optional fields on `ToolContext`/`ToolServices` + new `EffectKind` value). Archiving on advance — no release binding.
+
+What's now possible: agents (when running with PRAXIS_DEV=true) have a structured channel to flag confusing tool descriptions, contradictory prompts, missing tools, broken results, and unexecutable instructions back to the developer. Files in `.praxis/dev-reports/` are scannable via INDEX.md for triage between turns.
