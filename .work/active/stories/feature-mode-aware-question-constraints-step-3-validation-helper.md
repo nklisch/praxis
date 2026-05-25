@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-3-validation-helper
 kind: story
-stage: review
+stage: done
 tags: [content, tool-schema]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults]
@@ -49,3 +49,11 @@ Implemented exactly per spec:
 ## References
 - Parent feature: `.work/active/features/feature-mode-aware-question-constraints.md` § Unit 3
 - Depends on step-1 types
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 102 LoC helper + 405 LoC tests (~4:1 ratio reflecting the table-driven test approach). Validation order matches spec exactly: prompt → choice count → per-choice text. Each failure returns the structured `{ ok: false, code, field, message }` with agent-friendly second-person prose ("Trim to the essential framing", "Compress to the choice's distinguishing feature"). `countWords` is `.trim().split(/\s+/).filter(Boolean).length` — handles empty / whitespace-only / multi-whitespace correctly. `multiSelectCap` non-enforcement documented in module JSDoc + inline. 30 tests across 7 describe groups cover every branch, both option shapes (string + `{label}`), and edge cases (empty string, markdown bold as single token).

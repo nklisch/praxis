@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints-step-4-prompt-fragment
 kind: story
-stage: review
+stage: done
 tags: [content, agent-prompt]
 parent: feature-mode-aware-question-constraints
 depends_on: [feature-mode-aware-question-constraints-step-1-types-and-defaults]
@@ -50,3 +50,11 @@ A single factory that builds the unified question-tool prompt fragment. Takes re
 ## Implementation notes (2026-05-24)
 
 Created `packages/curriculum/src/modes/fragments/question-tool.ts` exporting `questionToolFragment(constraints, modeLabel)`. Confirmed `"constraints"` is a valid `PromptFragmentPosition` in `@praxis/core/types/mode.ts`. Added the factory export to `packages/curriculum/src/modes/index.ts` alongside the existing `devModeFragment` export. Test file at `packages/curriculum/src/modes/fragments/__tests__/question-tool.test.ts` covers all 4 acceptance criteria: id/position/customizable, teach interpolation, exam interpolation, and all 6 markup-convention sections. All 4943 workspace tests pass; typecheck clean.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none / **Important**: none / **Nits**: none
+
+**Notes**: 56 LoC factory + 50 LoC tests + 1 LoC barrel export. Fragment shape correct: `id: "question-tool-guidance"`, `position: "constraints"`, `customizable: false`. Template interpolates all 4 cap values per mode and includes all 6 markup-convention sections (Math/LaTeX, Citations, Definitions via `[[def:...]]`, Callouts via GitHub admonitions, Concept refs via `concept:` scheme, Figures via `::: figure` directive). Confirmed `"constraints"` is a valid `PromptFragmentPosition`. 4 tests cover id/position/customizable shape, teach-vs-exam cap interpolation difference, and all 6 markup sections present. Coordinates correctly with sibling `feature-math-rendering-step-4` which will later append the macros table.
