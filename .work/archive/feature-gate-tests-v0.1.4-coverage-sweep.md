@@ -1,7 +1,7 @@
 ---
 id: feature-gate-tests-v0.1.4-coverage-sweep
 kind: feature
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -31,3 +31,9 @@ All marked low-priority by the originating gate-tests run. Children are independ
 
 ## Source
 Children pre-existed in `.work/backlog/` as `gate-tests-*` from the v0.1.4 quality-gate pass (2026-05-23). Promoted into active and re-parented here as part of the 2026-05-24 backlog scope sweep.
+
+## Implementation summary + Review (2026-05-25)
+
+6 test-coverage stories shipped in one commit. Story 2 surfaced a real spec/behavior mismatch (envelope formatter produces path-based messages, not raw Zod messages) — agent correctly pinned actual behavior + documented the discovery. All 6 tests assert real behavior; none weakened. Story 5 added a root-level CI smoke test for `pnpm --filter @praxis/desktop test` exit-0. 5399 tests pass.
+
+**Verdict**: Approve. Feature has no parent → archives on advance.
