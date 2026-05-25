@@ -19,9 +19,14 @@ import { brandId } from "@praxis/core/types";
 import type { JSX } from "react";
 import { useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useActionEscalation } from "../hooks/use-action-escalation.js";
 import { useAssignment } from "../hooks/use-assignment.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { AssignmentFeedback } from "./assignment-feedback.js";
 import { AssignmentItemCard } from "./assignment-item-card.js";
+import { FailurePopover } from "./failure-popover.js";
 import styles from "./quiz-tab-body.module.css";
 import type { SketchCanvasHandle } from "./sketch-canvas.js";
 
@@ -46,8 +51,6 @@ export function QuizTabBody({ tab }: QuizTabBodyProps): JSX.Element {
     confidences,
     loading,
     error,
-    submitting,
-    submitError,
     recordResponse,
     recordConfidence,
     submit,
@@ -64,6 +67,9 @@ export function QuizTabBody({ tab }: QuizTabBodyProps): JSX.Element {
 
   // Sketch handle refs — forwarded from math items to capture on final submit.
   const sketchHandleRefs = useRef<Map<string, SketchCanvasHandle | null>>(new Map());
+
+  // Track when the submit action failed so escalation can be time-keyed.
+  const [failedAt, setFailedAt] = useState<number | null>(null);
 
   const items: AssignmentItem[] = assignment?.items ?? [];
   const totalItems = items.length;
@@ -114,45 +120,67 @@ export function QuizTabBody({ tab }: QuizTabBodyProps): JSX.Element {
     }
   }
 
-  async function handleFinalSubmit() {
-    // Capture sketches from math items before submitting.
-    if (assignment) {
-      for (const item of assignment.items) {
-        if (item.kind !== "math") continue;
-        const handle = sketchHandleRefs.current.get(item.id);
-        if (!handle) continue;
-        try {
-          const captured = await handle.capture();
-          if (captured.width === 0) continue;
-          const summary = await client.sketches.put({
-            snapshot: captured.snapshot,
-            image: captured.image,
-            width: captured.width,
-            height: captured.height,
-          });
-          const existingWork = work.get(item.id) ?? "";
-          if (!assignmentId) continue;
-          await client.assignments
-            .recordResponse({
-              assignmentId,
-              itemId: item.id,
-              response: responses.get(item.id) ?? "",
-              ...(existingWork.trim() && { work: existingWork }),
-              sketchId: summary.id as string,
-            })
-            .catch(() => {});
-        } catch {
-          // Sketch capture failure is non-fatal.
+  const finalSubmitAction = useOptimisticAction<void>({
+    dispatch: async () => {
+      // Capture sketches from math items before submitting.
+      if (assignment) {
+        for (const item of assignment.items) {
+          if (item.kind !== "math") continue;
+          const handle = sketchHandleRefs.current.get(item.id);
+          if (!handle) continue;
+          try {
+            const captured = await handle.capture();
+            if (captured.width === 0) continue;
+            const summary = await client.sketches.put({
+              snapshot: captured.snapshot,
+              image: captured.image,
+              width: captured.width,
+              height: captured.height,
+            });
+            const existingWork = work.get(item.id) ?? "";
+            if (!assignmentId) continue;
+            await client.assignments
+              .recordResponse({
+                assignmentId,
+                itemId: item.id,
+                response: responses.get(item.id) ?? "",
+                ...(existingWork.trim() && { work: existingWork }),
+                sketchId: summary.id as string,
+              })
+              .catch(() => {});
+          } catch {
+            // Sketch capture failure is non-fatal.
+          }
         }
       }
-    }
 
-    const result = await submit();
-    if (result) {
-      setSubmitResult(result);
-      setCurrentIndex(0); // reset to first for review mode
-    }
-  }
+      const result = await submit();
+      if (result) {
+        setSubmitResult(result);
+        setCurrentIndex(0); // reset to first for review mode
+      } else {
+        // useAssignment.submit swallows errors and returns null on failure.
+        // Propagate as a throw so useOptimisticAction can transition to "failed".
+        throw new Error("Quiz submission failed — please retry.");
+      }
+    },
+    onError: () => {
+      setFailedAt(Date.now());
+    },
+  });
+
+  const handleFinalSubmit = () => {
+    finalSubmitAction.trigger();
+  };
+
+  // Escalate unattended failures to the activity strip after threshold.
+  useActionEscalation({
+    failedActions:
+      finalSubmitAction.state === "failed" && failedAt !== null
+        ? [{ id: "quiz-submit", label: "Quiz submit failed", failedAt }]
+        : [],
+    activity: null,
+  });
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
@@ -351,17 +379,37 @@ export function QuizTabBody({ tab }: QuizTabBodyProps): JSX.Element {
                     Return to skipped
                   </button>
                 )}
-                <button
-                  type="button"
-                  className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
-                  onClick={handleFinalSubmit}
-                  disabled={submitting}
+                <div
+                  style={{
+                    position: "relative",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.375rem",
+                  }}
                 >
-                  {submitting ? "Grading…" : `Submit quiz (${totalItems} items) ↵`}
-                </button>
+                  <button
+                    type="button"
+                    className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+                    onClick={handleFinalSubmit}
+                  >
+                    {`Submit quiz (${totalItems} items) ↵`}
+                  </button>
+                  <ActionPip state={finalSubmitAction.state} />
+                  {finalSubmitAction.state === "failed" && (
+                    <FailurePopover
+                      reason={finalSubmitAction.errorReason}
+                      actions={[
+                        {
+                          label: COPY.actionPip.retryLabel,
+                          onClick: finalSubmitAction.retry,
+                          variant: "primary",
+                        },
+                        { label: COPY.actionPip.dismissLabel, onClick: finalSubmitAction.dismiss },
+                      ]}
+                    />
+                  )}
+                </div>
               </div>
-
-              {submitError && <p className={styles.submitError}>Error: {submitError}</p>}
             </div>
           )}
 

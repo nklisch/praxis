@@ -358,3 +358,55 @@ describe("QuizTabBody — confidence band", () => {
     });
   });
 });
+
+describe("QuizTabBody — optimistic submit", () => {
+  it("final submit button stays interactive (not disabled) while submit is in-flight", async () => {
+    // Build a client with a hanging submit so we can inspect the UI mid-flight.
+    const assignment = makeAssignment([makeSingleChoiceItem("item-1", "Only question")]);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+    const client = makeFakeClient({
+      session: {
+        active: vi.fn().mockResolvedValue(null),
+        start: vi.fn(),
+        end: vi.fn(),
+        send: vi.fn(async function* () {}) as unknown as PraxisClient["session"]["send"],
+        list: vi.fn().mockResolvedValue([]),
+        spawnFromAssignment: vi.fn(),
+      },
+      assignments: {
+        get: vi.fn().mockResolvedValue(assignment),
+        list: vi.fn().mockResolvedValue([]),
+        getResponses: vi.fn().mockResolvedValue([]),
+        recordResponse: vi.fn().mockResolvedValue(undefined),
+        // submit hangs
+        submit: vi.fn().mockImplementation(() => new Promise(() => {})),
+      },
+    });
+
+    render(
+      <PraxisClientProvider client={client}>
+        <AuthProvider>
+          <QuizTabBody tab={tab} />
+        </AuthProvider>
+      </PraxisClientProvider>,
+    );
+
+    // Skip to the ready-to-submit panel by skipping the only item.
+    await waitFor(() => {
+      expect(screen.getByText(/Only question/i)).toBeDefined();
+    });
+    const skipBtn = screen.getByRole("button", { name: /skip for now/i });
+    fireEvent.click(skipBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Ready to submit/i)).toBeDefined();
+    });
+
+    // Click the final submit button.
+    const submitBtn = screen.getByRole("button", { name: /Submit quiz/i });
+    fireEvent.click(submitBtn);
+
+    // The button must remain enabled during the in-flight period.
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+  });
+});

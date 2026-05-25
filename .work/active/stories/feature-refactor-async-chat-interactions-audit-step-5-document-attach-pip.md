@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-5-document-attach-pip
 kind: story
-stage: implementing
+stage: review
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
@@ -42,3 +42,19 @@ Refactor `library-document-picker.tsx:118` `client.documentScopes.attach()` from
 - Parent feature: `.work/active/features/feature-refactor-async-chat-interactions-audit.md` § Step 5
 - File: `packages/ui/src/components/library-document-picker.tsx:118`
 - Depends on step-1 (primitives + hook) and step-2 (escalation)
+
+## Implementation notes (2026-05-24)
+
+Refactored `library-document-picker.tsx` to use per-row `useOptimisticAction` with optimistic state management.
+
+**Key design decisions:**
+- `useOptimisticAction` cannot be called in a loop (React hooks must not be called conditionally). Extracted `DocumentPickerRow` as a proper React sub-component so each row gets its own independent hook instance and pip state.
+- Optimistic update: clicking Attach immediately adds the document id to `attachedIds` in the parent's `useResource` state via `handleOptimisticAttach`. On failure, `handleOptimisticRevert` removes it. This ensures the parent's `isAlreadyAttached` prop is the authoritative source of truth for all rows.
+- `setData` callback must return `T` not `T | undefined` — the `!prev` fallback returns `{ library: [], attachedIds: new Set() }` rather than `undefined`.
+- Each `DocumentPickerRow` receives `onOptimisticAttach` and `onOptimisticRevert` callbacks for the parent state mutations, plus an `onAttach` callback for the actual IPC call.
+- Per-row `useActionEscalation` with `activity: null` (graceful degradation).
+- The per-row `attaching`/`rowErrors` state maps from the original component are removed entirely — pip + FailurePopover replace them.
+
+**Files changed:**
+- `packages/ui/src/components/library-document-picker.tsx`
+- `packages/ui/src/__tests__/library-document-picker.test.tsx` (3 new tests: optimistic attach, failure revert, concurrent rows)

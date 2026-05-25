@@ -34,6 +34,7 @@ import type {
 import { useNavigate } from "@tanstack/react-router";
 import { type ChangeEvent, type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useActionEscalation } from "../hooks/use-action-escalation.js";
 import {
   COURSE_CREATE_BUDGET_MAX,
   COURSE_CREATE_BUDGET_MIN,
@@ -41,11 +42,15 @@ import {
 } from "../hooks/use-course-create-budget.js";
 import { useDrafts } from "../hooks/use-drafts.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
 import { useResource } from "../hooks/use-resource.js";
 import { useTabs } from "../hooks/use-tabs.js";
+import { COPY } from "../lib/copy.js";
 import { consumeInitialMessage, openSessionInTab } from "../lib/open-session-in-tab.js";
+import { ActionPip } from "./action-pip.js";
 import { AuthoringChatPane } from "./authoring-chat-pane.js";
 import styles from "./course-create-tab-body.module.css";
+import { FailurePopover } from "./failure-popover.js";
 import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
 import { LibraryDocumentPicker } from "./library-document-picker.js";
 import { SessionHead } from "./session-head.js";
@@ -67,9 +72,12 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
   const { openTab } = useTabs();
   const { current } = useDrafts();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Whether the prefill message is being sent to the agent chat pane.
   const [confirming, setConfirming] = useState(false);
   // Tracks finalization in-flight so we don't double-open.
   const materializingRef = useRef(false);
+  // Track when the confirm action failed so escalation can be time-keyed.
+  const [confirmFailedAt, setConfirmFailedAt] = useState<number | null>(null);
 
   // Attached documents for this session-scope — refreshed after each attach.
   const attachedLoader = useCallback(
@@ -94,6 +102,50 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
   // useStreamedSend — engine events flow to the UI correctly.
   const [startupPrefill] = useState(() => consumeInitialMessage(tab.sessionId));
 
+  // ── Confirm action — optimistic dispatch with external settle ────────────────
+  //
+  // dispatch: fires the prefill message through the authoring chat pane, which
+  // triggers the agent to call course.confirm_draft. Returns a Promise that
+  // never self-resolves — settlement is driven externally by the draft-events
+  // finalized event via externalSettle("success"). On error, externalSettle
+  // ("failed", reason) is called from the error path.
+  //
+  // This pattern keeps the same hook surface as the other surfaces while
+  // accommodating the streaming-event-driven completion signal.
+  const confirmAction = useOptimisticAction<void>({
+    dispatch: async () => {
+      // Kick off the agent's confirm flow via the prefill message path.
+      setConfirming(true);
+      // The promise intentionally never self-resolves — externalSettle drives
+      // the state transition when the finalized event arrives.
+      await new Promise<void>(() => {});
+    },
+    onSuccess: () => {
+      // onSuccess is triggered by externalSettle("success") below.
+      // The teach session open already happened in the finalized-event handler.
+    },
+    onError: () => {
+      setConfirmFailedAt(Date.now());
+      // Revert the confirming state so the prefill message stops.
+      setConfirming(false);
+    },
+  });
+
+  // Escalate unattended failures to the activity strip after threshold.
+  useActionEscalation({
+    failedActions:
+      confirmAction.state === "failed" && confirmFailedAt !== null
+        ? [
+            {
+              id: "course-materialize",
+              label: "Course materialize failed",
+              failedAt: confirmFailedAt,
+            },
+          ]
+        : [],
+    activity: null,
+  });
+
   // ── Finalization handler — open first teach session on draft finalized ────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: client.drafts.events is a stable method ref; subscribing once per tab session is intentional
   useEffect(() => {
@@ -104,6 +156,9 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
         if (event.kind === "finalized") {
           if (materializingRef.current) break;
           materializingRef.current = true;
+          // Settle the confirmAction pip to success — onSuccess will fire.
+          // (safe no-op if confirmAction is not in a pending/retrying state)
+          confirmAction.externalSettle("success");
           try {
             await openSessionInTab({
               client,
@@ -124,6 +179,7 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.sessionId, client, navigate, openTab]);
 
   const proposed = current?.proposed ?? null;
@@ -133,11 +189,8 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
     (proposed.proposedLessons.length > 0 || (proposed.proposedUnits ?? []).length > 0);
 
   const handleConfirmAndOpen = () => {
-    // Delegate to the agent via the AuthoringChatPane's send path so the
-    // confirmation message appears in the chat transcript.
-    // The finalization useEffect above catches the draft-stream `finalized` event
-    // and opens the first teach session automatically.
-    setConfirming(true);
+    if (confirmAction.state === "pending" || confirmAction.state === "retrying") return;
+    confirmAction.trigger();
   };
 
   return (
@@ -218,14 +271,32 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
               Confirming creates the course in your library, sets up gates between lessons, and
               opens your first lesson.
             </p>
-            <button
-              type="button"
-              className={styles.confirmBtn}
-              onClick={handleConfirmAndOpen}
-              disabled={confirming}
+            <div
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+              }}
             >
-              {confirming ? "Asking Praxis to confirm…" : "Confirm and open ↗"}
-            </button>
+              <button type="button" className={styles.confirmBtn} onClick={handleConfirmAndOpen}>
+                Confirm and open ↗
+              </button>
+              <ActionPip state={confirmAction.state} />
+              {confirmAction.state === "failed" && (
+                <FailurePopover
+                  reason={confirmAction.errorReason}
+                  actions={[
+                    {
+                      label: COPY.actionPip.retryLabel,
+                      onClick: confirmAction.retry,
+                      variant: "primary",
+                    },
+                    { label: COPY.actionPip.dismissLabel, onClick: confirmAction.dismiss },
+                  ]}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

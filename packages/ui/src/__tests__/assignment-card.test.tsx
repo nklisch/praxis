@@ -250,4 +250,44 @@ describe("AssignmentCard", () => {
       expect(radios[0]?.checked).toBe(true);
     });
   });
+
+  it("submit button stays interactive (not disabled) while submit is in-flight", async () => {
+    // Make submit hang so we can inspect the UI during the in-flight phase.
+    const client = makeClient({});
+    (client.assignments.submit as ReturnType<typeof vi.fn>).mockImplementation(
+      () => new Promise(() => {}),
+    );
+    renderCard(assignmentId, client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Submit$/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Submit$/i }));
+
+    // Button must remain enabled during the in-flight period — the pip conveys state.
+    const btn = screen.getByRole("button", { name: /^Submit$/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("shows FailurePopover with retry/dismiss when submit fails", async () => {
+    const client = makeClient({});
+    (client.assignments.submit as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Network error"),
+    );
+    renderCard(assignmentId, client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Submit$/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Submit$/i }));
+
+    // FailurePopover should appear with retry and dismiss buttons.
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: /action failed/i })).toBeDefined();
+    });
+    expect(screen.getByRole("button", { name: /retry/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /dismiss/i })).toBeDefined();
+  });
 });

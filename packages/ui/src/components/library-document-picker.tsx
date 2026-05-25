@@ -1,12 +1,16 @@
 import type { DocumentId, DocumentScope } from "@praxis/core/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useActionEscalation } from "../hooks/use-action-escalation.js";
 import type { UseIngestionResult } from "../hooks/use-ingestion.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
 import { useResource } from "../hooks/use-resource.js";
 import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { BatchSummaryModal } from "./batch-summary-modal.js";
 import { EmptyState } from "./empty-state.js";
 import { ErrorMessage } from "./error-message.js";
+import { FailurePopover } from "./failure-popover.js";
 import styles from "./library-document-picker.module.css";
 import { LoadingState } from "./loading-state.js";
 import { Modal } from "./modal.js";
@@ -26,6 +30,116 @@ export interface LibraryDocumentPickerProps {
    */
   ingestion: UseIngestionResult;
 }
+
+// ── Per-row document attachment ───────────────────────────────────────────────
+
+interface DocumentPickerRowProps {
+  doc: { documentId: string; filename: string; chunkCount: number };
+  scope: DocumentScope;
+  isAlreadyAttached: boolean;
+  onAttached?: (documentId: DocumentId) => void;
+  onOptimisticAttach: (documentId: DocumentId) => void;
+  onOptimisticRevert: (documentId: DocumentId) => void;
+}
+
+/**
+ * Per-row component so each row gets its own `useOptimisticAction` instance.
+ * This ensures independent pip state per row — concurrent attaches don't
+ * cross-talk.
+ */
+function DocumentPickerRow({
+  doc,
+  scope,
+  isAlreadyAttached,
+  onAttached,
+  onOptimisticAttach,
+  onOptimisticRevert,
+}: DocumentPickerRowProps): React.ReactElement {
+  const client = usePraxisClient();
+  const documentId = doc.documentId as DocumentId;
+
+  // Track when this row's attach action failed for escalation.
+  const [failedAt, setFailedAt] = useState<number | null>(null);
+
+  const attachAction = useOptimisticAction<void>({
+    dispatch: async () => {
+      await client.documentScopes.attach({
+        scope,
+        documentId,
+        source: "manual",
+      });
+      onAttached?.(documentId);
+    },
+    onError: () => {
+      // Revert the optimistic attached state on failure.
+      onOptimisticRevert(documentId);
+      setFailedAt(Date.now());
+    },
+  });
+
+  const handleAttach = () => {
+    // Optimistically mark as attached immediately before the IPC call resolves.
+    onOptimisticAttach(documentId);
+    attachAction.trigger();
+  };
+
+  // Escalate unattended failures to the activity strip after threshold.
+  useActionEscalation({
+    failedActions:
+      attachAction.state === "failed" && failedAt !== null
+        ? [{ id: `attach-${documentId}`, label: `Attach "${doc.filename}" failed`, failedAt }]
+        : [],
+    activity: null,
+  });
+
+  return (
+    <li key={doc.documentId} className={styles.row}>
+      <div className={styles.rowInfo}>
+        <span className={styles.filename}>{doc.filename}</span>
+        <span className={styles.meta}>
+          {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+        </span>
+      </div>
+      {isAlreadyAttached ? (
+        <span className={styles.attachedBadge}>attached</span>
+      ) : (
+        <div
+          style={{
+            position: "relative",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.25rem",
+          }}
+        >
+          <button
+            type="button"
+            className={styles.attachBtn}
+            onClick={handleAttach}
+            disabled={attachAction.state === "pending" || attachAction.state === "retrying"}
+          >
+            Attach
+          </button>
+          <ActionPip state={attachAction.state} />
+          {attachAction.state === "failed" && (
+            <FailurePopover
+              reason={attachAction.errorReason}
+              actions={[
+                {
+                  label: COPY.actionPip.retryLabel,
+                  onClick: attachAction.retry,
+                  variant: "primary",
+                },
+                { label: COPY.actionPip.dismissLabel, onClick: attachAction.dismiss },
+              ]}
+            />
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+// ── Main picker component ─────────────────────────────────────────────────────
 
 /**
  * Modal picker that lists the student's full document library, marking which
@@ -69,11 +183,6 @@ export function LibraryDocumentPicker({
     }
   }, [ingestion.state.status, refresh]);
 
-  // Per-row loading state: maps documentId → true while attach is in-flight.
-  const [attaching, setAttaching] = useState<Record<string, boolean>>({});
-  // Per-row error state: maps documentId → error message.
-  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
-
   // Drag-and-drop overlay state.
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
@@ -106,42 +215,30 @@ export function LibraryDocumentPicker({
     await ingestion.startPickBatch("files");
   }
 
-  const handleAttach = useCallback(
-    async (documentId: DocumentId) => {
-      setAttaching((prev) => ({ ...prev, [documentId]: true }));
-      setRowErrors((prev) => {
-        const next = { ...prev };
-        delete next[documentId];
-        return next;
+  // Optimistic attach: add the id to the attached set immediately.
+  const handleOptimisticAttach = useCallback(
+    (documentId: DocumentId) => {
+      setData((prev) => {
+        if (!prev) return { library: [], attachedIds: new Set([documentId]) };
+        const next = new Set(prev.attachedIds);
+        next.add(documentId);
+        return { ...prev, attachedIds: next };
       });
-      try {
-        await client.documentScopes.attach({
-          scope,
-          documentId,
-          source: "manual",
-        });
-        // Optimistically add to attached set.
-        setData((prev) => {
-          if (!prev) return { library: [], attachedIds: new Set([documentId]) };
-          const next = new Set(prev.attachedIds);
-          next.add(documentId);
-          return { ...prev, attachedIds: next };
-        });
-        onAttached?.(documentId);
-      } catch (err) {
-        setRowErrors((prev) => ({
-          ...prev,
-          [documentId]: err instanceof Error ? err.message : String(err),
-        }));
-      } finally {
-        setAttaching((prev) => {
-          const next = { ...prev };
-          delete next[documentId];
-          return next;
-        });
-      }
     },
-    [client, scope, setData, onAttached],
+    [setData],
+  );
+
+  // Optimistic revert: remove the id from the attached set on failure.
+  const handleOptimisticRevert = useCallback(
+    (documentId: DocumentId) => {
+      setData((prev) => {
+        if (!prev) return { library: [], attachedIds: new Set() };
+        const next = new Set(prev.attachedIds);
+        next.delete(documentId);
+        return { ...prev, attachedIds: next };
+      });
+    },
+    [setData],
   );
 
   const isSession = scope.kind === "session";
@@ -196,31 +293,17 @@ export function LibraryDocumentPicker({
               <ul className={styles.list}>
                 {data.library.map((doc) => {
                   const isAttached = data.attachedIds.has(doc.documentId as DocumentId);
-                  const isAttaching = attaching[doc.documentId] === true;
-                  const rowError = rowErrors[doc.documentId];
 
                   return (
-                    <li key={doc.documentId} className={styles.row}>
-                      <div className={styles.rowInfo}>
-                        <span className={styles.filename}>{doc.filename}</span>
-                        <span className={styles.meta}>
-                          {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
-                        </span>
-                        {rowError && <span className={styles.rowError}>{rowError}</span>}
-                      </div>
-                      {isAttached ? (
-                        <span className={styles.attachedBadge}>attached</span>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.attachBtn}
-                          onClick={() => void handleAttach(doc.documentId as DocumentId)}
-                          disabled={isAttaching}
-                        >
-                          {isAttaching ? "attaching…" : "Attach"}
-                        </button>
-                      )}
-                    </li>
+                    <DocumentPickerRow
+                      key={doc.documentId}
+                      doc={doc}
+                      scope={scope}
+                      isAlreadyAttached={isAttached}
+                      onAttached={onAttached}
+                      onOptimisticAttach={handleOptimisticAttach}
+                      onOptimisticRevert={handleOptimisticRevert}
+                    />
                   );
                 })}
               </ul>

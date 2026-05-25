@@ -28,9 +28,14 @@ import { brandId } from "@praxis/core/types";
 import type { JSX } from "react";
 import { useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useActionEscalation } from "../hooks/use-action-escalation.js";
 import { useAssignment } from "../hooks/use-assignment.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { AssignmentFeedback } from "./assignment-feedback.js";
 import { AssignmentItemCard } from "./assignment-item-card.js";
+import { FailurePopover } from "./failure-popover.js";
 import styles from "./homework-tab-body.module.css";
 import type { SketchCanvasHandle } from "./sketch-canvas.js";
 
@@ -55,17 +60,8 @@ export function HomeworkTabBody({ tab }: HomeworkTabBodyProps): JSX.Element {
 
   const client = usePraxisClient();
 
-  const {
-    assignment,
-    responses,
-    work,
-    loading,
-    error,
-    submitting,
-    submitError,
-    recordResponse,
-    submit,
-  } = useAssignment(assignmentId);
+  const { assignment, responses, work, loading, error, recordResponse, submit } =
+    useAssignment(assignmentId);
 
   // Current item index within the assignment's items list.
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -82,6 +78,9 @@ export function HomeworkTabBody({ tab }: HomeworkTabBodyProps): JSX.Element {
 
   // Sketch handle refs — forwarded from math items to capture on final submit.
   const sketchHandleRefs = useRef<Map<string, SketchCanvasHandle | null>>(new Map());
+
+  // Track when the submit action failed so escalation can be time-keyed.
+  const [failedAt, setFailedAt] = useState<number | null>(null);
 
   const items: AssignmentItem[] = assignment?.items ?? [];
   const totalItems = items.length;
@@ -154,44 +153,66 @@ export function HomeworkTabBody({ tab }: HomeworkTabBodyProps): JSX.Element {
 
   // ── Final submit ─────────────────────────────────────────────────────────
 
-  async function handleFinalSubmit() {
-    if (!assignment) return;
-    // Capture sketches for any math items that have drawings.
-    for (const item of assignment.items) {
-      if (item.kind !== "math") continue;
-      const handle = sketchHandleRefs.current.get(item.id);
-      if (!handle) continue;
-      try {
-        const captured = await handle.capture();
-        if (captured.width === 0) continue;
-        const summary = await client.sketches.put({
-          snapshot: captured.snapshot,
-          image: captured.image,
-          width: captured.width,
-          height: captured.height,
-        });
-        if (!assignmentId) continue;
-        const existingWork = work.get(item.id) ?? "";
-        await client.assignments
-          .recordResponse({
-            assignmentId,
-            itemId: item.id,
-            response: responses.get(item.id) ?? "",
-            ...(existingWork.trim() && { work: existingWork }),
-            sketchId: summary.id as string,
-          })
-          .catch(() => {});
-      } catch {
-        // Sketch capture failure is non-fatal.
+  const finalSubmitAction = useOptimisticAction<void>({
+    dispatch: async () => {
+      if (!assignment) return;
+      // Capture sketches for any math items that have drawings.
+      for (const item of assignment.items) {
+        if (item.kind !== "math") continue;
+        const handle = sketchHandleRefs.current.get(item.id);
+        if (!handle) continue;
+        try {
+          const captured = await handle.capture();
+          if (captured.width === 0) continue;
+          const summary = await client.sketches.put({
+            snapshot: captured.snapshot,
+            image: captured.image,
+            width: captured.width,
+            height: captured.height,
+          });
+          if (!assignmentId) continue;
+          const existingWork = work.get(item.id) ?? "";
+          await client.assignments
+            .recordResponse({
+              assignmentId,
+              itemId: item.id,
+              response: responses.get(item.id) ?? "",
+              ...(existingWork.trim() && { work: existingWork }),
+              sketchId: summary.id as string,
+            })
+            .catch(() => {});
+        } catch {
+          // Sketch capture failure is non-fatal.
+        }
       }
-    }
 
-    const result = await submit();
-    if (result) {
-      setSubmitResult(result);
-      setCurrentIndex(0);
-    }
-  }
+      const result = await submit();
+      if (result) {
+        setSubmitResult(result);
+        setCurrentIndex(0);
+      } else {
+        // useAssignment.submit swallows errors and returns null on failure.
+        // Propagate as a throw so useOptimisticAction can transition to "failed".
+        throw new Error("Homework submission failed — please retry.");
+      }
+    },
+    onError: () => {
+      setFailedAt(Date.now());
+    },
+  });
+
+  const handleFinalSubmit = () => {
+    finalSubmitAction.trigger();
+  };
+
+  // Escalate unattended failures to the activity strip after threshold.
+  useActionEscalation({
+    failedActions:
+      finalSubmitAction.state === "failed" && failedAt !== null
+        ? [{ id: "homework-submit", label: "Homework submit failed", failedAt }]
+        : [],
+    activity: null,
+  });
 
   // ── Work tab per item ────────────────────────────────────────────────────
 
@@ -416,20 +437,38 @@ export function HomeworkTabBody({ tab }: HomeworkTabBodyProps): JSX.Element {
                 <button type="button" className={styles.submitSecondaryBtn}>
                   Save &amp; close · finish later
                 </button>
-                <button
-                  type="button"
-                  className={styles.submitPrimaryBtn}
-                  onClick={handleFinalSubmit}
-                  disabled={submitting || emptyCount > 0}
-                  aria-disabled={emptyCount > 0}
+                <div
+                  style={{
+                    position: "relative",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.375rem",
+                  }}
                 >
-                  {submitting
-                    ? "Grading…"
-                    : emptyCount > 0
-                      ? `Submit (${emptyCount} empty)`
-                      : "Submit set →"}
-                </button>
-                {submitError && <p className={styles.submitError}>Error: {submitError}</p>}
+                  <button
+                    type="button"
+                    className={styles.submitPrimaryBtn}
+                    onClick={handleFinalSubmit}
+                    disabled={emptyCount > 0}
+                    aria-disabled={emptyCount > 0}
+                  >
+                    {emptyCount > 0 ? `Submit (${emptyCount} empty)` : "Submit set →"}
+                  </button>
+                  <ActionPip state={finalSubmitAction.state} />
+                  {finalSubmitAction.state === "failed" && (
+                    <FailurePopover
+                      reason={finalSubmitAction.errorReason}
+                      actions={[
+                        {
+                          label: COPY.actionPip.retryLabel,
+                          onClick: finalSubmitAction.retry,
+                          variant: "primary",
+                        },
+                        { label: COPY.actionPip.dismissLabel, onClick: finalSubmitAction.dismiss },
+                      ]}
+                    />
+                  )}
+                </div>
                 <div className={styles.submitHint}>
                   <em>Submission triggers grading + tutor walkthrough</em> of any items you missed.
                   You can re-do as many times as the lesson allows.

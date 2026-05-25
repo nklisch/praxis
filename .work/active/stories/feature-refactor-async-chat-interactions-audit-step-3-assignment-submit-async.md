@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-async-chat-interactions-audit-step-3-assignment-submit-async
 kind: story
-stage: implementing
+stage: review
 tags: [ui, refactor]
 parent: feature-refactor-async-chat-interactions-audit
 depends_on: [feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives, feature-refactor-async-chat-interactions-audit-step-2-action-escalation]
@@ -42,3 +42,22 @@ Refactor the three assignment-submit surfaces (assignment-card, quiz-tab-body, h
 ## References
 - Parent feature: `.work/active/features/feature-refactor-async-chat-interactions-audit.md` § Step 3
 - Depends on step-1 (primitives + hook) and step-2 (escalation)
+
+## Implementation notes (2026-05-24)
+
+Refactored all four submit surfaces (assignment-card, quiz-tab-body, homework-tab-body, exam-tab-body) to use `useOptimisticAction`.
+
+**Key design decisions:**
+- `useAssignment.submit()` swallows errors and returns `null` on failure (doesn't re-throw). The `dispatch` function explicitly throws `new Error("Submission failed — please retry.")` when `submit()` returns `null` so `useOptimisticAction` transitions to the `"failed"` state.
+- `exam-tab-body` extends the `ItemRail` internal component interface to accept `submitActionState`, `submitErrorReason`, `onRetrySubmit`, `onDismissSubmit` rather than passing `submitting: boolean`. The auto-submit on timer expiry (`handleExpiry`) is kept as a plain async function — it's timer-driven and doesn't need user-facing retry UI.
+- `useActionEscalation` mounted on all four surfaces with `activity: null` (graceful degradation — no real `ActivityRegistry` at the UI level).
+- Submit buttons no longer have `disabled={submitting}` — they remain always-interactive with pip showing in-flight state.
+
+**Files changed:**
+- `packages/ui/src/components/assignment-card.tsx`
+- `packages/ui/src/components/quiz-tab-body.tsx`
+- `packages/ui/src/components/homework-tab-body.tsx`
+- `packages/ui/src/components/exam-tab-body.tsx`
+- `packages/ui/src/__tests__/assignment-card.test.tsx` (new tests: in-flight not disabled, FailurePopover on failure)
+- `packages/ui/src/__tests__/quiz-tab-body.test.tsx` (new test: in-flight not disabled)
+- `packages/ui/src/__tests__/homework-tab-body.test.tsx` (new test: in-flight not disabled)

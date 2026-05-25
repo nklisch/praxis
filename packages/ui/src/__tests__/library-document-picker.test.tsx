@@ -257,6 +257,100 @@ describe("LibraryDocumentPicker", () => {
     });
   });
 
+  it("optimistic update: row shows 'attached' badge immediately on click before IPC resolves", async () => {
+    // The attach function hangs so we can inspect the UI before it resolves.
+    let resolveAttach!: () => void;
+    const hangingAttach = vi.fn().mockImplementation(
+      () =>
+        new Promise<{ attached: boolean }>((resolve) => {
+          resolveAttach = () => resolve({ attached: true });
+        }),
+    );
+    const client = makeClient({
+      library: [makeDocSummary(DOC_B, "calculus.pdf")],
+      attachFn: hangingAttach as PraxisClient["documentScopes"]["attach"],
+    });
+    renderPicker(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Attach$/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Attach$/i }));
+
+    // Optimistically shows "attached" before the IPC call resolves.
+    await waitFor(() => {
+      expect(screen.getByText("attached")).toBeDefined();
+    });
+
+    // Resolve so the test cleans up nicely.
+    resolveAttach();
+  });
+
+  it("failure: row reverts optimistic state and shows FailurePopover on attach error", async () => {
+    const failingAttach = vi.fn().mockRejectedValue(new Error("Permission denied"));
+    const client = makeClient({
+      library: [makeDocSummary(DOC_B, "calculus.pdf")],
+      attachFn: failingAttach as PraxisClient["documentScopes"]["attach"],
+    });
+    renderPicker(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^Attach$/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^Attach$/i }));
+
+    // After the failure resolves, the attached badge is gone and FailurePopover appears.
+    await waitFor(() => {
+      expect(screen.queryByText("attached")).toBeNull();
+      expect(screen.getByRole("dialog", { name: /action failed/i })).toBeDefined();
+    });
+    // Retry button should be present.
+    expect(screen.getByRole("button", { name: /retry/i })).toBeDefined();
+  });
+
+  it("multiple concurrent attaches each have their own pip state (no cross-talk)", async () => {
+    // Both attach calls hang so we can inspect independent pip states.
+    let resolveA!: () => void;
+    let resolveB!: () => void;
+    const hangingAttach = vi.fn().mockImplementation(
+      () =>
+        new Promise<{ attached: boolean }>((resolve) => {
+          if (!resolveA) {
+            resolveA = () => resolve({ attached: true });
+          } else {
+            resolveB = () => resolve({ attached: true });
+          }
+        }),
+    );
+    const client = makeClient({
+      library: [makeDocSummary(DOC_A, "algebra.pdf"), makeDocSummary(DOC_B, "calculus.pdf")],
+      attachFn: hangingAttach as PraxisClient["documentScopes"]["attach"],
+    });
+    renderPicker(client);
+
+    await waitFor(() => {
+      const attachBtns = screen.getAllByRole("button", { name: /^Attach$/i });
+      expect(attachBtns).toHaveLength(2);
+    });
+
+    const [btnA, btnB] = screen.getAllByRole("button", { name: /^Attach$/i });
+    // Click both concurrently.
+    if (btnA) fireEvent.click(btnA);
+    if (btnB) fireEvent.click(btnB);
+
+    // Both rows should show the optimistic "attached" badge — no cross-talk.
+    await waitFor(() => {
+      const attachedBadges = screen.getAllByText("attached");
+      expect(attachedBadges).toHaveLength(2);
+    });
+
+    // Resolve both so the test cleans up.
+    resolveA?.();
+    resolveB?.();
+  });
+
   it("shows empty state when library is empty", async () => {
     const client = makeClient({ library: [] });
     renderPicker(client);
@@ -524,7 +618,11 @@ describe("LibraryDocumentPicker", () => {
           await new Promise<void>((resolve) => {
             resolveIngestion = resolve;
           });
-          yield { type: "done", documentId: "doc-slow", chunkCount: 2 } as import("@praxis/core/types").IngestionEvent;
+          yield {
+            type: "done",
+            documentId: "doc-slow",
+            chunkCount: 2,
+          } as import("@praxis/core/types").IngestionEvent;
         } finally {
           // If the for-await loop in useIngestion is broken (e.g. component
           // unmounted mid-stream), the generator's finally block runs. We

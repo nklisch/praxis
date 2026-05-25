@@ -29,10 +29,15 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { type JSX, useEffect, useRef, useState } from "react";
+import { useActionEscalation } from "../hooks/use-action-escalation.js";
 import { useAssignment } from "../hooks/use-assignment.js";
+import { useOptimisticAction } from "../hooks/use-optimistic-action.js";
+import { COPY } from "../lib/copy.js";
+import { ActionPip } from "./action-pip.js";
 import { AssignmentCard } from "./assignment-card.js";
 import { ClarificationPill } from "./clarification-pill.js";
 import styles from "./exam-tab-body.module.css";
+import { FailurePopover } from "./failure-popover.js";
 
 export interface ExamTabBodyProps {
   tab: SessionTabSummary;
@@ -151,10 +156,13 @@ interface ItemRailProps {
   currentIndex: number;
   responses: Map<string, string>;
   flagged: Set<string>;
-  submitting: boolean;
   submitted: boolean;
   durationMinutes?: number | null | undefined;
   onSubmit: () => void;
+  submitActionState: import("../hooks/use-optimistic-action.js").ActionState;
+  submitErrorReason?: string;
+  onRetrySubmit: () => void;
+  onDismissSubmit: () => void;
 }
 
 function ItemRail({
@@ -162,10 +170,13 @@ function ItemRail({
   currentIndex,
   responses,
   flagged,
-  submitting,
   submitted,
   durationMinutes,
   onSubmit,
+  submitActionState,
+  submitErrorReason,
+  onRetrySubmit,
+  onDismissSubmit,
 }: ItemRailProps): JSX.Element {
   const answered = items.filter((item) => {
     const r = responses.get(item.id) ?? "";
@@ -239,14 +250,28 @@ function ItemRail({
             <span>Empty</span>
             <span className={styles.submitVal}>{Math.max(0, empty)}</span>
           </div>
-          <button
-            type="button"
-            className={styles.submitBtn}
-            disabled={submitting}
-            onClick={onSubmit}
+          <div
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.375rem",
+            }}
           >
-            {submitting ? "Submitting…" : "Submit (early)"}
-          </button>
+            <button type="button" className={styles.submitBtn} onClick={onSubmit}>
+              Submit (early)
+            </button>
+            <ActionPip state={submitActionState} />
+            {submitActionState === "failed" && (
+              <FailurePopover
+                reason={submitErrorReason}
+                actions={[
+                  { label: COPY.actionPip.retryLabel, onClick: onRetrySubmit, variant: "primary" },
+                  { label: COPY.actionPip.dismissLabel, onClick: onDismissSubmit },
+                ]}
+              />
+            )}
+          </div>
           {durationMinutes && (
             <p className={styles.submitHint}>
               <em>Auto-submit at {durationMinutes}:00 elapsed.</em> Once submitted, grading runs and
@@ -303,13 +328,13 @@ export function ExamTabBody({ tab }: ExamTabBodyProps): JSX.Element {
     : undefined;
 
   // Load the assignment for timer + rubric access + submit.
-  const { assignment, responses, submit, submitting } = useAssignment(
-    assignmentId as AssignmentId | undefined,
-  );
+  const { assignment, responses, submit } = useAssignment(assignmentId as AssignmentId | undefined);
 
   const [autoSubmitNotice, setAutoSubmitNotice] = useState(false);
   // Local submitted state (set after auto-submit fires before component has new assignment data).
   const [localSubmitted, setLocalSubmitted] = useState(false);
+  // Track when the submit action failed so escalation can be time-keyed.
+  const [failedAt, setFailedAt] = useState<number | null>(null);
 
   // ── Nav dimming: add exam-mode class to root element on mount ──────────────
   // Global CSS rule `.exam-mode .running-head nav` applies opacity 0.4 +
@@ -321,15 +346,35 @@ export function ExamTabBody({ tab }: ExamTabBodyProps): JSX.Element {
     };
   }, []);
 
+  const submitAction = useOptimisticAction<void>({
+    dispatch: async () => {
+      if (assignment?.submittedAt || localSubmitted) return;
+      setLocalSubmitted(true);
+      await submit();
+    },
+    onError: () => {
+      // On error, revert the optimistic local-submitted state.
+      setLocalSubmitted(false);
+      setFailedAt(Date.now());
+    },
+  });
+
+  // Escalate unattended failures to the activity strip after threshold.
+  useActionEscalation({
+    failedActions:
+      submitAction.state === "failed" && failedAt !== null
+        ? [{ id: "exam-submit", label: "Exam submit failed", failedAt }]
+        : [],
+    activity: null,
+  });
+
+  const handleManualSubmit = () => {
+    submitAction.trigger();
+  };
+
   const handleExpiry = async () => {
     if (assignment?.submittedAt || localSubmitted) return;
     setAutoSubmitNotice(true);
-    setLocalSubmitted(true);
-    await submit();
-  };
-
-  const handleManualSubmit = async () => {
-    if (assignment?.submittedAt || localSubmitted) return;
     setLocalSubmitted(true);
     await submit();
   };
@@ -356,7 +401,7 @@ export function ExamTabBody({ tab }: ExamTabBodyProps): JSX.Element {
       {/* Auto-submit notice */}
       {autoSubmitNotice && (
         <div className={styles.autoSubmitNotice} role="status">
-          {submitting ? "Time's up — auto-submitting…" : "Time's up — auto-submitted."}
+          Time&apos;s up — auto-submitted.
         </div>
       )}
 
@@ -436,10 +481,13 @@ export function ExamTabBody({ tab }: ExamTabBodyProps): JSX.Element {
             currentIndex={0}
             responses={responses}
             flagged={new Set()}
-            submitting={submitting}
             submitted={isSubmitted}
             durationMinutes={assignment.durationMinutes}
-            onSubmit={() => void handleManualSubmit()}
+            onSubmit={handleManualSubmit}
+            submitActionState={submitAction.state}
+            submitErrorReason={submitAction.errorReason}
+            onRetrySubmit={submitAction.retry}
+            onDismissSubmit={submitAction.dismiss}
           />
         )}
       </div>

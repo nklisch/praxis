@@ -766,6 +766,36 @@ describe("HomeworkTabBody — feedback gating", () => {
   });
 });
 
+// ── Tests: Optimistic submit ──────────────────────────────────────────────────
+
+describe("HomeworkTabBody — optimistic submit", () => {
+  it("submit button stays interactive (not disabled) while submit is in-flight", async () => {
+    const assignment = makeAssignment([
+      makeSingleChoiceItem("item-1", "The one and only question"),
+    ]);
+    renderHW({ assignmentId: "asgn-hw-1" }, { assignment, submitShouldHang: true });
+    await waitFor(() => {
+      expect(getMain().getByText(/The one and only question/i)).toBeDefined();
+    });
+
+    // Answer item 1 by selecting radio option 0 so submit is enabled.
+    const radio = screen.getByDisplayValue("0");
+    fireEvent.click(radio);
+
+    await waitFor(() => {
+      const submitBtn = screen.getByRole("button", { name: /submit set/i });
+      expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    // Click submit — it now hangs.
+    const submitBtn = screen.getByRole("button", { name: /submit set/i });
+    fireEvent.click(submitBtn);
+
+    // Button must remain enabled during the in-flight period.
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
 // ── Tests: Loading / error / empty states ──────────────────────────────────────
 
 describe("HomeworkTabBody — edge states", () => {
