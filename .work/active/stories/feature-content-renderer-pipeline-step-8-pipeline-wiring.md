@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-8-pipeline-wiring
 kind: story
-stage: review
+stage: done
 tags: [content, rendering, ui]
 parent: feature-content-renderer-pipeline
 depends_on: [feature-content-renderer-pipeline-step-1-mode-render-toggles, feature-content-renderer-pipeline-step-4-callout-figure-components, feature-content-renderer-pipeline-step-5-definition-tracking, feature-content-renderer-pipeline-step-6-concept-glossary-components, feature-content-renderer-pipeline-step-7-post-render-passes]
@@ -86,3 +86,22 @@ The `hasSeenTerm` / `markTermSeen` IPC channels do not exist in the client yet (
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 8
 - Depends on steps 1, 4, 5, 6, 7 (the merge point)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- `remark-directive` excluded — `::: figure :::` syntax doesn't parse → `idea-resolve-remark-directive-definitions-conflict` (backlog)
+- `useFirstOccurrence` IPC gap — NOOP stubs; `<Definition>` always renders plain → `idea-term-first-occurrences-ipc-channels` (backlog)
+
+**Nits**: none
+
+**Notes**: Story scope (pipeline wiring + tab body integration + kitchen-sink test) delivered cleanly. The two important findings are real design tensions surfaced honestly by the agent during integration — neither is an implementation cut, both are architectural questions that need follow-up scoping. Code shipped is in working state (1939 tests green; lint + typecheck clean). The `data.hName` / `data.hProperties` discovery on custom MDAST nodes is a sharp insight — without it remark-rehype emits generic `<div>` for unknown nodes and component overrides don't fire. `urlTransform` patch for `concept:` URLs correctly bypasses react-markdown's default scheme whitelist. Per-mode tab body wiring complete via `resolveRenderToggles(getMode(tab.modeId))` in `chat-tab-body.tsx`.
+
+What's now possible: every text-bearing surface in the chat that renders `<MarkdownContent>` automatically composes admonitions, definitions, file-paths, units, callouts, and the `concept:` link scheme — modulo the two follow-on items above. The pipeline is the foundation; subsequent renderer features (math-rendering step-5, future content-type primitives) layer on the same plugin / component-override pattern.
+
+**Follow-ups parked**:
+- `.work/backlog/idea-resolve-remark-directive-definitions-conflict.md`
+- `.work/backlog/idea-term-first-occurrences-ipc-channels.md`
