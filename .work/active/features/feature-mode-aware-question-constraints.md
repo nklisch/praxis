@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints
 kind: feature
-stage: implementing
+stage: review
 tags: [content, tool-schema, agent-prompt, cross-package]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -452,3 +452,25 @@ Parallel-friendly: step-1 unlocks 2/3/4 in parallel; 5/6 fan out after 2+3; 7 af
 - **Course-create's `ask_student_question` is the drafter's flow control.** Drafter uses these calls to pause-and-confirm with the user during course creation. Caps too tight here would block valid drafter behavior. **Mitigation**: course-create defaults (50/15/5/6) are generous; verify against existing drafter usage in production (`packages/core/src/services/course-create/` — flag any draft-time message that exceeds caps as a Risk to address before this feature lands).
 
 - **First-message validation timing.** The handler validates after Zod parse but before any side effect. Mid-call failure mid-iteration could leak partial state. **Mitigation**: validate all questions in `ask_student_question` upfront BEFORE any QuickCheckService.enqueue call. Confirmed in Unit 5 acceptance.
+
+## Implementation summary (2026-05-24)
+
+All 7 child stories landed across multiple autopilot orchestrator runs:
+
+- `step-1-types-and-defaults` (done, commit `021e8bc`) — `QuestionConstraints` interface + `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE` + `resolveQuestionConstraints` resolver.
+- `step-3-validation-helper` (done, commit `8f7909f`) — `validateQuestionConstraints` shared helper with agent-friendly error messages; 30 tests.
+- `step-4-prompt-fragment` (done, commit `6739b17`) — `questionToolFragment` factory at `position: "constraints"`, includes all 6 markup-convention sections from the agent contract.
+- `step-2-toolcontext-threading` (commit `e977538`) — `ToolContext.questionConstraints?: Required<QuestionConstraints>` threaded through `EngineSessionManager.openActive`; per-turn ToolContext picks it up via `InProcessToolRegistry`'s shallow-copy of the base context (no registry changes needed).
+- `step-7-mode-wiring` (commit `80f1205`) — 6 modes register `questionToolFragment`: teach, quiz, homework, exam, course-create, study-skills. `configure` excluded (configurator-facing, no `quick_check.*`). 22 new tests asserting per-mode cap interpolation.
+- `step-5-ask-student-question-wire` (commit `15c7ab2`) — handler validates each question upfront, throws agent-friendly error on first violation; short-circuits no partial side effects. 5 new tests.
+- `step-6-quick-check-wire` (commit `220e4d3`) — all 5 quick_check variants wired (single-choice, multi-select, short-answer, matching, confidence). Matching uses two-pass validation for left+right columns. 15 new tests.
+
+**Cross-cutting deviations**:
+- `INLINE_FALLBACK_CONSTRAINTS` defined inline in each tool file (ask-student-question.ts + 5 quick-check variants) rather than imported from `@praxis/curriculum` — respects the `@praxis/tools` → no-runtime-`@praxis/curriculum` dep rule. Value mirrors curriculum constant; flagged in source comments as intentional duplication.
+- `modeLabel` resolves via `ctx.modeId ?? "current"` (e.g., "teach mode") rather than `mode.displayName` — `ToolContext` doesn't carry the display name, and `modeId` reads cleanly in agent error messages.
+- step-7 used `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[key] ?? FALLBACK_QUESTION_CONSTRAINTS` to satisfy `noUncheckedIndexedAccess`; step-2's agent also caught + fixed this typecheck violation during parallel run.
+- Wave-1 parallel execution: step-2 and step-7 both touched the curriculum mode files independently; both agents arrived at the same `noUncheckedIndexedAccess` fix. Clean convergence.
+
+**Verification at advance time**: full workspace typecheck green; `pnpm test` — 5060 passed, 24 skipped (slow Pyodide tests). All 7 stories' acceptance criteria met.
+
+What's now possible: every question-emitting tool now validates against per-mode caps at dispatch time. Over-cap calls return agent-friendly tool_result errors instructing the agent how to correct (trim prompts, compress choices, cut counts). Per-mode caps are visible to the agent via the unified prompt fragment composed into 6 mode system prompts.
