@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-shared-choice-indicators-step-3-assignment-card-dedupe
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-shared-choice-indicators
 depends_on: [feature-refactor-shared-choice-indicators-step-1-primitive]
@@ -37,3 +37,30 @@ Remove the duplicated `.optionInput` / `.optionLabel` rules from `assignment-ite
 - Parent feature: `.work/active/features/feature-refactor-shared-choice-indicators.md` § Step 3
 - Files: `packages/ui/src/components/assignment-item-card.module.css`, `assignment-item-card.tsx`
 - Depends on step-1 primitive
+
+## Implementation notes (2026-05-24)
+
+**Case applied: A — pure dead-code removal.**
+
+### Discovery
+
+`assignment-item-card.tsx` never directly references `styles.optionLabel` or `styles.optionInput`. The card dispatches choice rendering to `<SingleChoiceBody>` and `<MultiSelectBody>`, which import from `item-body-shared.module.css`. The `.optionLabel`, `.optionLabel:hover:not(.disabled)`, `.optionLabel.disabled`, `.optionInput`, and the `.options` list rule in `assignment-item-card.module.css` were entirely unreferenced dead code — no TSX file in the project used `cardStyles.optionLabel` or `styles.optionLabel` pointing at the card's module.
+
+No `assignment-item-card.tsx` changes required.
+
+### Side-by-side diff (for record)
+
+The shared module's rules differ slightly:
+- `.optionLabel` adds `border: 1px solid transparent` (to support the `.correct`/`.incorrect` feedback-state transition)
+- `.optionLabel:hover` selector also guards against `.correct`/`.incorrect` in the shared file
+- `.optionInput` adds `flex-shrink: 0`
+
+These differences are irrelevant because the card's copy was dead code regardless.
+
+### Files touched
+- `packages/ui/src/components/assignment-item-card.module.css` — removed the entire `/* ── Multiple choice ──── */` section (35 lines: `.options`, `.optionLabel`, `.optionLabel:hover`, `.optionLabel.disabled`, `.optionInput`)
+
+### Test results
+- `pnpm typecheck` — pass (0 errors)
+- `pnpm --filter @praxis/ui test` — 1803 passed, 0 failed
+- Pre-existing biome lint errors in `.mockups/` and other unrelated files; none introduced by this change
