@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering
 kind: feature
-stage: implementing
+stage: done
 tags: [content, rendering, math]
 parent: epic-educational-content-rendering
 depends_on: [feature-content-renderer-pipeline]
@@ -289,3 +289,19 @@ Steps 1, 2, 3 ship in parallel without waiting. Step-4 waits for the sibling-fea
 - **Cross-feature wire-in ordering**: this feature's step-4 and step-5 edit files that the sibling features (`feature-mode-aware-question-constraints` and `feature-content-renderer-pipeline`) create. Strict `depends_on` enforces landing order; the orchestrator respects it.
 
 - **`KATEX_MACRO_DOCS` keep-in-sync**: the docs array must stay in sync with `KATEX_MACROS`. Mitigation: a small validation test asserts every macro in the docs array has a matching entry in `KATEX_MACROS` (and vice versa).
+
+## Implementation summary (2026-05-24)
+
+All 5 child stories landed:
+
+- `step-1-katex-macros` (done) — `KATEX_MACROS` + `KATEX_MACRO_DOCS` (11 macros: ℝ, ℤ, ℕ, ℚ, ℂ, `\pdv`, `\dv`, `\norm`, `\abs`, `\set`, `\given`)
+- `step-2-bare-glyph-plugin` (done) — `rehypeMathGlyphWrap` plugin + 66-codepoint `MATH_GLYPHS` set
+- `step-3-error-handling` (done) — `.mathError` + `:global(.katex-error)` CSS styling
+- `step-4-prompt-fragment-extension` (done) — macros table appended to `questionToolFragment` (inline duplicate of `KATEX_MACRO_DOCS_INLINE` per dep-boundary)
+- `step-5-pipeline-wiring` (done) — final merge: `rehype-katex` called with `{ throwOnError: false, macros: KATEX_MACROS }`; `rehypeMathGlyphWrap` appended to REHYPE_PLUGINS gated by `bareGlyphMath` toggle, positioned AFTER rehype-katex
+
+**Test correction during integration**: agent caught that `$\widebar{x}$` doesn't emit `.katex-error` in KaTeX 0.16 (renders as colored text) — corrected to `$\frac{$` which is a genuine parse error. Also corrected tight-list `- $$...$$` to loose-list form for proper block-math rendering. Both documented in step-5 implementation notes.
+
+**Verification at advance time**: 5192 tests pass; lint/typecheck clean (pre-existing drizzle type-error in memory pkg unrelated).
+
+What's now possible: every text-bearing surface in the chat renders LaTeX math via KaTeX with macros (`\R` → ℝ etc.), bare unicode glyphs (α, ∫, ∂) auto-wrap in `.math-glyph` for typographic refinement, malformed LaTeX renders as inline `.katex-error` badge without breaking the rest of the message. The agent prompt fragment teaches all of this via the macros table appended to the unified question-tool fragment.
