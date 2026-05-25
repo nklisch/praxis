@@ -1,7 +1,7 @@
 ---
 id: feature-dev-mode-agent-feedback-tool-step-3-prompt-fragment-injection
 kind: story
-stage: implementing
+stage: review
 tags: [dev, observability, dx, agent-prompt]
 parent: feature-dev-mode-agent-feedback-tool
 depends_on: []

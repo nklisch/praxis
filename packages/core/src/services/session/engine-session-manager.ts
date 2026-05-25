@@ -21,6 +21,7 @@ import {
   composeInCourseBehaviorFragment,
   type InCourseBehaviorModeId,
 } from "@praxis/curriculum/brief/in-course-behavior";
+import { devModeFragment } from "@praxis/curriculum/modes";
 import { createEngine } from "@praxis/engines";
 import { type EngineSessionStateJson, sessions } from "@praxis/memory/schema";
 import { InProcessToolRegistry } from "@praxis/tools";
@@ -303,6 +304,13 @@ export class EngineSessionManager {
           template: appendText,
         });
       }
+    }
+
+    // Dev-mode: inject the agent-feedback fragment when PRAXIS_DEV is set.
+    // Placed last so it appears at the trailing postamble position regardless
+    // of other additionalFragments that may share the same slot.
+    if (process.env.PRAXIS_DEV === "true") {
+      additionalFragments.push(devModeFragment);
     }
 
     const systemPrompt = composeSystemPrompt({

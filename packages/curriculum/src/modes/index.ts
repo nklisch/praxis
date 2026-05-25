@@ -34,6 +34,10 @@ export function listModes(): readonly Mode[] {
 export { configureMode } from "./configure.js"; // ← Phase 11
 export { courseCreateMode } from "./course-create.js";
 export { examMode } from "./exam.js";
+// Dev-mode agent-feedback prompt fragment — injected by EngineSessionManager
+// when PRAXIS_DEV === "true". Exported here so @praxis/core can import it
+// via the stable @praxis/curriculum/modes subpath export.
+export { devModeFragment } from "./fragments/dev-mode.js";
 export { homeworkMode } from "./homework.js";
 export { quizMode } from "./quiz.js";
 export { studySkillsMode } from "./study-skills.js"; // ← Phase 18
