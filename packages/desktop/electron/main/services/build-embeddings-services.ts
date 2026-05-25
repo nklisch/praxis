@@ -38,6 +38,12 @@ function resolveDistPath(packageName: string, distSubpath: string): string {
   return join(dirname(pkgJson), distSubpath);
 }
 
+export interface EmbeddingsServiceDeps {
+  db: PraxisDb;
+  sqlite: SqliteDatabase;
+  log: MainLogger;
+}
+
 export interface EmbeddingsServices {
   vectorStore: SqliteVecStore;
   ftsStore: SqliteFtsStore;
@@ -51,11 +57,8 @@ export interface EmbeddingsServices {
   pedagogyPackService: PedagogyPackServiceImpl;
 }
 
-export function buildEmbeddingsServices(
-  db: PraxisDb,
-  sqlite: SqliteDatabase,
-  log: MainLogger,
-): EmbeddingsServices {
+export function buildEmbeddingsServices(deps: EmbeddingsServiceDeps): EmbeddingsServices {
+  const { db, sqlite, log } = deps;
   // Phase 5: vectors + FTS + embeddings + page images
   const vectorStore = new SqliteVecStore(sqlite);
   const ftsStore = new SqliteFtsStore(sqlite);

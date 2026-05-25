@@ -13,7 +13,7 @@
  * Mirrors MisconceptionIndexer's structure; see that file for the canonical pattern.
  */
 
-import { runOneShot } from "@praxis/engines";
+import { noopDispatch, runOneShot } from "@praxis/engines";
 import { affectiveSamples } from "@praxis/memory/schema";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
@@ -178,7 +178,7 @@ async function runModelInference(
       systemPrompt: AFFECTIVE_SYSTEM_PROMPT,
       tools: {
         list: () => [],
-        dispatch: noopDispatch,
+        dispatch: noopDispatch("affective-indexer"),
       },
       maxSteps: 1,
     },
@@ -202,16 +202,6 @@ async function runModelInference(
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-async function noopDispatch(): Promise<{
-  ok: false;
-  error: { code: string; message: string; recoverable: boolean };
-}> {
-  return {
-    ok: false,
-    error: { code: "no_tools", message: "indexer has no tools", recoverable: false },
-  };
-}
 
 function parseAffectiveOutput(text: string, log: Logger): AffectInference | null {
   // Extract fenced JSON block.

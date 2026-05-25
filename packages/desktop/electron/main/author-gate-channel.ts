@@ -1,7 +1,7 @@
 import type { CourseId, GateId, GateTarget, Logger, SuccessCriteria } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -16,13 +16,6 @@ import type { Services } from "./services.js";
 export function registerAuthorGateHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
 
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
-
   handle(
     "praxis.author.createGate",
     handleEnvelope(
@@ -35,7 +28,7 @@ export function registerAuthorGateHandlers(services: Services, log: Logger): voi
         successCriteria: z.unknown(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.createGate({
           courseId: brandId<"CourseId">(input.courseId) as CourseId,
           guards: input.guards as GateTarget,
@@ -60,7 +53,7 @@ export function registerAuthorGateHandlers(services: Services, log: Logger): voi
         reason: z.string().optional(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         const patch: {
           prerequisites?: GateId[];
           successCriteria?: SuccessCriteria;
@@ -92,7 +85,7 @@ export function registerAuthorGateHandlers(services: Services, log: Logger): voi
         reason: z.string().optional(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.deleteGate({
           gateId: brandId<"GateId">(input.gateId) as GateId,
           ...(input.reason !== undefined && { reason: input.reason }),
@@ -111,7 +104,7 @@ export function registerAuthorGateHandlers(services: Services, log: Logger): voi
         reason: z.string().min(1, "reason"),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.overrideGate({
           gateId: brandId<"GateId">(input.gateId) as GateId,
           reason: input.reason,

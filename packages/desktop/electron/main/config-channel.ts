@@ -2,7 +2,7 @@ import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
 import type { Logger } from "@praxis/core/types";
 import { z } from "zod";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -24,13 +24,6 @@ import type { Services } from "./services.js";
  */
 export function registerConfigHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
-
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
 
   handle(
     "praxis.config.isLocked",
@@ -66,7 +59,7 @@ export function registerConfigHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.config.engineConfig",
     wrapEnvelope("praxis.config.engineConfig", log, async () => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       return services.config.engineConfig();
     }),
   );
@@ -76,7 +69,7 @@ export function registerConfigHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.config.engineConfig.reveal",
     wrapEnvelope("praxis.config.engineConfig.reveal", log, async () => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       return services.config.revealApiKey();
     }),
   );
@@ -84,7 +77,7 @@ export function registerConfigHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.config.setEngineConfig",
     handleEnvelope("praxis.config.setEngineConfig", log, EngineConfigSchema, async (cfg) => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       // The service writes to disk; `hasApiKey` is a derived display flag
       // — set it from the validated public input so the snapshot shape
       // matches even though the service strips it before persistence.

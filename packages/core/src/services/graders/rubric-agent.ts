@@ -13,7 +13,7 @@
  * a noop tool registry, drain to full assistantText, parse fenced JSON.
  */
 
-import { runOneShot } from "@praxis/engines";
+import { noopDispatch, runOneShot } from "@praxis/engines";
 import { z } from "zod";
 import type { AssignmentItem, Rubric } from "../../types/artifacts.js";
 import { extractJsonBlock } from "../llm-helpers.js";
@@ -75,7 +75,7 @@ export async function runRubricAgent(input: RunRubricAgentInput): Promise<Grader
     ctx.services.engineResolver(),
     {
       systemPrompt: RUBRIC_SYSTEM_PROMPT,
-      tools: { list: () => [], dispatch: noopDispatch },
+      tools: { list: () => [], dispatch: noopDispatch("rubric-agent") },
       maxSteps: 1,
     },
     userMessage,
@@ -217,12 +217,3 @@ function composeFeedbackFromCriteria(
     .join("\n");
 }
 
-async function noopDispatch(): Promise<{
-  ok: false;
-  error: { code: string; message: string; recoverable: boolean };
-}> {
-  return {
-    ok: false,
-    error: { code: "no_tools", message: "rubric agent has no tools", recoverable: false },
-  };
-}

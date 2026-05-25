@@ -13,7 +13,7 @@
 
 import { courses } from "@praxis/artifacts/schema";
 import { concepts, prerequisiteEdges } from "@praxis/curriculum/schema";
-import { runOneShot } from "@praxis/engines";
+import { noopDispatch, runOneShot } from "@praxis/engines";
 import { eq, inArray } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type {
@@ -165,7 +165,7 @@ export class ConceptMapDivergenceIndexer implements Indexer {
         systemPrompt: DIVERGENCE_SYSTEM_PROMPT,
         tools: {
           list: () => [],
-          dispatch: noopDispatch,
+          dispatch: noopDispatch("concept-map-divergence-indexer"),
         },
         maxSteps: 1,
       },
@@ -192,16 +192,6 @@ export class ConceptMapDivergenceIndexer implements Indexer {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function noopDispatch(): Promise<{
-  ok: false;
-  error: { code: string; message: string; recoverable: boolean };
-}> {
-  return {
-    ok: false,
-    error: { code: "no_tools", message: "indexer has no tools", recoverable: false },
-  };
-}
 
 /**
  * Extract a compressed inventory from the tldraw scene JSON:

@@ -1,6 +1,6 @@
 import type { Logger } from "@praxis/core/types";
 import { z } from "zod";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -12,13 +12,6 @@ import type { Services } from "./services.js";
  */
 export function registerAuthorConfiguratorHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
-
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
 
   handle(
     "praxis.author.listConfiguratorActions",
@@ -32,7 +25,7 @@ export function registerAuthorConfiguratorHandlers(services: Services, log: Logg
         })
         .optional(),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.listConfiguratorActions(
           input !== undefined
             ? {
@@ -54,7 +47,7 @@ export function registerAuthorConfiguratorHandlers(services: Services, log: Logg
       log,
       z.object({ actionId: z.string().min(1, "actionId is required") }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.restoreAction({ actionId: input.actionId });
       },
     ),

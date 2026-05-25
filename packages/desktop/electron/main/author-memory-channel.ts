@@ -1,7 +1,7 @@
 import type { ConceptId, Logger, MisconceptionId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 import { getStudentId } from "./student-id.js";
 
@@ -17,13 +17,6 @@ import { getStudentId } from "./student-id.js";
 export function registerAuthorMemoryHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
 
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
-
   handle(
     "praxis.author.resetConcept",
     handleEnvelope(
@@ -34,7 +27,7 @@ export function registerAuthorMemoryHandlers(services: Services, log: Logger): v
         reason: z.string().min(1, "reason"),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         const studentId = getStudentId(services);
         return services.authoring.resetConcept({
           studentId,
@@ -55,7 +48,7 @@ export function registerAuthorMemoryHandlers(services: Services, log: Logger): v
         reason: z.string().min(1, "reason"),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.clearMisconception({
           misconceptionId: brandId<"MisconceptionId">(input.misconceptionId) as MisconceptionId,
           reason: input.reason,
@@ -71,7 +64,7 @@ export function registerAuthorMemoryHandlers(services: Services, log: Logger): v
       log,
       z.object({ targetPath: z.string().min(1, "targetPath") }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         const studentId = getStudentId(services);
         return services.authoring.exportMemory({ studentId, targetPath: input.targetPath });
       },
@@ -88,7 +81,7 @@ export function registerAuthorMemoryHandlers(services: Services, log: Logger): v
         confirm: z.literal(true),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         const studentId = getStudentId(services);
         return services.authoring.deleteAllMemory({
           studentId,

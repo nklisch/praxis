@@ -1,7 +1,7 @@
 import type { CourseId, Logger } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -13,13 +13,6 @@ import type { Services } from "./services.js";
  */
 export function registerAuthorCourseHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
-
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
 
   handle(
     "praxis.author.updateCourse",
@@ -36,7 +29,7 @@ export function registerAuthorCourseHandlers(services: Services, log: Logger): v
         reason: z.string().optional(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.updateCourse({
           courseId: brandId<"CourseId">(input.courseId),
           patch: input.patch as Parameters<typeof services.authoring.updateCourse>[0]["patch"],
@@ -53,7 +46,7 @@ export function registerAuthorCourseHandlers(services: Services, log: Logger): v
       log,
       z.string().min(1, "courseId"),
       async (courseId) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.getCourseSummary(brandId<"CourseId">(courseId) as CourseId);
       },
     ),

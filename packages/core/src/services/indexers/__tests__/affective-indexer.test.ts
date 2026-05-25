@@ -24,6 +24,7 @@ import { AffectiveIndexer, extractExplicitCheckins } from "../affective-indexer.
 
 vi.mock("@praxis/engines", () => ({
   runOneShot: vi.fn(),
+  noopDispatch: vi.fn(() => vi.fn()),
 }));
 
 import { runOneShot } from "@praxis/engines";

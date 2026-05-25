@@ -6,7 +6,7 @@
  * Merges evidence on re-run. Failures abort gracefully — no row writes.
  */
 
-import { runOneShot } from "@praxis/engines";
+import { noopDispatch, runOneShot } from "@praxis/engines";
 import { misconceptions } from "@praxis/memory/schema";
 import { and, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -109,7 +109,7 @@ export class MisconceptionIndexer implements Indexer {
         systemPrompt: MISCONCEPTION_SYSTEM_PROMPT,
         tools: {
           list: () => [],
-          dispatch: noopDispatch,
+          dispatch: noopDispatch("misconception-indexer"),
         },
         maxSteps: 1,
       },
@@ -241,16 +241,6 @@ export function upsertMisconception(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function noopDispatch(): Promise<{
-  ok: false;
-  error: { code: string; message: string; recoverable: boolean };
-}> {
-  return {
-    ok: false,
-    error: { code: "no_tools", message: "indexer has no tools", recoverable: false },
-  };
-}
 
 function parseMisconceptionOutput(text: string, log: Logger): ParsedMisconception[] | null {
   // Extract fenced JSON block.

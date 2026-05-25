@@ -171,10 +171,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   const sandbox = buildSandboxServices();
 
   // Step 4: Embeddings (vectors, FTS, worker, page/embedded images, packs, pedagogy)
-  const embeddings = buildEmbeddingsServices(db, sqlite, log);
+  const embeddings = buildEmbeddingsServices({ db, sqlite, log });
 
   // Step 5: Memory (MemoryServiceImpl)
-  const memory = buildMemoryServices(db, log);
+  const memory = buildMemoryServices({ db, log });
 
   // Step 6: Artifacts (document scopes, citations, draft store, course-create,
   //          assignment, artifacts — plus engine resolvers + notifyParentSession ref-cell)

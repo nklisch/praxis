@@ -1,14 +1,14 @@
 ---
 id: gate-patterns-inconsistency-noop-dispatch-duplication
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: patterns
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # `noopDispatch` is duplicated literally across 6 LLM-inference sites
@@ -71,3 +71,37 @@ PR.
 
 Surfaced by the v0.1.4 patterns gate rerun (2026-05-24) while codifying
 the new `one-shot-llm-inference` pattern.
+
+## Implementation notes (2026-05-25)
+
+Chose Option A. `noopDispatch` exported from `packages/engines/src/types.ts` as a
+higher-order function — `noopDispatch(label)` returns the dispatch function with
+the correct `ToolRegistry.dispatch` signature `(name, args) => Promise<ToolResult>`:
+
+```ts
+export const noopDispatch =
+  (label = "one-shot inference") =>
+  async (_name: string, _args: unknown): Promise<ToolResult> => ({
+    ok: false,
+    error: {
+      code: "no_tools",
+      message: `${label}: model attempted a tool call but no tools are registered`,
+      recoverable: false,
+    },
+  });
+```
+
+Re-exported from `packages/engines/src/index.ts`. `packages/engines` rebuilt so `dist/`
+is in sync (tests resolve via `dist/` even with `praxis-source` condition active for the
+consumer package).
+
+Files changed:
+- `packages/engines/src/types.ts` — added `noopDispatch` export + `import type { ToolResult }`
+- `packages/engines/src/index.ts` — re-exported `noopDispatch`
+- `packages/core/src/services/notes-service.ts` — import + label `"notes-summarizer"`
+- `packages/core/src/services/indexers/affective-indexer.ts` — import + label `"affective-indexer"`
+- `packages/core/src/services/indexers/concept-map-divergence-indexer.ts` — import + label `"concept-map-divergence-indexer"`
+- `packages/core/src/services/indexers/misconception-indexer.ts` — import + label `"misconception-indexer"`
+- `packages/core/src/services/graders/rubric-agent.ts` — import + label `"rubric-agent"`
+- `packages/core/src/services/graders/approach-feedback.ts` — import + label `"approach-feedback"`
+- `packages/core/src/services/indexers/__tests__/affective-indexer.test.ts` — added `noopDispatch: vi.fn(() => vi.fn())` to the `vi.mock("@praxis/engines")` factory (stale mock — didn't include the new export)

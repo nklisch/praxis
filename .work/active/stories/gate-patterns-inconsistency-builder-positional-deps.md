@@ -1,14 +1,14 @@
 ---
 id: gate-patterns-inconsistency-builder-positional-deps
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: patterns
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-05-25
 ---
 
 # Two service builders use positional params instead of a typed deps object
@@ -68,3 +68,19 @@ One small PR.
 
 Surfaced by the v0.1.4 patterns gate rerun (2026-05-24) while codifying
 the new `builder-module-composition` pattern.
+
+## Implementation notes (2026-05-25)
+
+Added `MemoryServiceDeps` and `EmbeddingsServiceDeps` interfaces matching the
+conforming builders' convention (interface declared at top of file before the
+output interface, destructured at the top of the function body).
+
+Files changed:
+- `packages/desktop/electron/main/services/build-memory-services.ts` — added
+  `MemoryServiceDeps { db, log }` interface; `buildMemoryServices(deps)` with
+  destructure
+- `packages/desktop/electron/main/services/build-embeddings-services.ts` — added
+  `EmbeddingsServiceDeps { db, sqlite, log }` interface; `buildEmbeddingsServices(deps)`
+  with destructure
+- `packages/desktop/electron/main/services.ts` — updated two call sites:
+  `buildEmbeddingsServices({ db, sqlite, log })` and `buildMemoryServices({ db, log })`

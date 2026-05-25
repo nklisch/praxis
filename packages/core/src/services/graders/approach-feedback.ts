@@ -18,7 +18,7 @@
  * state and is mode-aware logic, not item-kind-specific logic.
  */
 
-import { runOneShot } from "@praxis/engines";
+import { noopDispatch, runOneShot } from "@praxis/engines";
 import { z } from "zod";
 import type { AssignmentItem } from "../../types/artifacts.js";
 import { extractJsonBlock } from "../llm-helpers.js";
@@ -55,7 +55,7 @@ export async function enrichWithApproachFeedback(input: {
     ctx.services.engineResolver(),
     {
       systemPrompt: APPROACH_SYSTEM_PROMPT,
-      tools: { list: () => [], dispatch: noopDispatch },
+      tools: { list: () => [], dispatch: noopDispatch("approach-feedback") },
       maxSteps: 1,
     },
     userMessage,
@@ -119,12 +119,3 @@ function buildApproachUserMessage(
   ].join("\n");
 }
 
-async function noopDispatch(): Promise<{
-  ok: false;
-  error: { code: string; message: string; recoverable: boolean };
-}> {
-  return {
-    ok: false,
-    error: { code: "no_tools", message: "approach agent has no tools", recoverable: false },
-  };
-}

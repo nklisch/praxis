@@ -1,7 +1,7 @@
 import type { Logger } from "@praxis/core/types";
 import { z } from "zod";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -22,13 +22,6 @@ import type { Services } from "./services.js";
 export function registerAuthorPromptHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
 
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
-
   const modeIdSchema = z.object({ modeId: z.string().min(1, "modeId") });
 
   const previewPromptSchema = z.object({
@@ -48,7 +41,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
         override: z.string(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.customizePrompt(input.modeId, input.fragmentId, input.override);
       },
     ),
@@ -57,7 +50,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
   handle(
     "praxis.author.listFragmentOverrides",
     handleEnvelope("praxis.author.listFragmentOverrides", log, modeIdSchema, async (input) => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       return services.authoring.listFragmentOverrides(input.modeId);
     }),
   );
@@ -72,7 +65,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
         fragmentId: z.string().min(1, "fragmentId"),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.clearFragmentOverride(input);
       },
     ),
@@ -89,7 +82,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
         formality: z.number().min(0).max(10),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.setStyleSliders(input);
       },
     ),
@@ -102,7 +95,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
       log,
       z.object({ text: z.string().nullable() }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.setGlobalPrompt(input.text);
       },
     ),
@@ -111,7 +104,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
   handle(
     "praxis.author.getGlobalPrompt",
     wrapEnvelope("praxis.author.getGlobalPrompt", log, async () => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       return services.authoring.getGlobalPrompt();
     }),
   );
@@ -126,7 +119,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
         text: z.string().nullable(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.setModeAppend(input);
       },
     ),
@@ -135,7 +128,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
   handle(
     "praxis.author.getModeAppend",
     handleEnvelope("praxis.author.getModeAppend", log, modeIdSchema, async (input) => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       return services.authoring.getModeAppend(input.modeId);
     }),
   );
@@ -143,7 +136,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
   handle(
     "praxis.author.previewPrompt",
     handleEnvelope("praxis.author.previewPrompt", log, previewPromptSchema, async (input) => {
-      await requireUnlocked();
+      await requireUnlocked(services);
       return services.authoring.previewPrompt({
         modeId: input.modeId,
         ...(input.draftGlobal !== undefined && { draftGlobal: input.draftGlobal }),
@@ -159,7 +152,7 @@ export function registerAuthorPromptHandlers(services: Services, log: Logger): v
       log,
       previewPromptSchema,
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.previewPromptWithAttribution({
           modeId: input.modeId,
           ...(input.draftGlobal !== undefined && { draftGlobal: input.draftGlobal }),

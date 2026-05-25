@@ -63,6 +63,24 @@ export function handleEnvelope<TIn, TOut>(
     wrapped(payload);
 }
 
+/**
+ * Guard used by every author-* and config IPC channel to reject calls when the
+ * configure surface is locked. Throws with a uniform message that the client
+ * can pattern-match on.
+ *
+ * Usage: `await requireUnlocked(services);` at the top of each envelope handler.
+ */
+export const requireUnlocked = async (services: {
+  lock: { isUnlocked(): Promise<boolean> };
+}): Promise<void> => {
+  const unlocked = await services.lock.isUnlocked();
+  if (!unlocked) {
+    throw new Error(
+      "Locked: configure surface requires unlock. Call praxis.lock.unlock first.",
+    );
+  }
+};
+
 export function createIpcHelpers(log: Logger): IpcHandlerHelpers {
   return {
     handle: (channel, fn) => {

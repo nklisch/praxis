@@ -1,7 +1,7 @@
 import type { ConceptId, LessonId, Logger } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
-import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { createIpcHelpers, handleEnvelope, requireUnlocked } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -14,13 +14,6 @@ import type { Services } from "./services.js";
  */
 export function registerAuthorLessonHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
-
-  async function requireUnlocked(): Promise<void> {
-    const unlocked = await services.lock.isUnlocked();
-    if (!unlocked) {
-      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
-    }
-  }
 
   handle(
     "praxis.author.createLesson",
@@ -35,7 +28,7 @@ export function registerAuthorLessonHandlers(services: Services, log: Logger): v
         estimatedMinutes: z.number().int().positive().optional(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.createLesson({
           courseId: brandId<"CourseId">(input.courseId),
           title: input.title,
@@ -61,7 +54,7 @@ export function registerAuthorLessonHandlers(services: Services, log: Logger): v
         }),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         const patch: {
           title?: string;
           conceptIds?: ConceptId[];
@@ -93,7 +86,7 @@ export function registerAuthorLessonHandlers(services: Services, log: Logger): v
         reason: z.string().optional(),
       }),
       async (input) => {
-        await requireUnlocked();
+        await requireUnlocked(services);
         return services.authoring.deleteLesson({
           lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
           ...(input.reason !== undefined && { reason: input.reason }),

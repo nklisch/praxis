@@ -7,7 +7,7 @@
  */
 
 import { notes } from "@praxis/artifacts/schema";
-import { runOneShot } from "@praxis/engines";
+import { noopDispatch, runOneShot } from "@praxis/engines";
 import { and, desc, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
@@ -284,7 +284,7 @@ export class NotesServiceImpl implements NotesService {
       engine,
       {
         systemPrompt: FROM_SESSION_SUMMARY_PROMPT,
-        tools: { list: () => [], dispatch: noopDispatch },
+        tools: { list: () => [], dispatch: noopDispatch("notes-summarizer") },
         maxSteps: 1,
       },
       userMessage,
@@ -348,12 +348,3 @@ function rowToNote(row: typeof notes.$inferSelect): Note {
   };
 }
 
-async function noopDispatch(): Promise<{
-  ok: false;
-  error: { code: string; message: string; recoverable: boolean };
-}> {
-  return {
-    ok: false,
-    error: { code: "no_tools", message: "notes service has no tools", recoverable: false },
-  };
-}
