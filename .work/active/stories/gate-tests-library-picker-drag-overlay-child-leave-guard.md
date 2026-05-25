@@ -1,14 +1,14 @@
 ---
 id: gate-tests-library-picker-drag-overlay-child-leave-guard
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ui]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-25
 ---
 
 # Drop-overlay child-leave guard is comment-only — no test exercises it
@@ -39,3 +39,15 @@ it("drag-over from list-area to a child list-row keeps the drop overlay visible"
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/library-document-picker.test.tsx`
+
+## Implementation notes (2026-05-25)
+
+Added test `"drag-over from list-area to a child list-row keeps the drop overlay visible"` in `packages/ui/src/__tests__/library-document-picker.test.tsx` (inside the `"inline upload — drag-and-drop and + Upload button"` describe block).
+
+The test:
+1. Renders the picker with one library doc and waits for the list to load.
+2. Fires `dragOver` on the list area with `types: ["Files"]` — confirms the overlay appears.
+3. Dispatches a native `dragleave` event from the child list row element (bubbling to the list area), simulating `e.currentTarget !== e.target`.
+4. Asserts the overlay is still visible — confirming the guard prevented a false dismissal.
+
+All tests pass (`pnpm test`). No production code changes.

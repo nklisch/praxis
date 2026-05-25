@@ -720,6 +720,45 @@ describe("LibraryDocumentPicker", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
+    it("drag-over from list-area to a child list-row keeps the drop overlay visible", async () => {
+      // Regression guard for the `e.currentTarget === e.target` guard in handleDragLeave.
+      // When the pointer crosses from the listArea into one of its child rows,
+      // onDragLeave fires with currentTarget = listArea and target = child row.
+      // The guard must detect currentTarget !== target and NOT clear the overlay.
+      const client = makeClient({
+        library: [makeDocSummary(DOC_A, "algebra.pdf")],
+      });
+      renderPicker(client);
+
+      await waitFor(() => {
+        expect(screen.getByText("algebra.pdf")).toBeDefined();
+      });
+
+      // Simulate drag-over the list area — overlay should appear.
+      const listArea = screen.getByRole("list").parentElement!;
+      fireEvent.dragOver(listArea, {
+        dataTransfer: { types: ["Files"] },
+      });
+
+      expect(screen.getByText("Drop files to upload")).toBeDefined();
+
+      // Now simulate onDragLeave from a child element (currentTarget !== target).
+      // In JSDOM, fireEvent doesn't set currentTarget on the event object, so we
+      // dispatch a synthetic event where target is the child list row — this is
+      // the exact scenario the guard defends against.
+      const listRow = screen.getByRole("list").firstElementChild as HTMLElement;
+      if (listRow) {
+        const syntheticLeave = new Event("dragleave", { bubbles: true });
+        // Simulate the guard condition: target is the child, not the listArea itself.
+        // We fire dragleave directly on the child element (bubbles to listArea);
+        // in JSDOM, event.currentTarget === listArea but event.target === child.
+        listRow.dispatchEvent(syntheticLeave);
+      }
+
+      // Overlay must still be visible — the guard prevented a false dismissal.
+      expect(screen.getByText("Drop files to upload")).toBeDefined();
+    });
+
     it("after ingestion completes (onDone), the picker list is refreshed", async () => {
       let callCount = 0;
       const listFn = vi.fn().mockImplementation(async () => {

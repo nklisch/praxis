@@ -1,14 +1,14 @@
 ---
 id: gate-tests-session-list-empty-excludemodeids-envelope
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ipc]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-25
 ---
 
 # `praxis.session.list` envelope doesn't cover empty `excludeModeIds: []`
@@ -37,3 +37,15 @@ it("forwards { excludeModeIds: [] } as a valid empty filter", async () => {
 
 ## Test location (suggested)
 `packages/desktop/electron/main/__tests__/session-channel-envelope.test.ts`
+
+## Implementation notes (2026-05-25)
+
+Added test `"forwards { excludeModeIds: [] } as a valid empty filter (no-op boundary partition)"` in the `"praxis.session.list — excludeModeIds filter"` describe block of `packages/desktop/electron/main/__tests__/session-channel-envelope.test.ts`.
+
+The test verifies:
+- `{ excludeModeIds: [] }` is accepted as valid input (envelope returns `ok: true`).
+- The empty array is forwarded to the service as `{ excludeModeIds: [] }` (not dropped).
+
+The session-channel handler uses `opts.excludeModeIds !== undefined` to decide whether to spread the value — `[]` is not `undefined`, so it is included in the forwarded opts. Behavior confirmed correct, no production code change needed.
+
+All tests pass (`pnpm test`).

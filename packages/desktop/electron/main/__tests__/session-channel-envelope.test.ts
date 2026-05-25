@@ -635,6 +635,28 @@ describe("praxis.session.list — excludeModeIds filter", () => {
     expect(services.session.list).not.toHaveBeenCalled();
   });
 
+  it("forwards { excludeModeIds: [] } as a valid empty filter (no-op boundary partition)", async () => {
+    // Acceptance criterion: list({ excludeModeIds: [] }) is a valid input — no modes
+    // are excluded, so the service returns everything. The IPC layer must pass the
+    // empty array through rather than treating it as absent.
+    const log = makeSpyLogger();
+    let capturedOpts: unknown;
+    const services = makeServices();
+    services.session.list = vi.fn().mockImplementation(async (opts: unknown) => {
+      capturedOpts = opts;
+      return [];
+    });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { excludeModeIds: [] });
+    expect(result).toMatchObject({ ok: true, value: [] });
+    // The empty array must be forwarded (not dropped) so service can apply its own no-op logic.
+    expect(capturedOpts).toEqual({ excludeModeIds: [] });
+  });
+
   it("accepts undefined payload and calls service with undefined", async () => {
     const log = makeSpyLogger();
     const services = makeServices();

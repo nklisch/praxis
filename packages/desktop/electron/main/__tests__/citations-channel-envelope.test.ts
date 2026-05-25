@@ -184,6 +184,43 @@ describe("praxis.citations.record — envelope wiring", () => {
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
+  it("inverted range VALIDATION_FAILED message is 'Validation failed at (root)'", async () => {
+    // Pins the user-facing message text for the inverted-range refine error.
+    //
+    // The envelope layer translates Zod errors into `VALIDATION_FAILED` with a
+    // path-based message: `"Validation failed at ${path}"`. For a root-level
+    // `.refine()` the Zod issue has `path: []`, which `toEnvelopeError` maps to
+    // the "(root)" sentinel — NOT the raw Zod refine message
+    // ("endOffset must be >= startOffset"). This is intentional: the envelope
+    // never leaks raw schema details to the renderer.
+    //
+    // Implementation discovery: the story (gate-tests-recordcitation-error-message-text)
+    // suggested asserting `stringContaining("endOffset must be >= startOffset")`.
+    // That assertion would fail because the envelope uses the path-based format.
+    // The correct pin is "Validation failed at (root)".
+    const log = makeSpyLogger();
+    registerCitationsHandlers(makeServices(), log);
+
+    const handler = handlers.get("praxis.citations.record");
+    const result = await handler?.(
+      {},
+      {
+        documentId: "doc-1",
+        citingSessionId: "sess-1",
+        startOffset: 50,
+        endOffset: 10,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Validation failed at (root)",
+      },
+    });
+  });
+
   it("accepts endOffset === startOffset (zero-length range is valid)", async () => {
     const log = makeSpyLogger();
     registerCitationsHandlers(makeServices(), log);

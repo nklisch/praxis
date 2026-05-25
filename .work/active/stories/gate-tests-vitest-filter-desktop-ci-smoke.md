@@ -1,14 +1,14 @@
 ---
 id: gate-tests-vitest-filter-desktop-ci-smoke
 kind: story
-stage: implementing
+stage: review
 tags: [testing, infra]
 parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-25
 ---
 
 # `pnpm --filter @praxis/desktop test` exit-0 not guarded by a CI step
@@ -38,3 +38,15 @@ pnpm --filter @praxis/desktop test --run --reporter=basic
 
 ## Test location (suggested)
 CI workflow or `tests/desktop-filter.smoke.test.ts`
+
+## Implementation notes (2026-05-25)
+
+Created `tests/desktop-filter.smoke.test.ts` — a root-level integration test that runs `pnpm --filter @praxis/desktop test --run` as a child process via `execFileSync` and asserts exit code 0.
+
+Design decisions:
+- Located in `tests/` (root workspace tests, not per-package) so it runs as part of `pnpm test` automatically.
+- Uses `execFileSync` (synchronous) to keep the test body simple; throws on non-zero exit with both stdout+stderr included in the error message.
+- 60 s child timeout + 90 s vitest timeout — generous for cold desktop test run.
+- The test also asserts that some output was produced (runner actually ran, didn't silently no-op).
+
+All tests pass (`pnpm test`). No production code changes.

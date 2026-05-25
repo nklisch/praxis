@@ -410,6 +410,48 @@ describe("useIngestion — startBatchWithPaths", () => {
     expect(req.scope).toEqual({ kind: "course", id: COURSE_ID });
   });
 
+  it("startBatchWithPaths with a duplicate path ingests it twice (hook is a pass-through; backend dedupes)", async () => {
+    // Contract: useIngestion is a thin pass-through. It forwards every path in
+    // the array to client.ingest.start without deduplication. If a caller passes
+    // the same path twice, the backend receives two ingestion requests and is
+    // responsible for any dedup/idempotency logic. This test locks in that
+    // pass-through contract so a future "helpful" dedup in the hook would be caught.
+    const duplicatePath = "/docs/a.txt";
+    const paths = [duplicatePath, duplicatePath];
+
+    let callCount = 0;
+    const startFn = vi.fn().mockImplementation(() => {
+      callCount++;
+      return makeDoneStream(`doc-${callCount}`);
+    });
+
+    const client = makeClient({
+      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
+    });
+
+    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
+
+    await act(async () => {
+      await result.current.startBatchWithPaths(paths);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("batch_summary");
+    });
+
+    // Hook forwarded both paths — backend called twice, once per entry.
+    expect(startFn).toHaveBeenCalledTimes(2);
+    const firstReq = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(firstReq.filePath).toBe(duplicatePath);
+    const secondReq = startFn.mock.calls[1]?.[0] as Record<string, unknown>;
+    expect(secondReq.filePath).toBe(duplicatePath);
+
+    // Both results land in the batch summary.
+    if (result.current.state.status === "batch_summary") {
+      expect(result.current.state.results).toHaveLength(2);
+    }
+  });
+
   it("onDone fires once per successful file in startBatchWithPaths", async () => {
     const onDone = vi.fn();
     let callCount = 0;
