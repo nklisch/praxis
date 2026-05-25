@@ -43,6 +43,7 @@ export type * from "./lock-service.js";
 // memory.ts: `export *` (not `export type *`) so MASTERY_SIGNAL_KINDS const is exported as a runtime value.
 export * from "./memory.js";
 export type * from "./mode.js";
+export { DEFAULT_RENDER_TOGGLES, resolveRenderToggles } from "./mode.js"; // runtime values — not re-exported by `export type *`
 // Phase 12: NoteBody + helpers — `export *` (not `export type *`) so parseNoteBody + serializeNoteBody are exported as runtime values.
 export * from "./notes.js";
 // Per-service type files split from tool.ts (public surface unchanged).

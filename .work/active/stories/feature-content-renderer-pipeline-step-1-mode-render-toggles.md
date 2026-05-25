@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline-step-1-mode-render-toggles
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, config]
 parent: feature-content-renderer-pipeline
 depends_on: []
@@ -33,6 +33,16 @@ Add the `RenderToggles` type and the `renderToggles?` field on `Mode`. Provide `
 - [ ] All 8 existing modes (`teach`, `homework`, `quiz`, `exam`, `course-create`, `configure`, `study-skills`, +any others) typecheck without modification
 - [ ] Unit tests cover undefined / partial / all-false merge cases
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+
+## Implementation notes (2026-05-24)
+
+Added `RenderToggles` interface, `DEFAULT_RENDER_TOGGLES` constant (Object.freeze, all `true`), and `resolveRenderToggles(mode)` to `packages/core/src/types/mode.ts`. Added `renderToggles?: RenderToggles` to the `Mode` interface alongside the existing `questionConstraints?` field.
+
+Runtime exports (`DEFAULT_RENDER_TOGGLES`, `resolveRenderToggles`) surfaced from `packages/core/src/types/index.ts` via an explicit value export line (the existing `export type *` would have omitted them).
+
+Resolver mirrors `resolveQuestionConstraints` pattern: field-by-field `??` rather than spread, so an explicit `undefined` value in the override never inadvertently shadows the default.
+
+All 8 existing modes in `packages/curriculum/src/modes/` typecheck unchanged — field is optional. 5 unit tests added covering: frozen defaults, undefined→defaults, partial override, all-false override, empty-object override. `pnpm typecheck && pnpm lint && pnpm test` all green (1192 tests pass).
 
 ## References
 - Parent feature: `.work/active/features/feature-content-renderer-pipeline.md` § Unit 1

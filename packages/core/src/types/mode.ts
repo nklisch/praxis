@@ -40,6 +40,42 @@ export interface QuestionConstraints {
   multiSelectCap?: number;
 }
 
+export interface RenderToggles {
+  callouts?: boolean;
+  figures?: boolean;
+  definitions?: boolean;
+  conceptRefs?: boolean;
+  glossary?: boolean;
+  bareGlyphMath?: boolean;
+  unitAutoDetect?: boolean;
+  filePathAutoDetect?: boolean;
+}
+
+export const DEFAULT_RENDER_TOGGLES: Required<RenderToggles> = Object.freeze({
+  callouts: true,
+  figures: true,
+  definitions: true,
+  conceptRefs: true,
+  glossary: true,
+  bareGlyphMath: true,
+  unitAutoDetect: true,
+  filePathAutoDetect: true,
+});
+
+export function resolveRenderToggles(mode: Pick<Mode, "renderToggles">): Required<RenderToggles> {
+  const override = mode.renderToggles ?? {};
+  return {
+    callouts: override.callouts ?? DEFAULT_RENDER_TOGGLES.callouts,
+    figures: override.figures ?? DEFAULT_RENDER_TOGGLES.figures,
+    definitions: override.definitions ?? DEFAULT_RENDER_TOGGLES.definitions,
+    conceptRefs: override.conceptRefs ?? DEFAULT_RENDER_TOGGLES.conceptRefs,
+    glossary: override.glossary ?? DEFAULT_RENDER_TOGGLES.glossary,
+    bareGlyphMath: override.bareGlyphMath ?? DEFAULT_RENDER_TOGGLES.bareGlyphMath,
+    unitAutoDetect: override.unitAutoDetect ?? DEFAULT_RENDER_TOGGLES.unitAutoDetect,
+    filePathAutoDetect: override.filePathAutoDetect ?? DEFAULT_RENDER_TOGGLES.filePathAutoDetect,
+  };
+}
+
 export interface Mode {
   id: string;
   label: string;
@@ -57,5 +93,6 @@ export interface Mode {
   uiSurface: UISurfaceId;
   artifactScope?: ArtifactScope;
   questionConstraints?: QuestionConstraints;
+  renderToggles?: RenderToggles;
   onTurnEnd?(events: EngineEvent[]): Promise<void>;
 }
