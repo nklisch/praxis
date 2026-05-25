@@ -1,7 +1,7 @@
 ---
 id: feature-content-renderer-pipeline
 kind: feature
-stage: implementing
+stage: review
 tags: [content, rendering, design-system]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -418,3 +418,26 @@ Parallel-friendly: steps 1 / 2 / 3 ship without waiting; 4 / 5 / 6 / 7 fan out a
 - **CSS module class-name leak.** `markdown-content.module.css` uses CSS Modules — class names are hashed at build time. New component overrides (Callout, Figure, etc.) need to import the module and use `styles.calloutTheorem` not `"callout--theorem"`. **Mitigation**: explicit pattern in each new component; smoke test that the hashed class makes it to rendered output.
 
 - **Bundle size impact.** Adding `remark-directive` (~25KB) + custom plugins (~5KB total) + new component code (~10KB) is acceptable. `rehype-highlight` already in stack. **No KaTeX impact** — that's feature-math-rendering. **Mitigation**: no action; flag in PR if bundle size grows >30KB.
+
+## Implementation summary (2026-05-24)
+
+All 8 child stories landed across multiple orchestrator runs (consolidated where appropriate):
+
+- `step-1-mode-render-toggles` (done, `ad47946`) — `RenderToggles` interface + `DEFAULT_RENDER_TOGGLES` + `resolveRenderToggles` resolver.
+- `step-2-remark-plugins` (done, `64b043e`) — `remarkAdmonitions` + `remark-directive` added (latter later removed in step-8 due to `[[def:term]]` conflict; see follow-up).
+- `step-3-css-primitives` (done, `79777f8`) — 30+ CSS classes promoted to production; Studio Quiet hljs theme; one intentional hex literal (warm amber for numbers, documented).
+- `step-4-callout-figure-components` (done, `3a9e0def`) — `<Callout>` + `<Figure>` React components (bundle commit).
+- `step-5-definition-tracking` (done, `30c3c6d1`) — `term_first_occurrences` projection in `@praxis/memory` + Drizzle migration + service + `remarkDefinitions` plugin + `<Definition>` component + `useFirstOccurrence` hook.
+- `step-6-concept-glossary-components` (done, `3a9e0def`) — `<ConceptRef>` component for `concept:` link scheme (bundle commit).
+- `step-7-post-render-passes` (done, `3a9e0def`) — `rehypeFilePaths` + `rehypeUnits` plugins (bundle commit). 58-entry `UNIT_TABLE` excludes single-letter units; lookahead boundary for `m/s²` (non-word `²`).
+- `step-8-pipeline-wiring` (done, `fae33f8d`) — Merge point. Wired all plugins + component overrides + per-mode tab-body integration. Kitchen-sink + mode-toggle tests pass.
+
+**Bundle pattern**: steps 4 + 6 + 7 were consolidated into one agent (per the user's consolidation guidance) — all "lightweight markdown additions" sharing related scope. Cleaner than 3 separate agent runs.
+
+**Important follow-ups parked** (not blockers, but real design gaps surfaced during integration):
+- `idea-resolve-remark-directive-definitions-conflict` — `::: figure :::` directive syntax currently doesn't parse because `remark-directive` ate the `[[def:term]]` content. Figure component is wired and ready; markdown source path needs design.
+- `idea-term-first-occurrences-ipc-channels` — `hasSeenTerm`/`markTermSeen` client-side IPC channels aren't wired yet (step-5 shipped service-side only). `useFirstOccurrence` currently NOOPs; `<Definition>` always renders plain. Small follow-on story to wire IPC.
+
+**Verification at advance time**: 1939 tests pass; lint clean; typecheck clean (only pre-existing Drizzle duplicate-module error, unrelated).
+
+What's now possible: every text-bearing surface in the chat composes against a unified renderer pipeline with conditional plugin loading. The 8 design decisions all landed. Sibling feature `feature-math-rendering` step-5 (pipeline wiring for math glyphs + KaTeX options) is now unblocked. The 2 parked follow-ups can ship as standalone stories without blocking math-rendering or the wider epic.
