@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-failure-replay-capture-slices
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-failure-replay
 depends_on: [epic-agent-debugging-harness-failure-replay-bundle-types]
@@ -63,3 +63,15 @@ renderer, and optional log evidence slices into a local debug bundle.
 - `pnpm --filter @praxis/core typecheck`
 - `pnpm exec biome check packages/core/src/types/debug-bundle.ts packages/core/src/services/debug/debug-log-reader.ts packages/core/src/services/debug/debug-bundle-capture-service.ts packages/core/src/services/debug/index.ts packages/core/src/services/index.ts packages/core/src/services/types.ts packages/core/src/services/debug/__tests__/debug-bundle-capture-service.test.ts`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green focused
+tests, core typecheck, focused Biome, and whitespace checks; item advanced to
+`stage: done`.
