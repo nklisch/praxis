@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-tooling-research]
@@ -310,3 +310,27 @@ The peer suggested a possible synthetic `turn_start` `EngineEvent`; this design
 rejects that path for v1 because debug-only markers should not flow through the
 learner-facing stream. The bounded trace registry records turn starts as a side
 channel instead.
+
+## Implementation summary
+
+All child stories are implemented and reviewed:
+
+- `epic-agent-debugging-harness-trace-correlation-types`: done. Added shared
+  debug trace types, deterministic `makeTurnId(...)`, and bounded
+  `DebugTraceRegistryImpl`.
+- `epic-agent-debugging-harness-trace-correlation-session-tools`: done. Threaded
+  per-turn trace context through session service, engine adapters, MCP/Vercel
+  tool dispatch, tool context, and compact event/dispatch trace records.
+- `epic-agent-debugging-harness-trace-correlation-ipc-subagent`: done. Added
+  collision-resistant stream ids, trace-aware IPC lifecycle summaries, session
+  and sub-agent stream bindings, and desktop composition for a shared trace
+  registry.
+- `epic-agent-debugging-harness-trace-correlation-renderer-outcomes`: done. Added
+  best-effort renderer outcome logging through `PraxisClient.log.record(...)`,
+  guarded streamed content before React rendering, and documented browser replay
+  handoff fields.
+
+Host verification reran the focused tests and typechecks recorded in each child
+story. Cross-cutting deviations: no learner-facing `EngineEvent` debug markers,
+no DB migration, no OpenTelemetry runtime dependency, and no Playwright/browser
+runner in this feature.
