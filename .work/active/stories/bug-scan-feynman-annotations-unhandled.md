@@ -1,14 +1,14 @@
 ---
 id: bug-scan-feynman-annotations-unhandled
 kind: story
-stage: review
+stage: done
 tags: [bug, async]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: low
 bug_domain: async
@@ -32,3 +32,13 @@ client.notes.getAnnotations(noteId).then((ann) => {
 - Changed `packages/ui/src/components/note-editor-feynman.tsx` to catch annotation load failures and suppress updates after cancellation.
 - Added coverage in `packages/ui/src/__tests__/note-editor-feynman.test.tsx` for a rejected `getAnnotations()` call so the Promise chain is handled.
 - Verification: `TMPDIR=/home/nathan/dev/praxis/.tmp/vitest pnpm vitest run packages/ui/src/__tests__/claude-auth-modal.test.tsx packages/ui/src/__tests__/use-streamed-send.test.tsx packages/ui/src/__tests__/course-create-tab-body-layout.test.tsx packages/ui/src/hooks/__tests__/use-sub-agent.test.tsx packages/ui/src/__tests__/note-editor-feynman.test.tsx`; `pnpm --filter @praxis/ui typecheck`; `pnpm exec biome check <touched UI files>`.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
