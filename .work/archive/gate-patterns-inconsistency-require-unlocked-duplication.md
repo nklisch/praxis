@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-require-unlocked-duplication
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -105,3 +105,13 @@ Files changed:
 - `packages/desktop/electron/main/author-prompt-channel.ts` — import + 8 call sites
 - `packages/desktop/electron/main/author-configurator-channel.ts` — import + 2 call sites
 - `packages/desktop/electron/main/config-channel.ts` — import + 3 call sites
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Error string preserved verbatim ("Locked: configure surface requires unlock. Call praxis.lock.unlock first.") — clients pattern-matching on that message remain unbroken. Structural services parameter `{ lock: { isUnlocked(): Promise<boolean> } }` avoids importing the concrete `Services` type, keeping `ipc-helpers.ts` independent. All 7 channels (6 author-* + config) updated to `await requireUnlocked(services)`. Option B (lockGated wrapper in `handleEnvelope`) appropriately deferred — 1 trust-gate type doesn't justify the structural change yet. Co-located with `handleEnvelope` in the natural module. 5399 tests pass.

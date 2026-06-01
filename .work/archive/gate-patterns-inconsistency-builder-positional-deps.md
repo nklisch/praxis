@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-builder-positional-deps
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -84,3 +84,13 @@ Files changed:
   with destructure
 - `packages/desktop/electron/main/services.ts` — updated two call sites:
   `buildEmbeddingsServices({ db, sqlite, log })` and `buildMemoryServices({ db, log })`
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both outliers now match the conforming-7 `<Domain>ServiceDeps` shape: interface declared above the output interface, function takes a single typed `deps` parameter, destructure at the top of the body. Single call site updated in `services.ts`. 9/9 builders now consistent — the `builder-module-composition` pattern is fully realized. 5399 tests pass.

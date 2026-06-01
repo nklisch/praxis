@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-noop-dispatch-duplication
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -105,3 +105,13 @@ Files changed:
 - `packages/core/src/services/graders/rubric-agent.ts` — import + label `"rubric-agent"`
 - `packages/core/src/services/graders/approach-feedback.ts` — import + label `"approach-feedback"`
 - `packages/core/src/services/indexers/__tests__/affective-indexer.test.ts` — added `noopDispatch: vi.fn(() => vi.fn())` to the `vi.mock("@praxis/engines")` factory (stale mock — didn't include the new export)
+
+## Review (2026-05-25)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Higher-order shape `noopDispatch(label) => (name, args) => ToolResult` exactly matches `ToolRegistry.dispatch`'s signature; verified at the `affective-indexer.ts` call site (`dispatch: noopDispatch("affective-indexer")`). All 6 private copies removed. The single unified error message format ("<label>: model attempted a tool call but no tools are registered") preserves diagnostic specificity via the label while consolidating the 6 prior message variants. Stale `vi.mock("@praxis/engines")` in `affective-indexer.test.ts` correctly caught and patched. 5399 tests pass. Pre-existing typecheck issues unchanged (Drizzle cross-package duplicate-instance — already parked as `idea-drizzle-cross-package-type-identity`).
