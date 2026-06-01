@@ -1,14 +1,14 @@
 ---
 id: bug-scan-pdf-page-keeps-old-image
 kind: story
-stage: implementing
+stage: review
 tags: [bug, state]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: medium
 bug_domain: state
@@ -27,6 +27,12 @@ const fetchedRef = useRef(false);
 useEffect(() => {
   if (!visible || fetchedRef.current) return;
   fetchedRef.current = true;
-  client.documents.pageImage({ documentId, page });
+client.documents.pageImage({ documentId, page });
 }, [client, documentId, page, visible]);
 ```
+
+## Implementation notes
+
+- Changed `packages/ui/src/components/document-viewer/pdf-renderer.tsx` to key page image state by `documentId:page`, reset fetch/image/error state on page identity changes, and render images only when the blob URL belongs to the current page.
+- `PdfRenderer` now keys `PdfPage` instances by document plus page, so a changed document cannot reuse a page component with stale image state.
+- Added regression coverage in `packages/ui/src/components/document-viewer/__tests__/pdf-renderer.test.tsx`.
