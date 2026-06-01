@@ -99,31 +99,38 @@ export function signalToObservation(signal: MasterySignalKind): {
  *
  *   pKnownNext = pKnownGivenObs + (1 - pKnownGivenObs) * pT
  *
- * For non-unit weight, the update is applied `weight` times (integer) or blended
- * toward the updated value for fractional weights. Simple approach: apply update
- * once then blend state toward updated by weight fraction.
+ * For non-unit weight, integer weights are repeated observations. Fractional
+ * remainder weights blend toward one additional observation.
  */
 export function bktUpdate(
   state: BktState,
   signal: MasterySignalKind,
   params: BktParams = DEFAULT_BKT,
 ): BktState {
-  const { pKnown } = state;
-  const { pT, pG, pS } = params;
+  const pT = clamp01(params.pT);
+  const pG = clamp01(params.pG);
+  const pS = clamp01(params.pS);
   const { correct, weight } = signalToObservation(signal);
+  const safeWeight = Number.isFinite(weight) ? Math.max(0, weight) : 0;
+  const wholeUpdates = Math.floor(safeWeight);
+  const fractionalUpdate = safeWeight - wholeUpdates;
 
-  // Single update
-  const updated = applyOneUpdate(pKnown, correct, pT, pG, pS);
+  let pKnown = clamp01(state.pKnown);
+  for (let i = 0; i < wholeUpdates; i++) {
+    pKnown = applyOneUpdate(pKnown, correct, pT, pG, pS);
+  }
 
-  // Blend: new = pKnown + (updated - pKnown) * weight (clamped to [0..1])
-  const blended = clamp01(pKnown + (updated - pKnown) * weight);
+  if (fractionalUpdate > 0) {
+    const updated = applyOneUpdate(pKnown, correct, pT, pG, pS);
+    pKnown = clamp01(pKnown + (updated - pKnown) * fractionalUpdate);
+  }
 
   // Uncertainty shrinks toward 0 as more evidence accumulates.
   // Formula: uncertainty = sqrt(pNew * (1 - pNew)), which is the Bernoulli std-dev.
   // Clamped to [0..0.5].
-  const newUncertainty = clamp(Math.sqrt(blended * (1 - blended)), 0, 0.5);
+  const newUncertainty = clamp(Math.sqrt(pKnown * (1 - pKnown)), 0, 0.5);
 
-  return { pKnown: blended, uncertainty: newUncertainty };
+  return { pKnown, uncertainty: newUncertainty };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -154,9 +161,11 @@ function applyOneUpdate(
 }
 
 function clamp01(v: number): number {
+  if (!Number.isFinite(v)) return 0;
   return Math.min(1, Math.max(0, v));
 }
 
 function clamp(v: number, min: number, max: number): number {
+  if (!Number.isFinite(v)) return min;
   return Math.min(max, Math.max(min, v));
 }

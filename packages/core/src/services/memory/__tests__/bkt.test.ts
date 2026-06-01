@@ -99,6 +99,18 @@ describe("bktUpdate — core acceptance criteria", () => {
     expect(afterExam).toBeGreaterThan(afterOneCorrect);
   });
 
+  it("exam_pass matches two repeated correct updates instead of linear extrapolation", () => {
+    const afterExam = bktUpdate(initial, "exam_pass").pKnown;
+    const afterTwoCorrect = bktUpdate(bktUpdate(initial, "correct"), "correct").pKnown;
+    expect(afterExam).toBeCloseTo(afterTwoCorrect);
+  });
+
+  it("weighted updates stay finite and below 1 for mid-prior correct evidence", () => {
+    const updated = bktUpdate({ pKnown: 0.6, uncertainty: 0.5 }, "exam_pass");
+    expect(Number.isFinite(updated.pKnown)).toBe(true);
+    expect(updated.pKnown).toBeLessThan(1);
+  });
+
   it("stays in [0..1] for repeated incorrect on already-low state", () => {
     let state = { pKnown: 0.05, uncertainty: 0.5 };
     for (let i = 0; i < 10; i++) {
