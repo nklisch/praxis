@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation-ipc-subagent
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-trace-correlation
 depends_on: [epic-agent-debugging-harness-trace-correlation-session-tools]
@@ -69,3 +69,16 @@ summaries from the existing `SubAgentRegistry` path.
 - `pnpm --filter @praxis/desktop typecheck`
 - `pnpm biome check packages/client/src/transport/ipc.ts packages/client/src/__tests__/ipc-transport.test.ts packages/core/src/types/debug-trace.ts packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts packages/desktop/electron/main/stream-handler.ts packages/desktop/electron/main/session-channel.ts packages/desktop/electron/main/subagent-channel.ts packages/desktop/electron/main/services.ts packages/desktop/electron/main/services/build-infra-services.ts packages/desktop/electron/main/__tests__/subagent-channel.test.ts packages/desktop/electron/main/__tests__/session-channel-trace.test.ts`
 - `pnpm vitest run packages/desktop/electron/main/__tests__/ipc-server.cancel.test.ts packages/desktop/electron/main/__tests__/streaming-channel-error-redaction.test.ts`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation record includes green focused
+verification; host reran the client/session/sub-agent stream tests, IPC cancel
+and stream redaction tests, and `@praxis/client` plus `@praxis/desktop`
+typechecks.
