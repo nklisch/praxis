@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]
@@ -441,3 +441,21 @@ export function generateStudentSimulationReport(input: {
 All five child stories reached `done`: shared schema, deterministic client
 runner, scenario catalog, browser visual runner, and command/report surface.
 Feature is ready for review.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Deep feature review completed inline. Fresh-context review was not
+used because no authorized different-model reviewer was available in this
+session. Checked aggregate behavior across shared simulation types, client
+runner, browser runner, scenario catalog, CLI/report surface, live/browser
+gates, local artifact paths, and debug-bundle handoff. During review, fixed the
+CLI default output location to align with `.praxis/debug/simulations/` and
+fixed option-order parsing for value flags before approving. Verification used
+the student-simulation Vitest suite, gated Playwright browser simulation,
+focused Biome checks, `pnpm typecheck`, and `git diff --check`.
