@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-failure-replay-db-snapshot
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-failure-replay
 depends_on: [epic-agent-debugging-harness-failure-replay-capture-slices]
@@ -56,3 +56,15 @@ replay failures without dumping the full local database.
 - `pnpm --filter @praxis/core typecheck`
 - `pnpm exec biome check packages/core/src/services/debug/debug-db-snapshot.ts packages/core/src/services/debug/debug-bundle-capture-service.ts packages/core/src/services/debug/index.ts packages/core/src/services/index.ts packages/core/src/services/debug/__tests__/debug-db-snapshot.test.ts packages/core/src/services/debug/__tests__/debug-bundle-capture-service.test.ts`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green focused
+tests, core typecheck, focused Biome, and whitespace checks; item advanced to
+`stage: done`.
