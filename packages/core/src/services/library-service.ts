@@ -99,6 +99,8 @@ export class LibraryServiceImpl implements LibraryService {
 
     // Notes have no nextReviewAt — dueOnly is a flashcard-only filter.
     if (dueOnly) return [];
+    const safeQuery = sanitizeFtsQuery(query);
+    if (!safeQuery) return [];
 
     // BM25: lower (more negative) = better relevance. ORDER ASC puts best first.
     let sqlStr = `
@@ -112,7 +114,7 @@ export class LibraryServiceImpl implements LibraryService {
         AND n.student_id = ?
     `;
     // biome-ignore lint/suspicious/noExplicitAny: dynamic param list
-    const params: any[] = [query, studentId];
+    const params: any[] = [safeQuery, studentId];
 
     if (sessionId !== undefined) {
       sqlStr += ` AND n.session_id = ?`;
@@ -128,7 +130,12 @@ export class LibraryServiceImpl implements LibraryService {
 
     // biome-ignore lint/suspicious/noExplicitAny: raw sqlite row
     const stmt = this.deps.sqlite.prepare<any[], any>(sqlStr);
-    let hits = stmt.all(...params).map(rawRowToNoteHit);
+    let hits: NoteLibraryHit[];
+    try {
+      hits = stmt.all(...params).map(rawRowToNoteHit);
+    } catch {
+      return [];
+    }
 
     if (orphan) {
       hits = hits.filter(isOrphanNote);
@@ -182,6 +189,8 @@ export class LibraryServiceImpl implements LibraryService {
     limit: number,
   ): FlashcardLibraryHit[] {
     const { dueOnly, orphan } = input;
+    const safeQuery = sanitizeFtsQuery(query);
+    if (!safeQuery) return [];
 
     let sqlStr = `
       SELECT fc.id, fc.student_id, fc.concept_id, fc.front, fc.back,
@@ -193,7 +202,7 @@ export class LibraryServiceImpl implements LibraryService {
         AND fc.student_id = ?
     `;
     // biome-ignore lint/suspicious/noExplicitAny: dynamic param list
-    const params: any[] = [query, studentId];
+    const params: any[] = [safeQuery, studentId];
 
     if (dueOnly) {
       sqlStr += ` AND fc.next_review_at IS NOT NULL AND fc.next_review_at <= ?`;
@@ -205,7 +214,12 @@ export class LibraryServiceImpl implements LibraryService {
 
     // biome-ignore lint/suspicious/noExplicitAny: raw sqlite row
     const stmt = this.deps.sqlite.prepare<any[], any>(sqlStr);
-    let hits = stmt.all(...params).map(rawRowToFlashcardHit);
+    let hits: FlashcardLibraryHit[];
+    try {
+      hits = stmt.all(...params).map(rawRowToFlashcardHit);
+    } catch {
+      return [];
+    }
 
     if (orphan) {
       hits = hits.filter(isOrphanFlashcard);
@@ -213,6 +227,10 @@ export class LibraryServiceImpl implements LibraryService {
 
     return hits;
   }
+}
+
+function sanitizeFtsQuery(query: string): string {
+  return Array.from(query.matchAll(/[\p{L}\p{N}_]+/gu), (match) => match[0]).join(" ");
 }
 
 // ─── Row converters ───────────────────────────────────────────────────────────

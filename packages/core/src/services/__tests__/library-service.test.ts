@@ -273,6 +273,26 @@ describe("FTS5 query search", () => {
     expect(ids).not.toContain("fc-fts-miss");
   });
 
+  it("does not throw for malformed FTS query syntax", async () => {
+    const svc = makeService();
+
+    insertNote({
+      id: "n-malformed-query",
+      studentId: STUDENT_B,
+      body: '{"kind":"free","text":"chlorophyll absorbs light"}',
+    });
+    insertFlashcard({
+      id: "fc-malformed-query",
+      studentId: STUDENT_B,
+      front: "What does chlorophyll absorb?",
+      back: "light",
+    });
+
+    await expect(
+      svc.search({ studentId: STUDENT_B, query: 'chlorophyll "light' }),
+    ).resolves.toEqual(expect.any(Array));
+  });
+
   it("combines query + sessionId filters (AND semantics)", async () => {
     const svc = makeService();
 
