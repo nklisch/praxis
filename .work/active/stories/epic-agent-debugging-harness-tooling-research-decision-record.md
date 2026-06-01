@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-tooling-research-decision-record
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agent-debugging-harness-tooling-research
 depends_on: [epic-agent-debugging-harness-tooling-research-evidence-standard]
@@ -45,3 +45,13 @@ Prefer "adopt existing" over "add dependency" when the evidence value is equival
 - Verification: `git diff --check`
 - Discrepancies from design: none. The dependency on `epic-agent-debugging-harness-tooling-research-evidence-standard` was treated as satisfied for this orchestrated wave because the upstream story is already at `stage: review` with its feature content produced.
 - Adjacent issues parked: none.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane substrate review. Implementation notes and completed acceptance criteria are present; the decision record and downstream handoff are discoverable from the parent feature body.

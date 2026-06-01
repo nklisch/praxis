@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-tooling-research
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: []
@@ -467,7 +467,7 @@ concrete need.
 | Praxis-native evidence bundle | adopt build-in-house | The evidence standard needs stable local manifests, redacted event/log slices, DB relationship summaries, optional artifact pointers, and a concise failure summary. That contract is Praxis-specific and must be readable from disk without a hosted service or chat history. | `epic-agent-debugging-harness-failure-replay` |
 | Correlation vocabulary | adopt build-in-house | Use `runId`, `sessionId`, `turnId`, `callId`, `parentCallId`, `streamId`, renderer event id, and artifact paths as the first stable vocabulary. OpenTelemetry-style `traceId`/`spanId` may appear as optional vocabulary, not as required runtime semantics. | `epic-agent-debugging-harness-trace-correlation` |
 | OpenTelemetry JS runtime | defer | The survey found OpenTelemetry useful as vendor-neutral vocabulary and future export shape, but not necessary for the v1 local bundle. Logs/browser instrumentation maturity and package-boundary risk make a runtime dependency premature. | `epic-agent-debugging-harness-trace-correlation` |
-| Whole-app browser automation | defer | Add only if simulation or replay needs browser-driven app flows and `.trace.zip` artifacts. If chosen, the exact package is `@playwright/test` as a devDependency, likely in the root test workspace or the first test-owning workspace introduced by `epic-agent-debugging-harness-student-simulation` or `epic-agent-debugging-harness-failure-replay`. Privacy implication: traces are local sensitive artifacts containing possible DOM, screenshot, console, and network evidence; retain only on failure or explicit capture. | `epic-agent-debugging-harness-student-simulation` |
+| Whole-app browser automation | adopt for downstream replay/simulation | Visual anomalies are common enough that browser replay and synthetic student simulation need browser-driven app flows and `.trace.zip`-style artifacts. The exact package is `@playwright/test` as a devDependency, likely in the root test workspace or the first test-owning workspace introduced by `epic-agent-debugging-harness-student-simulation` or `epic-agent-debugging-harness-failure-replay`. Privacy implication: traces are local sensitive artifacts containing possible DOM, screenshot, console, and network evidence; retain only on failure or explicit capture. | `epic-agent-debugging-harness-student-simulation` |
 | Component-level real-browser traces | defer | `@vitest/browser-playwright` should only be added if a downstream story proves component-level real-browser traces are better than direct Playwright tests. If chosen, it is a devDependency for `@praxis/ui` or the UI/test-owning workspace, with local trace retention and no default export of DOM/screenshots. | `epic-agent-debugging-harness-student-simulation` |
 | Phoenix, Langfuse, Braintrust, and LangSmith | defer | Treat these as reference models and optional export/integration candidates after the local bundle schema is stable. Any adapter must be disabled by default, redacted, opt-in, and explicit about hosted or self-hosted data flow. | `epic-agent-debugging-harness-debug-runbooks` |
 | Hosted observability as default evidence store | reject | A hosted default conflicts with Praxis's local-first privacy stance and would make prompt, tool, student, screenshot, DOM, and trace evidence leave the machine unless every path is carefully gated. Local bundles are the source of truth. | `epic-agent-debugging-harness-failure-replay` |
@@ -488,12 +488,14 @@ concrete need.
   summaries, optional browser trace pointers, and a human-readable failure
   summary. No hosted store, full DB dump, or raw prompt/tool/student content by
   default.
-- `epic-agent-debugging-harness-student-simulation`: Begin with local scenario
-  results tied to the correlation vocabulary. Add `@playwright/test` later only
-  if whole-app browser automation or `.trace.zip` artifacts are required; add
-  `@vitest/browser-playwright` only if component-level real-browser traces are
-  demonstrably better than direct Playwright tests. In both cases, traces remain
-  local and retained only on failure or explicit capture by default.
+- `epic-agent-debugging-harness-student-simulation`: Include browser replay and
+  synthetic student simulation because visual anomalies are common in the app.
+  Begin with local scenario results tied to the correlation vocabulary, then add
+  `@playwright/test` when implementing the browser runner and `.trace.zip`-style
+  artifacts. Add `@vitest/browser-playwright` only if component-level
+  real-browser traces are demonstrably better than direct Playwright tests. In
+  both cases, traces remain local and retained only on failure or explicit
+  capture by default.
 - `epic-agent-debugging-harness-debug-runbooks`: Document local bundle review,
   redaction expectations, failure classes, owner routing, and optional export
   posture. Phoenix, Langfuse, Braintrust, LangSmith, and OpenTelemetry should be
@@ -585,3 +587,13 @@ Stories implemented in this run:
 Cross-cutting deviations: none. This feature intentionally remained docs/substrate-only and did not add runtime dependencies or change package manifests.
 
 Verification: each story ran `git diff --check`; orchestrator verified all child stories are at `stage: review` with `.work/bin/work-view --parent epic-agent-debugging-harness-tooling-research`. Full `pnpm` checks were not run because no source, package, test, or config files were changed by the feature implementation.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Quick substrate review requested by user. Checked child story review records, the research doc, evidence standard, and downstream handoff. Captured the user clarification that browser replay/simulation is required because visual anomalies are common. The feature is docs/substrate-only, has no runtime/package changes, and is ready to unblock trace correlation.

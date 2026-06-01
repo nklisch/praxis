@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-tooling-research-evidence-standard
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agent-debugging-harness-tooling-research
 depends_on: [epic-agent-debugging-harness-tooling-research-current-source-survey]
@@ -44,3 +44,13 @@ Align the vocabulary with `EngineEvent`, `ToolContext.callId`, `SubAgentRegistry
 - Verification: `git diff --check`.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane substrate review. Implementation notes and completed acceptance criteria are present; the evidence standard covers required/optional/out-of-scope fields and the motivating failures.
