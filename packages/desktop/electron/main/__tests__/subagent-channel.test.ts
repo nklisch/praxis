@@ -15,7 +15,7 @@
  * directly with a minimal fake Services bag.
  */
 
-import { SubAgentRegistryImpl } from "@praxis/core/services";
+import { DebugTraceRegistryImpl, SubAgentRegistryImpl } from "@praxis/core/services";
 import type { SessionId, SubAgentEvent } from "@praxis/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
@@ -243,6 +243,82 @@ describe("praxis.subAgent.events.* — interrupt fanout observability", () => {
       expect(finishedEvents).toHaveLength(1);
       expect(finishedEvents[0]?.parentCallId).toBe("call-a");
       expect(finishedEvents[0]?.status).toBe("interrupted");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("records trace-aware sub-agent stream timeline summaries from registry events", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const registry = new SubAgentRegistryImpl({
+        log: makeSpyLogger(),
+        now: () => 1_000_000,
+        setTimeout:
+          // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
+          vi.fn((fn: () => void, delay: number) => globalThis.setTimeout(fn, delay)) as any,
+      });
+      const debugTrace = new DebugTraceRegistryImpl({ now: () => 2_000_000 });
+      const log = makeSpyLogger();
+      const { wc } = makeFakeWebContents();
+      const activeAbortControllers = new Map<string, AbortController>();
+
+      registerSubAgentHandlers(
+        { subAgent: registry, debugTrace } as unknown as import("../services.js").Services,
+        () => wc as unknown as Electron.WebContents,
+        activeAbortControllers,
+        log,
+      );
+
+      const startHandler = handlers.get("praxis.subAgent.events.start");
+      expect(startHandler).toBeDefined();
+
+      const streamId = "stream-subagent-trace-1";
+      const parentCallId = "parent-call-1";
+      const streamDone = startHandler?.({}, streamId, parentCallId);
+      await Promise.resolve();
+
+      const sessionId = "session-subagent-1" as SessionId;
+      const handle = registry.start({
+        parentCallId,
+        sessionId,
+        label: "drafting a course outline",
+      });
+      handle.stepStarted({ callId: "step-call-1", toolName: "course.draft_add_unit" });
+      handle.stepSettled({ callId: "step-call-1", ok: true });
+      handle.setLabel("checking the assessment plan");
+      handle.finish("done");
+
+      const cancelListener = onListeners.get("praxis.subAgent.events.cancel");
+      cancelListener?.({}, streamId);
+      await streamDone;
+
+      const records = debugTrace.list().filter((record) => record.type === "ipc_stream_event");
+
+      expect(records.map((record) => record.eventType)).toEqual([
+        "started",
+        "step_started",
+        "step_settled",
+        "phase_changed",
+        "finished",
+        "cancel",
+        "done",
+      ]);
+      expect(records.every((record) => record.channel === "praxis.subAgent.events")).toBe(true);
+      expect(records.every((record) => record.trace.streamId === streamId)).toBe(true);
+      expect(records.every((record) => record.trace.sessionId === sessionId)).toBe(true);
+      expect(records.every((record) => record.trace.parentCallId === parentCallId)).toBe(true);
+      expect(records.find((record) => record.eventType === "step_started")?.trace.callId).toBe(
+        "step-call-1",
+      );
+      expect(records.find((record) => record.eventType === "finished")?.summary).toBe(
+        "status:done",
+      );
+      expect(records.find((record) => record.eventType === "phase_changed")?.summary).toBe(
+        "phase:checking the assessment plan",
+      );
+      expect(records.map((record) => record.eventCount)).toEqual([2, 3, 4, 5, 6, 6, 6]);
     } finally {
       vi.useRealTimers();
     }

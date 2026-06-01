@@ -144,6 +144,7 @@ describe("DebugTraceRegistryImpl", () => {
       trace: { runId: "run-1", sessionId: sid("session-1"), streamId: "stream-1" },
       channel: "praxis.session.send",
       eventType: "event",
+      eventCount: 1,
     });
 
     registry.clear();

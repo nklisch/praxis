@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation-ipc-subagent
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness-trace-correlation
 depends_on: [epic-agent-debugging-harness-trace-correlation-session-tools]
@@ -33,10 +33,39 @@ summaries from the existing `SubAgentRegistry` path.
 
 ## Acceptance criteria
 
-- [ ] IPC stream logs and trace records include `streamId`, channel name,
+- [x] IPC stream logs and trace records include `streamId`, channel name,
       event count, and available `sessionId` or `parentCallId`.
-- [ ] Tests cover stream id uniqueness across client reinitialization.
-- [ ] Sub-agent trace records preserve `parentCallId`, phase/status, and step
+- [x] Tests cover stream id uniqueness across client reinitialization.
+- [x] Sub-agent trace records preserve `parentCallId`, phase/status, and step
       `callId` where present.
-- [ ] Existing session and sub-agent stream tests continue to cover
+- [x] Existing session and sub-agent stream tests continue to cover
       cancellation and teardown.
+
+## Implementation notes
+
+- Replaced renderer stream ids with `crypto.randomUUID()` when available, with
+  a per-module random-prefix plus monotonic fallback.
+- Extended the shared stream handler with optional trace bindings and event
+  summary hooks. It records compact `ipc_stream_event` records for
+  start/event/done/error/cancel when a `sessionId` is known, and logs lifecycle
+  fields with `streamId`, channel, event count, `sessionId`, `parentCallId`, and
+  `callId` where available.
+- Wired a shared `DebugTraceRegistryImpl` into desktop infra/services and
+  `ServiceDeps.debugTrace`, so session/tool/IPC trace capture use the same
+  registry instance.
+- Bound `praxis.session.send` stream records to the session id and summarized
+  engine events by type, tool `callId`, final reason, and error/interruption
+  code.
+- Bound `praxis.subAgent.events` streams to `parentCallId` and summarized
+  `SubAgentRegistry` events. The channel seeds a small
+  `parentCallId -> sessionId` correlation cache from snapshot/started events
+  so later step/finish events can record trace entries without duplicating
+  sub-agent state.
+
+## Verification
+
+- `pnpm vitest run packages/client/src/__tests__/ipc-transport.test.ts packages/desktop/electron/main/__tests__/subagent-channel.test.ts packages/desktop/electron/main/__tests__/session-channel-trace.test.ts`
+- `pnpm --filter @praxis/client typecheck`
+- `pnpm --filter @praxis/desktop typecheck`
+- `pnpm biome check packages/client/src/transport/ipc.ts packages/client/src/__tests__/ipc-transport.test.ts packages/core/src/types/debug-trace.ts packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts packages/desktop/electron/main/stream-handler.ts packages/desktop/electron/main/session-channel.ts packages/desktop/electron/main/subagent-channel.ts packages/desktop/electron/main/services.ts packages/desktop/electron/main/services/build-infra-services.ts packages/desktop/electron/main/__tests__/subagent-channel.test.ts packages/desktop/electron/main/__tests__/session-channel-trace.test.ts`
+- `pnpm vitest run packages/desktop/electron/main/__tests__/ipc-server.cancel.test.ts packages/desktop/electron/main/__tests__/streaming-channel-error-redaction.test.ts`

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { IpcStreamMessage, PraxisIpcBridge } from "../transport/ipc.js";
 import { createIpcTransport, IpcStreamError, streamAsAsyncIterable } from "../transport/ipc.js";
 
@@ -149,6 +149,15 @@ describe("streamAsAsyncIterable", () => {
     await iterPromise;
     expect(sendSpy.some((s) => s.channel === "ch3.cancel")).toBe(true);
   });
+
+  it("does not reuse stream ids after reload-like module reinitialization", async () => {
+    const firstId = await firstStreamIdFromFreshTransportModule();
+    const secondId = await firstStreamIdFromFreshTransportModule();
+
+    expect(firstId).not.toBe(secondId);
+    expect(firstId).not.toMatch(/^stream-\d+$/);
+    expect(secondId).not.toMatch(/^stream-\d+$/);
+  });
 });
 
 describe("createIpcTransport", () => {
@@ -190,4 +199,46 @@ describe("createIpcTransport", () => {
     const results = await iterPromise;
     expect(results).toEqual(["response"]);
   });
+
+  it("generates distinct non-predictable stream ids across transport instances", async () => {
+    const first = makeBridge();
+    const second = makeBridge();
+    const firstTransport = createIpcTransport(first.bridge);
+    const secondTransport = createIpcTransport(second.bridge);
+
+    const firstIterator = firstTransport
+      .stream<string>("praxis.session.send", "session-1", "hello")
+      [Symbol.asyncIterator]();
+    const secondIterator = secondTransport
+      .stream<string>("praxis.session.send", "session-2", "hello")
+      [Symbol.asyncIterator]();
+
+    await firstIterator.return?.();
+    await secondIterator.return?.();
+
+    const firstId = first.invokeSpy[0]?.args[0];
+    const secondId = second.invokeSpy[0]?.args[0];
+    expect(firstId).toEqual(expect.any(String));
+    expect(secondId).toEqual(expect.any(String));
+    expect(firstId).not.toBe(secondId);
+    expect(firstId).not.toMatch(/^stream-\d+$/);
+    expect(secondId).not.toMatch(/^stream-\d+$/);
+  });
 });
+
+async function firstStreamIdFromFreshTransportModule(): Promise<string> {
+  vi.resetModules();
+  const fresh = await import("../transport/ipc.js");
+  const { bridge, invokeSpy } = makeBridge();
+  const iterator = fresh
+    .streamAsAsyncIterable<string>(bridge, "ch.start", "ch.events.", "ch.cancel", [])
+    [Symbol.asyncIterator]();
+
+  await iterator.return?.();
+
+  const streamId = invokeSpy[0]?.args[0];
+  if (typeof streamId !== "string") {
+    throw new Error("fresh transport did not invoke stream start with a stream id");
+  }
+  return streamId;
+}

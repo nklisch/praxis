@@ -2,6 +2,7 @@ import type {
   AssignmentId,
   CourseId,
   DocumentId,
+  EngineEvent,
   Logger,
   NoteId,
   SessionId,
@@ -157,18 +158,21 @@ export function registerSessionHandlers(
   // Streaming: client invokes `praxis.session.send.start` with streamId + args.
   // Server pushes IpcStreamMessage<EngineEvent> on `praxis.session.send.events.<streamId>`.
   // Client can cancel via `praxis.session.send.cancel` with the streamId.
-  registerGeneratorStream<unknown, [sessionId: string, message: string]>(
+  registerGeneratorStream<EngineEvent, [sessionId: string, message: string]>(
     {
       channelBase: "praxis.session.send",
       log,
       webContentsGetter,
       activeAbortControllers,
+      debugTrace: services.debugTrace,
     },
     { handle, on },
     {
       iterate: ([sessionId, message], signal) =>
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         services.session.send(sessionId as any, message, signal),
+      traceBindings: ([sessionId]) => ({ sessionId }),
+      summarizeEvent: summarizeSessionStreamEvent,
     },
   );
 
@@ -212,4 +216,33 @@ export function registerSessionHandlers(
         services.session.discardIfUnpromoted(brandId<"SessionId">(opts.sessionId) as SessionId),
     ),
   );
+}
+
+function summarizeSessionStreamEvent(event: EngineEvent): {
+  eventType: string;
+  callId?: string;
+  summary?: string;
+} {
+  switch (event.type) {
+    case "tool_call":
+      return {
+        eventType: event.type,
+        callId: event.callId,
+        summary: `tool_call:${event.toolName}`,
+      };
+    case "tool_result":
+      return {
+        eventType: event.type,
+        callId: event.callId,
+        summary: event.result.ok ? "tool_result:ok" : `tool_result:${event.result.error.code}`,
+      };
+    case "final":
+      return { eventType: event.type, summary: `final:${event.finalReason ?? "success"}` };
+    case "error":
+      return { eventType: event.type, summary: `error:${event.error.code}` };
+    case "interrupted":
+      return { eventType: event.type, summary: `interrupted:${event.reason}` };
+    default:
+      return { eventType: event.type };
+  }
 }

@@ -57,6 +57,7 @@ export type DebugTraceRecordInput =
       type: "ipc_stream_event";
       channel: string;
       eventType: string;
+      eventCount: number;
     })
   | (DebugTraceRecordBase & {
       type: "renderer_outcome";

@@ -26,7 +26,23 @@ export class IpcStreamError extends Error {
   }
 }
 
+const streamIdPrefix = createRandomStreamIdPrefix();
 let streamCounter = 0;
+
+function createIpcStreamId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid !== undefined) return `stream-${uuid}`;
+  return `stream-${streamIdPrefix}-${++streamCounter}`;
+}
+
+function createRandomStreamIdPrefix(): string {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  if (bytes.some((byte) => byte !== 0)) {
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
+}
 
 /**
  * Convert an IPC push-channel into a pull-based AsyncIterable.
@@ -52,7 +68,7 @@ export function streamAsAsyncIterable<T>(
 ): AsyncIterable<T> {
   return {
     [Symbol.asyncIterator]() {
-      const streamId = `stream-${++streamCounter}`;
+      const streamId = createIpcStreamId();
       const eventsChannel = `${eventsChannelPrefix}${streamId}`;
 
       // Queue for received events; wakeup resolves the pending next() call.

@@ -12,6 +12,7 @@ import type {
   ClaudeAuthServiceImpl,
   ConceptMapServiceImpl,
   CourseCreateServiceImpl,
+  DebugTraceRegistryImpl,
   DocumentScopesServiceImpl,
   FlashcardsServiceImpl,
   LibraryServiceImpl,
@@ -113,6 +114,8 @@ export interface Services {
   activity: ActivityRegistryImpl;
   /** Sub-agent transparency registry — exposed for the subagent IPC channel. */
   subAgent: SubAgentRegistryImpl;
+  /** Debug trace registry — shared side-channel for session/tool/IPC correlation records. */
+  debugTrace: DebugTraceRegistryImpl;
   /** Phase 17: quick check service — human-in-the-loop dispatch for quick_check.* tools. */
   quickCheck: QuickCheckServiceImpl;
   /** Phase 18: pedagogy pack service — read-only service over the bundled pedagogy pack. */
@@ -320,6 +323,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     lockService: workspace.lockService, // ← Phase 11
     activity: infra.activityRegistry,
     subAgent: infra.subAgentRegistry,
+    debugTrace: infra.debugTraceRegistry,
     promptCustomization: sessionPrecursors.promptCustomizationService,
     secretStorage: secrets.secretStorage,
     sessionPromotionRegistry: sessionPrecursors.sessionPromotionRegistry,
@@ -406,6 +410,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     citations: artifacts.citationsService,
     activity: infra.activityRegistry,
     subAgent: infra.subAgentRegistry,
+    debugTrace: infra.debugTraceRegistry,
     quickCheck: infra.quickCheckService,
     recommendations: workspace.recommendationsService,
     progress: workspace.progressService,
