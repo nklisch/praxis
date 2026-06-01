@@ -7,7 +7,7 @@ import type {
   SessionId,
   SystemNoteOrigin,
 } from "@praxis/core/types";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReviewCard } from "../components/flashcard-review.js";
 import { episodicToItems } from "./episodic-to-messages.js";
 import { useInterstitialLifecycle } from "./use-interstitial-lifecycle.js";
@@ -227,6 +227,7 @@ export function useStreamedSend(
   const [isStreaming, setIsStreaming] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const streamingLockRef = useRef(false);
 
   const queue = usePendingQueue();
   const bubbles = useStreamedBubbles(setItems, setThinking);
@@ -258,6 +259,7 @@ export function useStreamedSend(
     sketchId: string | undefined,
     pendingId: string | null,
   ): Promise<void> => {
+    streamingLockRef.current = true;
     queue.userCancelledRef.current = false;
     setLastError(null);
 
@@ -359,20 +361,24 @@ export function useStreamedSend(
       bubbles.closeAssistantBubble();
       reasoning.closeReasoningBlock(setItems);
       interstitial.drainOnFinally(bubbles.lastAssistantId, setItems);
-      setIsStreaming(false);
-      setThinking(false);
       const next = queue.dequeueNext(setItems);
       if (next !== null) {
+        setIsStreaming(false);
+        setThinking(false);
         setTimeout(() => {
           void sendInternal(sessionId, next.text, next.sketchId, next.id);
         }, 0);
+      } else {
+        streamingLockRef.current = false;
+        setIsStreaming(false);
+        setThinking(false);
       }
       queue.userCancelledRef.current = false;
     }
   };
 
   const send = async (sessionId: SessionId, message: string, sketchId?: string): Promise<void> => {
-    if (isStreaming) {
+    if (streamingLockRef.current) {
       const pendingId = nextId();
       const entry: PendingMessage = { id: pendingId, text: message };
       if (sketchId !== undefined) entry.sketchId = sketchId;

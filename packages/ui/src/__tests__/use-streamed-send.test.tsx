@@ -45,6 +45,42 @@ describe("useStreamedSend", () => {
     expect(userMsg?.kind === "message" && userMsg.content).toBe("hello");
   });
 
+  it("queues a rapid second send before isStreaming has re-rendered", async () => {
+    let releaseFirst: (() => void) | undefined;
+    const firstHold = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const send = vi.fn(async function* (_sessionId: unknown, message: unknown) {
+      if (message === "first") {
+        await firstHold;
+        yield { type: "model_message", content: "first reply", partial: false } as EngineEvent;
+      } else {
+        yield { type: "model_message", content: "second reply", partial: false } as EngineEvent;
+      }
+      yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+    });
+    const client = makeFakeClient({
+      session: {
+        send: send as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+      void result.current.send(brandId<"SessionId">("s1"), "second");
+    });
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.pendingCount).toBe(1));
+
+    releaseFirst?.();
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.pendingCount).toBe(0));
+    expect(send.mock.calls.map((call) => call[1])).toEqual(["first", "second"]);
+  });
+
   it("ignores user_message events from the stream", async () => {
     const client = makeClient([
       { type: "user_message", content: "hello" }, // should be ignored
