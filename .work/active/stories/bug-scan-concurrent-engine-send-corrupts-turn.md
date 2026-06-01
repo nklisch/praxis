@@ -1,14 +1,14 @@
 ---
 id: bug-scan-concurrent-engine-send-corrupts-turn
 kind: story
-stage: implementing
+stage: review
 tags: [bug, concurrency, high]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: high
 bug_domain: concurrency
@@ -31,3 +31,9 @@ try {
   capturedEntry.turnInFlight = false;
 }
 ```
+
+## Implementation notes
+
+- Changed `packages/core/src/services/session-service.ts` to claim a session turn before promotion/acquire/engine send and reject a second same-session send with `session.turn_in_flight` before recording another user message.
+- Also made `notifySession()` respect the same in-service claim so synthetic notice turns do not overlap a claimed user turn.
+- Added `packages/core/src/services/__tests__/session-service.concurrency.test.ts` covering concurrent same-session send rejection.

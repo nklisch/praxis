@@ -44,6 +44,7 @@ export class SessionServiceImpl implements SessionService {
   readonly engineManager: EngineSessionManager;
   private readonly promoter: SessionPromoter | null;
   private readonly spawner: SessionSpawner;
+  private readonly turnsInFlight = new Set<string>();
 
   constructor(private readonly deps: ServiceDeps) {
     this.engineManager = new EngineSessionManager({
@@ -196,6 +197,27 @@ export class SessionServiceImpl implements SessionService {
     message: string,
     signal?: AbortSignal,
   ): AsyncIterable<EngineEvent> {
+    if (this.turnsInFlight.has(sessionId)) {
+      yield {
+        type: "error",
+        error: engineError("session.turn_in_flight", "A turn is already in progress"),
+      };
+      return;
+    }
+
+    this.turnsInFlight.add(sessionId);
+    try {
+      yield* this._sendClaimed(sessionId, message, signal);
+    } finally {
+      this.turnsInFlight.delete(sessionId);
+    }
+  }
+
+  private async *_sendClaimed(
+    sessionId: SessionId,
+    message: string,
+    signal?: AbortSignal,
+  ): AsyncIterable<EngineEvent> {
     // ── Lazy-persist: promote on first user message ───────────────────────────
     if (this.promoter?.shouldPromote(sessionId)) {
       try {
@@ -284,6 +306,13 @@ export class SessionServiceImpl implements SessionService {
         assignmentId: brandId<"AssignmentId">(sessionRow.assignmentId),
       }),
     });
+    if (entry.turnInFlight) {
+      yield {
+        type: "error",
+        error: engineError("session.turn_in_flight", "A turn is already in progress"),
+      };
+      return;
+    }
 
     recordUserMessage({
       db: this.deps.db,
@@ -567,7 +596,7 @@ export class SessionServiceImpl implements SessionService {
     });
 
     const entry = this.engineManager.get(input.sessionId);
-    if (!entry || entry.turnInFlight) {
+    if (!entry || entry.turnInFlight || this.turnsInFlight.has(input.sessionId)) {
       // Lazy delivery — the note is in the transcript; next real send() picks it up.
       return;
     }
