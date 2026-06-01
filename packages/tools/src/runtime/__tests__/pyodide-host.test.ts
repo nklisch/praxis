@@ -152,5 +152,18 @@ describe.skipIf(!runSlowTests)(
       expect(result.stdout).toBe("2\n");
       expect(result.timedOut).toBe(false);
     });
+
+    it("terminates a timed-out worker and starts a fresh worker for the next run", async () => {
+      const { PyodideHost: RealPyodideHost } =
+        await vi.importActual<typeof import("../pyodide-host.js")>("../pyodide-host.js");
+      const realHost = new RealPyodideHost({ packages: [] });
+
+      const timeout = await realHost.runPython({ code: "while True: pass", timeoutMs: 50 });
+      expect(timeout.timedOut).toBe(true);
+
+      const result = await realHost.runPython({ code: "print(1+1)", timeoutMs: 30_000 });
+      expect(result.stdout).toBe("2\n");
+      expect(result.timedOut).toBe(false);
+    });
   },
 );

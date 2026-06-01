@@ -45,3 +45,18 @@ await Promise.race([
 **Nits**: none
 
 **Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
+
+## Final review follow-up (2026-06-01)
+
+- Accepted Phase 8 peer-review finding: the critical worker-timeout path needed
+  a real-Pyodide verification pass before final completion.
+- Fixed Pyodide stdout/stderr capture to use the exact byte `write` callback
+  rather than `batched`, preserving newline output in the worker path.
+- Added a real-Pyodide slow integration test proving a timed-out worker is
+  terminated and a subsequent run starts a fresh worker successfully.
+- Verification:
+  - `PRAXIS_RUN_SLOW_TESTS=1 TMPDIR=$PWD/.tmp pnpm vitest run packages/tools/src/runtime/__tests__/pyodide-host.test.ts`
+  - `PRAXIS_RUN_SLOW_TESTS=1 TMPDIR=$PWD/.tmp pnpm vitest run packages/tools/src/runtime/__tests__/pyodide-language-sandbox.test.ts`
+  - `pnpm exec biome check packages/tools/src/runtime/pyodide-host.ts packages/tools/src/runtime/__tests__/pyodide-host.test.ts`
+  - `TMPDIR=$PWD/.tmp pnpm typecheck`
+  - `TMPDIR=$PWD/.tmp pnpm test`

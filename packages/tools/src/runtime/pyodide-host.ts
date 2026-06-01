@@ -94,13 +94,13 @@ export class PyodideHost {
 
   private async runPythonInProcess(opts: PyodideRunOptions): Promise<PyodideRunResult> {
     const py = await this.get();
-    const stdoutBuffer: string[] = [];
-    const stderrBuffer: string[] = [];
+    const stdoutBuffer = createOutputCapture();
+    const stderrBuffer = createOutputCapture();
     const interruptBuffer = new Int32Array(new SharedArrayBuffer(4));
     const interruptible = py as InterruptiblePyodideInterface;
 
-    py.setStdout({ batched: (s) => stdoutBuffer.push(s) });
-    py.setStderr({ batched: (s) => stderrBuffer.push(s) });
+    py.setStdout({ write: stdoutBuffer.write });
+    py.setStderr({ write: stderrBuffer.write });
     interruptible.setInterruptBuffer(interruptBuffer);
 
     const start = Date.now();
@@ -120,8 +120,8 @@ export class PyodideHost {
         }),
       ]);
       return {
-        stdout: stdoutBuffer.join(""),
-        stderr: stderrBuffer.join(""),
+        stdout: stdoutBuffer.read(),
+        stderr: stderrBuffer.read(),
         durationMs: Date.now() - start,
         timedOut: false,
       };
@@ -129,8 +129,8 @@ export class PyodideHost {
       if (timedOut || err instanceof PyodideTimeoutError) {
         await runPromise.catch(() => undefined);
         return {
-          stdout: stdoutBuffer.join(""),
-          stderr: stderrBuffer.join(""),
+          stdout: stdoutBuffer.read(),
+          stderr: stderrBuffer.read(),
           durationMs: Date.now() - start,
           timedOut: true,
         };
@@ -138,8 +138,8 @@ export class PyodideHost {
       // Python error — Pyodide writes the traceback to stderr already.
       const errMsg = err instanceof Error ? err.message : String(err);
       return {
-        stdout: stdoutBuffer.join(""),
-        stderr: `${stderrBuffer.join("")}\n${errMsg}`,
+        stdout: stdoutBuffer.read(),
+        stderr: `${stderrBuffer.read()}\n${errMsg}`,
         durationMs: Date.now() - start,
         timedOut: false,
         pythonError: errMsg,
@@ -370,6 +370,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function createOutputCapture(): {
+  read: () => string;
+  write: (buffer: Uint8Array) => number;
+} {
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let flushed = false;
+  return {
+    read: () => {
+      if (!flushed) {
+        chunks.push(decoder.decode());
+        flushed = true;
+      }
+      return chunks.join("");
+    },
+    write: (buffer) => {
+      chunks.push(decoder.decode(buffer, { stream: true }));
+      return buffer.length;
+    },
+  };
+}
+
 const PYODIDE_WORKER_CODE = `
 const { parentPort, workerData } = require("node:worker_threads");
 
@@ -390,16 +412,26 @@ function errorMessage(err) {
       if (!message || message.type !== "run") return;
       const stdout = [];
       const stderr = [];
+      const stdoutDecoder = new TextDecoder();
+      const stderrDecoder = new TextDecoder();
+      const readOutput = (chunks, decoder) => {
+        chunks.push(decoder.decode());
+        return chunks.join("");
+      };
       py.setStdout({
-        batched: (chunk) => {
+        write: (buffer) => {
+          const chunk = stdoutDecoder.decode(buffer, { stream: true });
           stdout.push(chunk);
           parentPort.postMessage({ type: "stdout", id: message.id, chunk });
+          return buffer.length;
         },
       });
       py.setStderr({
-        batched: (chunk) => {
+        write: (buffer) => {
+          const chunk = stderrDecoder.decode(buffer, { stream: true });
           stderr.push(chunk);
           parentPort.postMessage({ type: "stderr", id: message.id, chunk });
+          return buffer.length;
         },
       });
       try {
@@ -407,16 +439,16 @@ function errorMessage(err) {
         parentPort.postMessage({
           type: "result",
           id: message.id,
-          stdout: stdout.join(""),
-          stderr: stderr.join(""),
+          stdout: readOutput(stdout, stdoutDecoder),
+          stderr: readOutput(stderr, stderrDecoder),
         });
       } catch (err) {
         const pythonError = errorMessage(err);
         parentPort.postMessage({
           type: "result",
           id: message.id,
-          stdout: stdout.join(""),
-          stderr: stderr.join("") + "\\n" + pythonError,
+          stdout: readOutput(stdout, stdoutDecoder),
+          stderr: readOutput(stderr, stderrDecoder) + "\\n" + pythonError,
           pythonError,
         });
       } finally {
