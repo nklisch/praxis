@@ -21,7 +21,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { consumeInitialMessage } from "../lib/open-session-in-tab.js";
-import { CourseCreateRoute } from "../routes/course-create.js";
+import { CourseCreateRoute, formatLocalDateForFilename } from "../routes/course-create.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 // TanStack Router hooks used in CourseCreateRoute.
@@ -263,6 +263,14 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
     expect(consumeInitialMessage(brandId<"SessionId">("s1") as unknown as SessionId)).toBe(
       "learn calculus deeply",
     );
+  });
+});
+
+describe("CourseCreateRoute — pasted filename dates", () => {
+  it("formats pasted-note filenames from the local calendar date", () => {
+    const localLateEvening = new Date(2026, 4, 31, 23, 30);
+
+    expect(formatLocalDateForFilename(localLateEvening)).toBe("2026-05-31");
   });
 });
 
