@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-tooling-research]
@@ -334,3 +334,28 @@ Host verification reran the focused tests and typechecks recorded in each child
 story. Cross-cutting deviations: no learner-facing `EngineEvent` debug markers,
 no DB migration, no OpenTelemetry runtime dependency, and no Playwright/browser
 runner in this feature.
+
+## Review (2026-06-01)
+
+Verdict: approved.
+
+Fresh-context peer review found no blockers. It flagged one important contract
+consistency issue: `renderer_outcome` existed in the debug trace registry type,
+but renderer production code only emitted those outcomes through
+`praxis.log.record`. Fixed in commit `ec453887` by mirroring well-formed
+`renderer.trace.outcome` log records into the shared debug trace registry and
+adding desktop coverage for that path.
+
+The peer also noted that registry retention is record-count bounded, not
+literally turn-count bounded. That is accepted for v1 and matches the
+implemented `MAX_RECORDS` behavior.
+
+Verification:
+
+- `pnpm typecheck` passed.
+- `pnpm test` passed: 492 files, 5460 tests.
+- Focused renderer trace checks passed:
+  `pnpm vitest run packages/desktop/electron/main/__tests__/log-channel.test.ts packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts`.
+- Focused Biome check passed for the files changed by the review fix.
+- Full `pnpm lint` is blocked by pre-existing unrelated lint debt in `.mockups/`
+  and older core tests, not by this feature.
