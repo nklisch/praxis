@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-debug-runbooks-skill-validation
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agent-debugging-harness-debug-runbooks
 depends_on: [epic-agent-debugging-harness-debug-runbooks-failure-playbooks]
@@ -42,3 +42,14 @@ discoverable and internally linked as future runbooks evolve.
 - `pnpm exec biome check tests/agent-debugging-harness-skill.test.ts`
 - `pnpm typecheck`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review; implementation recorded green Vitest,
+Biome, typecheck, and diff checks.

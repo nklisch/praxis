@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-debug-runbooks
 kind: feature
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-failure-replay, epic-agent-debugging-harness-student-simulation]
@@ -263,3 +263,8 @@ describe("agent debugging harness skill", () => {
 - **Over-broad activation**: a debugging skill that triggers on every bug report
   would be noisy. Mitigate with a description focused on agent-harness symptoms,
   not general product debugging.
+
+## Children Complete (2026-06-01)
+
+All three child stories reached `done`: skill shell, failure-specific playbook
+references, and static validation coverage. Feature is ready for review.
