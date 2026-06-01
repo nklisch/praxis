@@ -72,6 +72,19 @@ describe("mastery-threshold", () => {
     expect(result.progress).toBe(0);
   });
 
+  it("treats zero threshold progress as finite and complete", async () => {
+    const criteria: SuccessCriteria = {
+      kind: "mastery-threshold",
+      conceptIds: [brandId<"ConceptId">("c1")],
+      minScore: 0,
+    };
+    const reader = makeMasteryReader({ c1: 0 });
+    const result = await evaluateSuccessCriteria(criteria, STUDENT_ID, reader, makeGradeReader({}));
+    expect(result.satisfied).toBe(true);
+    expect(result.progress).toBe(1);
+    expect(Number.isNaN(result.progress)).toBe(false);
+  });
+
   it("not satisfied when conceptIds is empty", async () => {
     const criteria: SuccessCriteria = {
       kind: "mastery-threshold",
@@ -140,6 +153,26 @@ describe("exam-pass", () => {
     );
     expect(result.satisfied).toBe(false);
     expect(result.progress).toBeCloseTo(0.5 / 0.7, 4);
+  });
+
+  it("treats submitted zero-threshold exam progress as finite and complete", async () => {
+    const criteria: SuccessCriteria = {
+      kind: "exam-pass",
+      assignmentId: brandId<"AssignmentId">("asgn-1"),
+      minScore: 0,
+    };
+    const reader = makeGradeReader({
+      "asgn-1": { total: 0, submittedAt: Date.now() as Timestamp },
+    });
+    const result = await evaluateSuccessCriteria(
+      criteria,
+      STUDENT_ID,
+      makeMasteryReader({}),
+      reader,
+    );
+    expect(result.satisfied).toBe(true);
+    expect(result.progress).toBe(1);
+    expect(Number.isNaN(result.progress)).toBe(false);
   });
 });
 

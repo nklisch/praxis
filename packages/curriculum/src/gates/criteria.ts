@@ -68,7 +68,7 @@ async function evaluateMasteryThreshold(
 
   const minScore = Math.min(...scores);
   const satisfied = scores.every((s) => s >= c.minScore);
-  const progress = Math.min(1, minScore / c.minScore);
+  const progress = ratioProgress(minScore, c.minScore);
   const summary = `mastery ≥ ${c.minScore.toFixed(2)} on ${c.conceptIds.length} concept${c.conceptIds.length === 1 ? "" : "s"}`;
   const unsatisfiedReason = satisfied
     ? ""
@@ -91,12 +91,17 @@ async function evaluateExamPass(
     };
   }
   const satisfied = grade.total >= c.minScore;
-  const progress = Math.min(1, grade.total / c.minScore);
+  const progress = ratioProgress(grade.total, c.minScore);
   const summary = `exam pass ≥ ${c.minScore.toFixed(2)}`;
   const unsatisfiedReason = satisfied
     ? ""
     : `exam total ${grade.total.toFixed(2)} < ${c.minScore.toFixed(2)}`;
   return { satisfied, progress, summary, unsatisfiedReason };
+}
+
+function ratioProgress(actual: number, threshold: number): number {
+  if (threshold <= 0) return actual >= threshold ? 1 : 0;
+  return Math.min(1, Math.max(0, actual / threshold));
 }
 
 async function evaluateAnd(
