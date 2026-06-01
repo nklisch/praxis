@@ -25,6 +25,8 @@ export type * from "./configurator.js";
 export type * from "./conversation.js";
 export type * from "./course-create-service.js";
 export type * from "./course-state.js";
+export type * from "./debug-trace.js";
+export { makeTurnId } from "./debug-trace.js";
 export type * from "./document-scopes.js";
 // Course-create mode: live draft-stream events surfaced to the renderer.
 export type * from "./draft-stream.js";

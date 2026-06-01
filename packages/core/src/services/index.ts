@@ -54,11 +54,6 @@ export {
   AssignmentServiceImpl,
   validateItems,
 } from "./assignment-service.js";
-export type {
-  GradingOrchestrator,
-  GradingOrchestratorDeps,
-} from "./graders/grading-orchestrator.js";
-export { GradingOrchestratorImpl } from "./graders/grading-orchestrator.js";
 // Document citations service
 export type { CitationsService, CitationsServiceDeps } from "./citations-service.js";
 export { CitationsServiceImpl } from "./citations-service.js";
@@ -78,6 +73,12 @@ export type { CourseStateReaderDeps } from "./course-state-reader-impl.js";
 export { CourseStateReaderImpl } from "./course-state-reader-impl.js";
 export type { CoursesServiceDeps } from "./courses-service.js";
 export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
+export type { DebugTraceRegistryDeps } from "./debug/debug-trace-registry.js";
+// Debug trace registry
+export {
+  DEFAULT_DEBUG_TRACE_MAX_RECORDS,
+  DebugTraceRegistryImpl,
+} from "./debug/debug-trace-registry.js";
 // Phase 16: Document scopes service (polymorphic scope ↔ document attachment)
 export type { DocumentScopesServiceDeps, PassageRange } from "./document-scopes-service.js";
 export { DocumentScopesServiceImpl } from "./document-scopes-service.js";
@@ -91,6 +92,11 @@ export type { GatesServiceDeps } from "./gates-service.js";
 export { GatesServiceImpl } from "./gates-service.js";
 // Phase 8: Graders
 export { enrichWithApproachFeedback } from "./graders/approach-feedback.js";
+export type {
+  GradingOrchestrator,
+  GradingOrchestratorDeps,
+} from "./graders/grading-orchestrator.js";
+export { GradingOrchestratorImpl } from "./graders/grading-orchestrator.js";
 export { buildGraderRegistry } from "./graders/registry.js";
 export type { RunRubricAgentInput } from "./graders/rubric-agent.js";
 export { runRubricAgent } from "./graders/rubric-agent.js";

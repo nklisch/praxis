@@ -10,6 +10,7 @@ import type {
   ConceptMapService,
   CourseCreateService,
   CourseStateReader,
+  DebugTraceRegistry,
   DocumentScopesService,
   DocumentsReader,
   EmbeddingService,
@@ -150,6 +151,12 @@ export interface ServiceDeps {
    * sub-agent path stay unaffected.
    */
   subAgent?: SubAgentRegistry;
+  /**
+   * Debug trace registry for compact side-channel correlation records.
+   * Optional so session, tool, IPC, and renderer slices can opt in without
+   * forcing every test fixture to wire the debug harness.
+   */
+  debugTrace?: DebugTraceRegistry;
   /**
    * Prompt customization service — reads global fragment + per-mode appends
    * + stored fragment overrides at session-compose time.
