@@ -150,34 +150,55 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
   // biome-ignore lint/correctness/useExhaustiveDependencies: client.drafts.events is a stable method ref; subscribing once per tab session is intentional
   useEffect(() => {
     let cancelled = false;
+    let returnStream: (() => void) | null = null;
     (async () => {
-      for await (const event of client.drafts.events()) {
-        if (cancelled) break;
-        if (event.kind === "finalized") {
-          if (materializingRef.current) break;
-          materializingRef.current = true;
-          // Settle the confirmAction pip to success — onSuccess will fire.
-          // (safe no-op if confirmAction is not in a pending/retrying state)
-          confirmAction.externalSettle("success");
-          try {
-            await openSessionInTab({
-              client,
-              navigate,
-              openTab,
-              startOpts: {
-                modeId: "teach",
-                courseId: event.courseId as CourseId,
-              },
-            });
-          } catch {
-            // Non-fatal — student can open a session from the library.
+      const iterator = client.drafts.events()[Symbol.asyncIterator]();
+      returnStream = () => {
+        void Promise.resolve(iterator.return?.()).catch(() => {
+          // Best-effort cancellation: the stream may already be closed.
+        });
+      };
+
+      try {
+        while (true) {
+          const result = await iterator.next();
+          if (result.done) break;
+          const event = result.value;
+          if (cancelled) break;
+          if (event.kind === "finalized") {
+            if (materializingRef.current) break;
+            materializingRef.current = true;
+            // Settle the confirmAction pip to success — onSuccess will fire.
+            // (safe no-op if confirmAction is not in a pending/retrying state)
+            confirmAction.externalSettle("success");
+            try {
+              await openSessionInTab({
+                client,
+                navigate,
+                openTab,
+                startOpts: {
+                  modeId: "teach",
+                  courseId: event.courseId as CourseId,
+                },
+              });
+            } catch {
+              // Non-fatal — student can open a session from the library.
+            }
+            break;
           }
-          break;
+        }
+      } catch (err) {
+        if (!cancelled) {
+          confirmAction.externalSettle(
+            "failed",
+            err instanceof Error ? err.message : COPY.error.unknown,
+          );
         }
       }
     })();
     return () => {
       cancelled = true;
+      returnStream?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.sessionId, client, navigate, openTab]);

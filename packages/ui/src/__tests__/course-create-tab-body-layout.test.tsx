@@ -9,13 +9,26 @@
  */
 import type { SessionTabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 // Mutable draft state for parameterising useDrafts in tests.
 let _mockCurrentDraft: unknown = null;
+const mockOpenTab = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    kind: "session",
+    id: "tab-new",
+    sessionId: "session-new",
+    modeId: "course-create",
+    title: "course-create",
+    sortOrder: 0,
+    openedAt: 0,
+    lastSeenAt: 0,
+    closedAt: null,
+  }),
+);
 
 // Mock TanStack Router so useNavigate works in test context.
 const mockNavigate = vi.fn().mockResolvedValue(undefined);
@@ -47,17 +60,7 @@ vi.mock("../hooks/use-course-create-budget.js", () => ({
 }));
 vi.mock("../hooks/use-tabs.js", () => ({
   useTabs: () => ({
-    openTab: vi.fn().mockResolvedValue({
-      kind: "session",
-      id: "tab-new",
-      sessionId: "session-new",
-      modeId: "course-create",
-      title: "course-create",
-      sortOrder: 0,
-      openedAt: Date.now(),
-      lastSeenAt: Date.now(),
-      closedAt: null,
-    }),
+    openTab: mockOpenTab,
   }),
 }));
 
@@ -146,6 +149,54 @@ describe("CourseCreateTabBody — Canvas + Side Chat layout", () => {
   it("renders the budget field", () => {
     renderCourseCreate();
     expect(screen.getByRole("spinbutton", { name: /course-design budget/i })).toBeTruthy();
+  });
+
+  it("returns the draft finalization stream on unmount", async () => {
+    const streams: Array<{
+      next: ReturnType<typeof vi.fn>;
+      returnStream: ReturnType<typeof vi.fn>;
+    }> = [];
+    const client = makeFakeClient({
+      subAgent: {
+        list: vi.fn().mockResolvedValue([]),
+        events: vi.fn(async function* () {}),
+      } as unknown as ReturnType<typeof makeFakeClient>["subAgent"],
+      author: {
+        listConfiguratorActions: vi.fn().mockResolvedValue([]),
+      } as unknown as ReturnType<typeof makeFakeClient>["author"],
+      documentScopes: {
+        listForScope: vi.fn().mockResolvedValue([]),
+      } as unknown as ReturnType<typeof makeFakeClient>["documentScopes"],
+      drafts: {
+        events: vi.fn(() => {
+          const next = vi.fn(() => new Promise<IteratorResult<never, void>>(() => {}));
+          const returnStream = vi.fn().mockResolvedValue({ done: true, value: undefined });
+          const iterator: AsyncIterator<never, void, unknown> = {
+            next,
+            return: returnStream,
+          };
+          streams.push({ next, returnStream });
+          return {
+            [Symbol.asyncIterator]: () => iterator,
+          } as ReturnType<ReturnType<typeof makeFakeClient>["drafts"]["events"]>;
+        }),
+      } as unknown as ReturnType<typeof makeFakeClient>["drafts"],
+    });
+
+    const { unmount } = render(
+      <PraxisClientProvider client={client}>
+        <CourseCreateTabBody tab={makeTab()} />
+      </PraxisClientProvider>,
+    );
+
+    await waitFor(() => expect(streams.length).toBeGreaterThan(0));
+    const activeStream = streams[streams.length - 1];
+    expect(activeStream).toBeDefined();
+    await waitFor(() => expect(activeStream?.next).toHaveBeenCalled());
+    const returnCallsBeforeUnmount = activeStream?.returnStream.mock.calls.length ?? 0;
+    unmount();
+
+    expect(activeStream?.returnStream.mock.calls.length).toBe(returnCallsBeforeUnmount + 1);
   });
 });
 
