@@ -125,115 +125,140 @@ export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServ
   const socketPath = path.join(tempDir, "handler.sock");
   const workerPath = path.join(tempDir, "mcp-worker.mjs");
 
-  // Write worker script with absolute MCP SDK paths (so it works from any dir)
-  const { mcpServerIndexPath, mcpStdioPath, mcpTypesPath } = resolveMcpSdkPaths();
-  await fs.writeFile(
-    workerPath,
-    generateWorkerScript(schemas, mcpServerIndexPath, mcpStdioPath, mcpTypesPath),
-    "utf8",
-  );
-
-  // Per-session auth token. 256 bits, hex-encoded to 64 chars. Generated
-  // before the server starts so it's available to the connection handler
-  // closure below and to the spawn env on the handle.
-  const authToken = crypto.randomBytes(32).toString("hex");
-
-  // Start Unix domain socket server for handler dispatch.
-  // Each connection runs through an auth-frame gate before any tool call
-  // is dispatched — see Unit 3 in feature
-  // epic-security-hardening-round-2-tool-bridge-socket-auth.
-  const server = net.createServer((conn) => {
-    let buffer = "";
-    let authenticated = false;
-    const authTimeout = setTimeout(() => {
-      if (!authenticated) {
-        logger.debug("Tool server auth timeout — closing connection");
-        conn.destroy();
-      }
-    }, AUTH_TIMEOUT_MS);
-
-    conn.on("data", (chunk) => {
-      buffer += chunk.toString();
-      let newlineIdx: number;
-      // biome-ignore lint/suspicious/noAssignInExpressions: standard readline pattern
-      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-        const line = buffer.slice(0, newlineIdx);
-        buffer = buffer.slice(newlineIdx + 1);
-        if (!line.trim()) continue;
-
-        if (!authenticated) {
-          // First non-empty frame MUST be the auth frame.
-          let accepted = false;
-          try {
-            const frame = JSON.parse(line) as { type?: string; token?: string };
-            if (
-              frame.type === "auth" &&
-              typeof frame.token === "string" &&
-              timingSafeEqualHex(frame.token, authToken)
-            ) {
-              authenticated = true;
-              clearTimeout(authTimeout);
-              accepted = true;
-            }
-          } catch {
-            // fall through to deny
-          }
-          if (!accepted) {
-            logger.debug("Tool server auth rejected — closing connection");
-            conn.destroy();
-            return;
-          }
-          continue;
-        }
-
-        handleToolCall(conn, handlers, outputSchemas, line);
-      }
-    });
-    conn.on("close", () => clearTimeout(authTimeout));
-    conn.on("error", (err) => {
-      logger.debug("Tool server connection error", { err: err.message });
-    });
-  });
-
-  // Socket permission tightening: apply restrictive umask around the listen
-  // call so the socket inode is created 0600 regardless of inherited
-  // process umask. Belt-and-suspenders with explicit chmod afterwards to
-  // handle platforms where umask doesn't apply to AF_UNIX inodes (some BSDs).
-  // Skip on Windows where AF_UNIX permission semantics don't apply.
-  const prevUmask = process.umask(0o077);
+  let server: net.Server | undefined;
   try {
-    await new Promise<void>((resolve, reject) => {
-      server.listen(socketPath, () => resolve());
-      server.on("error", reject);
-    });
-  } finally {
-    process.umask(prevUmask);
-  }
-  if (os.platform() !== "win32") {
-    await fs.chmod(socketPath, 0o600).catch((err) => {
-      logger.debug("Tool server chmod 0600 failed (non-fatal)", {
-        socketPath,
-        err: err instanceof Error ? err.message : String(err),
+    // Write worker script with absolute MCP SDK paths (so it works from any dir)
+    const { mcpServerIndexPath, mcpStdioPath, mcpTypesPath } = resolveMcpSdkPaths();
+    await fs.writeFile(
+      workerPath,
+      generateWorkerScript(schemas, mcpServerIndexPath, mcpStdioPath, mcpTypesPath),
+      "utf8",
+    );
+
+    // Per-session auth token. 256 bits, hex-encoded to 64 chars. Generated
+    // before the server starts so it's available to the connection handler
+    // closure below and to the spawn env on the handle.
+    const authToken = crypto.randomBytes(32).toString("hex");
+
+    // Start Unix domain socket server for handler dispatch.
+    // Each connection runs through an auth-frame gate before any tool call
+    // is dispatched — see Unit 3 in feature
+    // epic-security-hardening-round-2-tool-bridge-socket-auth.
+    server = net.createServer((conn) => {
+      let buffer = "";
+      let authenticated = false;
+      const authTimeout = setTimeout(() => {
+        if (!authenticated) {
+          logger.debug("Tool server auth timeout — closing connection");
+          conn.destroy();
+        }
+      }, AUTH_TIMEOUT_MS);
+
+      conn.on("data", (chunk) => {
+        buffer += chunk.toString();
+        let newlineIdx: number;
+        // biome-ignore lint/suspicious/noAssignInExpressions: standard readline pattern
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (!line.trim()) continue;
+
+          if (!authenticated) {
+            // First non-empty frame MUST be the auth frame.
+            let accepted = false;
+            try {
+              const frame = JSON.parse(line) as { type?: string; token?: string };
+              if (
+                frame.type === "auth" &&
+                typeof frame.token === "string" &&
+                timingSafeEqualHex(frame.token, authToken)
+              ) {
+                authenticated = true;
+                clearTimeout(authTimeout);
+                accepted = true;
+              }
+            } catch {
+              // fall through to deny
+            }
+            if (!accepted) {
+              logger.debug("Tool server auth rejected — closing connection");
+              conn.destroy();
+              return;
+            }
+            continue;
+          }
+
+          handleToolCall(conn, handlers, outputSchemas, line);
+        }
+      });
+      conn.on("close", () => clearTimeout(authTimeout));
+      conn.on("error", (err) => {
+        logger.debug("Tool server connection error", { err: err.message });
       });
     });
+
+    // Socket permission tightening: apply restrictive umask around the listen
+    // call so the socket inode is created 0600 regardless of inherited
+    // process umask. Belt-and-suspenders with explicit chmod afterwards to
+    // handle platforms where umask doesn't apply to AF_UNIX inodes (some BSDs).
+    // Skip on Windows where AF_UNIX permission semantics don't apply.
+    const prevUmask = process.umask(0o077);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server?.listen(socketPath, () => resolve());
+        server?.on("error", reject);
+      });
+    } finally {
+      process.umask(prevUmask);
+    }
+    if (os.platform() !== "win32") {
+      await fs.chmod(socketPath, 0o600).catch((err) => {
+        logger.debug("Tool server chmod 0600 failed (non-fatal)", {
+          socketPath,
+          err: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+
+    logger.debug("Tool server listening", { socketPath, tools: schemas.map((s) => s.name) });
+
+    return {
+      command: process.execPath,
+      args: [workerPath],
+      env: {
+        CLAUDE_SDK_TOOL_SOCKET: socketPath,
+        [TOKEN_ENV]: authToken,
+      },
+      tempDir,
+      close: async () => {
+        if (server) {
+          await closeServer(server);
+        }
+        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        logger.debug("Tool server closed", { socketPath });
+      },
+    };
+  } catch (err) {
+    if (server) {
+      await closeServer(server);
+    }
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw err;
   }
+}
 
-  logger.debug("Tool server listening", { socketPath, tools: schemas.map((s) => s.name) });
-
-  return {
-    command: process.execPath,
-    args: [workerPath],
-    env: {
-      CLAUDE_SDK_TOOL_SOCKET: socketPath,
-      [TOKEN_ENV]: authToken,
-    },
-    tempDir,
-    close: async () => {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-      logger.debug("Tool server closed", { socketPath });
-    },
-  };
+async function closeServer(server: net.Server): Promise<void> {
+  if (!server.listening) {
+    try {
+      server.close();
+    } catch {
+      // Server was never opened or already closed.
+    }
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+  });
 }
 
 async function handleToolCall(

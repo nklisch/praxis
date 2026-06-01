@@ -1,14 +1,14 @@
 ---
 id: bug-scan-tool-server-tempdir-leak
 kind: story
-stage: implementing
+stage: review
 tags: [bug, resource-leak]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: low
 bug_domain: resource-leak
@@ -27,3 +27,9 @@ const socketPath = path.join(tempDir, "handler.sock");
 const workerPath = path.join(tempDir, "mcp-worker.mjs");
 await fs.writeFile(workerPath, generateWorkerScript(schemas, mcpServerIndexPath, mcpStdioPath, mcpTypesPath), "utf8");
 ```
+
+## Implementation notes
+
+- Changed `packages/claude-cli-sdk/src/tool-server.ts` to wrap post-`mkdtemp` setup in cleanup-on-failure logic, close a partially-created server, and remove the temp directory before rethrowing.
+- Added coverage in `packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts` for a setup failure after temp directory creation.
+- Verification: `pnpm --filter @praxis/claude-cli-sdk typecheck`; `TMPDIR=/home/nathan/dev/praxis/.tmp pnpm vitest run packages/claude-cli-sdk/src/__tests__/auth.test.ts packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts packages/claude-cli-sdk/src/__tests__/query.test.ts packages/claude-cli-sdk/src/__tests__/conversation-tool-results.test.ts`.

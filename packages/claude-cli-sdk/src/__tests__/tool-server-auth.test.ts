@@ -5,7 +5,7 @@
  * newline-delimited JSON. No real CLI or MCP worker needed.
  */
 
-import { stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import * as net from "node:net";
 import * as os from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -312,5 +312,25 @@ describe("startToolServer — socket permissions", () => {
     const s = await stat(socketPath(handle));
     // Mask to permission bits; expect rw------.
     expect(s.mode & 0o777).toBe(0o600);
+  });
+});
+
+describe("startToolServer — setup cleanup", () => {
+  it("removes the temp directory when setup fails before returning a handle", async () => {
+    const prefix = "claude-sdk-tools-";
+    const before = new Set(
+      (await readdir(os.tmpdir())).filter((entry) => entry.startsWith(prefix)),
+    );
+    const umaskSpy = vi.spyOn(process, "umask").mockImplementationOnce(() => {
+      throw new Error("umask boom");
+    });
+
+    try {
+      await expect(startToolServer([echoTool])).rejects.toThrow("umask boom");
+      const after = (await readdir(os.tmpdir())).filter((entry) => entry.startsWith(prefix));
+      expect(after.filter((entry) => !before.has(entry))).toEqual([]);
+    } finally {
+      umaskSpy.mockRestore();
+    }
   });
 });
