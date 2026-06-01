@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-tooling-research
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: []
@@ -573,3 +573,15 @@ concrete need.
 - `epic-agent-debugging-harness-tooling-research-current-source-survey` - no sibling dependencies.
 - `epic-agent-debugging-harness-tooling-research-evidence-standard` - depends on `epic-agent-debugging-harness-tooling-research-current-source-survey`.
 - `epic-agent-debugging-harness-tooling-research-decision-record` - depends on `epic-agent-debugging-harness-tooling-research-evidence-standard`.
+
+## Implementation summary
+
+Stories implemented in this run:
+
+- `epic-agent-debugging-harness-tooling-research-current-source-survey` - `stage: review`; created `docs/research/agent-debugging-tooling.md`.
+- `epic-agent-debugging-harness-tooling-research-evidence-standard` - `stage: review`; added the local evidence bundle standard and vocabulary sketch.
+- `epic-agent-debugging-harness-tooling-research-decision-record` - `stage: review`; added final tooling decisions and downstream handoff.
+
+Cross-cutting deviations: none. This feature intentionally remained docs/substrate-only and did not add runtime dependencies or change package manifests.
+
+Verification: each story ran `git diff --check`; orchestrator verified all child stories are at `stage: review` with `.work/bin/work-view --parent epic-agent-debugging-harness-tooling-research`. Full `pnpm` checks were not run because no source, package, test, or config files were changed by the feature implementation.
