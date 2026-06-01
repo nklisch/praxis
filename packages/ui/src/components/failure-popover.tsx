@@ -18,14 +18,14 @@ import styles from "./action-card.module.css";
 export interface FailurePopoverAction {
   label: string;
   onClick: () => void;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | undefined;
 }
 
 export interface FailurePopoverProps {
   /** Kicker label above the reason text. Defaults to "Failed". */
-  label?: string;
+  label?: string | undefined;
   /** Human-readable explanation of the failure. */
-  reason?: string;
+  reason?: string | undefined;
   /** Array of action buttons (typically retry + dismiss). */
   actions: FailurePopoverAction[];
 }

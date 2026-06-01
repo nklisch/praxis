@@ -22,7 +22,7 @@ export interface LibraryDocumentPickerProps {
   scope: DocumentScope;
   onClose: () => void;
   /** Called after any document is successfully attached. */
-  onAttached?: (documentId: DocumentId) => void;
+  onAttached?: ((documentId: DocumentId) => void) | undefined;
   /**
    * Ingestion state machine hoisted from the parent so that closing the picker
    * does not abort an in-flight batch. The parent must call `useIngestion` and
@@ -37,7 +37,7 @@ interface DocumentPickerRowProps {
   doc: { documentId: string; filename: string; chunkCount: number };
   scope: DocumentScope;
   isAlreadyAttached: boolean;
-  onAttached?: (documentId: DocumentId) => void;
+  onAttached?: ((documentId: DocumentId) => void) | undefined;
   onOptimisticAttach: (documentId: DocumentId) => void;
   onOptimisticRevert: (documentId: DocumentId) => void;
 }

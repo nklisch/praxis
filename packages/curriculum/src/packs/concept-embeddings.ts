@@ -32,6 +32,8 @@ export interface ConceptEmbeddingsStore {
     /** When provided, restricts results to concepts NOT in these graph ids. */
     excludeGraphIds?: string[];
   }): Promise<ConceptEmbeddingMatch[]>;
+  /** Count embeddings currently stored for a concept graph. */
+  countByGraphId(graphId: string): Promise<number>;
   /** Remove all embeddings for a given graph (used when re-importing a pack version). */
   deleteByGraphId(graphId: string): Promise<void>;
 }
@@ -106,6 +108,13 @@ export class SqliteConceptEmbeddingsStore implements ConceptEmbeddingsStore {
       conceptName: r.concept_name,
       distance: r.distance,
     }));
+  }
+
+  async countByGraphId(graphId: string): Promise<number> {
+    const row = this.sqlite
+      .prepare("SELECT COUNT(*) AS count FROM concept_embeddings WHERE graph_id = ?")
+      .get(graphId) as { count: number } | undefined;
+    return row?.count ?? 0;
   }
 
   async deleteByGraphId(graphId: string): Promise<void> {

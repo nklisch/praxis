@@ -4,8 +4,8 @@ import styles from "../markdown-content.module.css";
 export type FigureVerdict = "ok" | "check";
 
 export interface FigureProps {
-  caption?: string;
-  verdict?: FigureVerdict;
+  caption?: string | undefined;
+  verdict?: FigureVerdict | undefined;
   children: ReactNode;
 }
 

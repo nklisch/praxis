@@ -160,7 +160,7 @@ interface ItemRailProps {
   durationMinutes?: number | null | undefined;
   onSubmit: () => void;
   submitActionState: import("../hooks/use-optimistic-action.js").ActionState;
-  submitErrorReason?: string;
+  submitErrorReason?: string | undefined;
   onRetrySubmit: () => void;
   onDismissSubmit: () => void;
 }

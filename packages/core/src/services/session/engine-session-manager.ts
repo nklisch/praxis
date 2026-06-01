@@ -169,8 +169,12 @@ export class EngineSessionManager {
           // Thread PID callbacks so the desktop layer can register/deregister
           // CLI subprocess PIDs with the orphan-sweep registry. Optional in
           // tests and non-Electron deployments (deps are undefined then).
-          onProcessSpawned: this.deps.onEngineProcessSpawned,
-          onProcessExited: this.deps.onEngineProcessExited,
+          ...(this.deps.onEngineProcessSpawned !== undefined && {
+            onProcessSpawned: this.deps.onEngineProcessSpawned,
+          }),
+          ...(this.deps.onEngineProcessExited !== undefined && {
+            onProcessExited: this.deps.onEngineProcessExited,
+          }),
         }));
     const engine = factory(engineConfig, { log: this.deps.log });
 

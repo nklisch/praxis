@@ -18,11 +18,11 @@ export interface ThreadChipProps {
   /** Displayed verb text — e.g. "you answered", "you selected 3". */
   verb: string;
   /** The answer text to display (omit for dismissed variant). */
-  answer?: string;
+  answer?: string | undefined;
   /** When the answer was submitted. */
   when: Date;
   /** Called when the user clicks the chip to re-expand the card. */
-  onExpand?: () => void;
+  onExpand?: (() => void) | undefined;
 }
 
 /** Format a Date to HH:MM or "just now" (within 30 seconds). */

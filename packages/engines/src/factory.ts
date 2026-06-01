@@ -13,12 +13,12 @@ export interface CreateEngineInput {
    * The desktop layer threads this through to register the PID with an
    * orphan-sweep registry for crash-survival cleanup on next startup.
    */
-  onProcessSpawned?: (pid: number) => void;
+  onProcessSpawned?: ((pid: number) => void) | undefined;
   /**
    * Called after the CLI subprocess exits (claude-code only). Paired with
    * `onProcessSpawned` — used to deregister the PID on clean close.
    */
-  onProcessExited?: (pid: number) => void;
+  onProcessExited?: ((pid: number) => void) | undefined;
 }
 
 /**

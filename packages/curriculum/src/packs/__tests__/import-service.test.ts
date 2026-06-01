@@ -199,6 +199,9 @@ describe("PackImportServiceImpl", () => {
         async findSimilar() {
           return [];
         },
+        async countByGraphId() {
+          return repairedCount;
+        },
         async deleteByGraphId() {},
       };
       const svc = new PackImportServiceImpl({

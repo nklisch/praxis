@@ -37,13 +37,13 @@ export interface ClaudeCodeEngineOptions {
    * spawned-pid registry so orphaned subprocesses can be swept on the next
    * startup if the current process crashes without running shutdown handlers.
    */
-  onProcessSpawned?: (pid: number) => void;
+  onProcessSpawned?: ((pid: number) => void) | undefined;
   /**
    * Called after the CLI subprocess exits (either naturally or via `close()`).
    * Paired with `onProcessSpawned` — used to deregister the PID from the
    * orphan-sweep registry on a clean close.
    */
-  onProcessExited?: (pid: number) => void;
+  onProcessExited?: ((pid: number) => void) | undefined;
 }
 
 export class ClaudeCodeEngine implements Engine {

@@ -80,7 +80,8 @@ export class PackImportServiceImpl {
 
   /**
    * Import a pack by its id. Idempotent — re-importing the same version returns
-   * the existing record without touching the DB or generating embeddings again.
+   * the existing record. Existing imports verify that concept embeddings are
+   * present and repair them only when a previous vector write failed.
    *
    * For a new version of the same pack, a new conceptGraphId is created.
    */
@@ -91,7 +92,9 @@ export class PackImportServiceImpl {
     // Check for existing import of this exact version.
     const existing = await this.findImportRecord(manifest.id, manifest.version);
     if (existing) {
-      await this.writeConceptEmbeddings(manifest, existing.conceptGraphId);
+      if (!(await this.hasCompleteConceptEmbeddings(manifest, existing.conceptGraphId))) {
+        await this.writeConceptEmbeddings(manifest, existing.conceptGraphId);
+      }
       this.deps.log.debug("pack.already_imported", {
         packId,
         version: manifest.version,
@@ -245,6 +248,14 @@ export class PackImportServiceImpl {
         embedding: embeddings[i]!,
       })),
     );
+  }
+
+  private async hasCompleteConceptEmbeddings(
+    manifest: PackManifest,
+    conceptGraphId: string,
+  ): Promise<boolean> {
+    const count = await this.deps.conceptEmbeddings.countByGraphId(conceptGraphId);
+    return count >= manifest.concepts.length;
   }
 
   /**

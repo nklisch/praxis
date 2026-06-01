@@ -41,7 +41,7 @@ export interface UseOptimisticActionOpts<TParams> {
 export interface UseOptimisticActionResult<TParams> {
   state: ActionState;
   /** Human-readable reason string extracted from the thrown error. */
-  errorReason?: string;
+  errorReason?: string | undefined;
   /** Fire the action. Captures `params` so `retry()` can replay. */
   trigger(params: TParams): void;
   /** Re-dispatches with the originally captured params. No-op if no prior trigger. */

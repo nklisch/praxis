@@ -9,7 +9,7 @@ export interface ConceptRefProps {
    * Called when the link is activated.  When omitted the click is still
    * prevented from navigating (href="#") but no callback fires.
    */
-  onOpen?: (slug: string) => void;
+  onOpen?: ((slug: string) => void) | undefined;
 }
 
 /**

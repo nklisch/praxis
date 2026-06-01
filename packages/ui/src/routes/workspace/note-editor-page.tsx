@@ -100,10 +100,11 @@ export function NoteEditorPage() {
       if (!note || spawning) return;
       setSpawning(true);
       try {
+        const trimmedSeedText = cueText.trim();
         const handle = await client.session.spawnFromNote({
           noteId: note.id,
           cueId,
-          seedText: cueText.trim() || undefined,
+          ...(trimmedSeedText.length > 0 && { seedText: trimmedSeedText }),
         });
         const tab = await client.tabs.open({ sessionId: handle.sessionId });
         await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });
