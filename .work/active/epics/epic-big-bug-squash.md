@@ -1,7 +1,7 @@
 ---
 id: epic-big-bug-squash
 kind: epic
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -105,3 +105,13 @@ feature layer was added in this design pass.
 ## Children complete (2026-06-01)
 
 All direct child stories are done, so the epic is ready for deep review.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**: full `pnpm lint` remains blocked by pre-existing `.mockups` HTML diagnostics outside this epic scope; targeted Biome over touched code passed with non-blocking warnings.
+
+**Notes**: Deep epic review used Claude Opus via peeragent session `14d87427-0961-4ae3-8f72-db29dc19d06f`. The peer confirmed all 34 child stories are terminal, the bug-scan counts match the epic scope, no `bug-scan-*` backlog/archive orphan remained, no public API or foundation-doc blocker was found, and no files were modified by the peer. Accepted finding: epic `updated` metadata was corrected in `e3ac5a6c`. Rejected finding: broader date-skew concern conflicts with the active system date for this run, `2026-06-01`. Process limitation recorded: stories used fast-lane review backed by implementation records, targeted tests, `typecheck`, and the green full suite.
