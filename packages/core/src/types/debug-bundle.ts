@@ -1,3 +1,5 @@
+import type { SessionId } from "./ids.js";
+
 export type DebugFailureClass =
   | "agent-behavior"
   | "tool-dispatch"
@@ -25,6 +27,7 @@ export type DebugBundleEvidenceSource =
   | "renderer"
   | "db_snapshot"
   | "browser_trace"
+  | "log"
   | "manual_note";
 
 export type DebugBundleCapturePolicy = "full_local" | "full_local_sensitive" | "metadata_only";
@@ -86,4 +89,27 @@ export interface DebugBundleWriter {
     manifest: DebugBundleManifest;
     artifacts: readonly DebugBundleArtifactContent[];
   }): Promise<{ bundleDir: string; manifestPath: string }>;
+}
+
+export interface DebugBundleCaptureInput {
+  runId?: string;
+  sessionId?: SessionId;
+  turnId?: string;
+  callId?: string;
+  failureClass: DebugFailureClass;
+  title: string;
+  firstBadObservation?: string;
+  nextDebugStep?: string;
+  outputRoot?: string;
+  logFilePath?: string;
+}
+
+export interface DebugBundleCaptureResult {
+  bundleDir: string;
+  manifestPath: string;
+  manifest: DebugBundleManifest;
+}
+
+export interface DebugBundleCaptureService {
+  capture(input: DebugBundleCaptureInput): Promise<DebugBundleCaptureResult>;
 }

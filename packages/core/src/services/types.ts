@@ -10,6 +10,7 @@ import type {
   ConceptMapService,
   CourseCreateService,
   CourseStateReader,
+  DebugBundleCaptureService,
   DebugTraceRegistry,
   DocumentScopesService,
   DocumentsReader,
@@ -157,6 +158,11 @@ export interface ServiceDeps {
    * forcing every test fixture to wire the debug harness.
    */
   debugTrace?: DebugTraceRegistry;
+  /**
+   * Local debug bundle capture service. Optional so existing service and tool
+   * tests do not need to wire the debugging harness unless they exercise it.
+   */
+  debugBundles?: DebugBundleCaptureService;
   /**
    * Prompt customization service — reads global fragment + per-mode appends
    * + stored fragment overrides at session-compose time.

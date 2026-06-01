@@ -73,6 +73,10 @@ export type { CourseStateReaderDeps } from "./course-state-reader-impl.js";
 export { CourseStateReaderImpl } from "./course-state-reader-impl.js";
 export type { CoursesServiceDeps } from "./courses-service.js";
 export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
+export type { DebugBundleCaptureServiceDeps } from "./debug/debug-bundle-capture-service.js";
+export { DebugBundleCaptureServiceImpl } from "./debug/debug-bundle-capture-service.js";
+export type { DebugLogFilters, DebugLogReader } from "./debug/debug-log-reader.js";
+export { JsonlDebugLogReader } from "./debug/debug-log-reader.js";
 export type { DebugTraceRegistryDeps } from "./debug/debug-trace-registry.js";
 // Debug trace registry
 export {
