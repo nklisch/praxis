@@ -75,22 +75,7 @@ export class SqliteVecStore implements VectorStore {
   }
 
   async search(input: VectorSearchInput): Promise<VectorSearchResult[]> {
-    // sqlite-vec KNN queries only support `embedding MATCH ?` and `k = ?`
-    // in the WHERE clause. Auxiliary column filters (document_id, section, page)
-    // must be applied post-KNN in the outer query or in application code.
-    //
-    // We fetch up to topK * 4 results from the KNN query and apply filters in
-    // a wrapping query. document_id filtering uses the outer WHERE clause
-    // (sqlite-vec allows filtering on document_id via the vec0 shadow tables),
-    // while section/page filtering is done in the outer SELECT.
-    //
-    // For large result sets where filters are selective, this may return fewer
-    // than topK results. For Phase 5's use case (moderate document sets),
-    // this is acceptable.
-
-    const candidateK = input.topK * 4; // Fetch more candidates to allow for filtering
-    // biome-ignore lint/suspicious/noExplicitAny: SQLite parameter binding requires mixed types
-    const knnParams: any[] = [vectorToBlob(input.embedding), candidateK];
+    if (input.topK <= 0) return [];
 
     const knnSql = `
       SELECT chunk_id, document_id, chunk_text, page, section, distance
@@ -99,33 +84,19 @@ export class SqliteVecStore implements VectorStore {
       ORDER BY distance
     `;
 
-    const allRows = this.sqlite.prepare(knnSql).all(...knnParams) as Array<{
-      chunk_id: string;
-      document_id: string;
-      chunk_text: string;
-      page: number | bigint | null;
-      section: string | null;
-      distance: number;
-    }>;
+    const totalRows = getCount(this.sqlite, "SELECT COUNT(*) AS count FROM document_embeddings");
+    if (totalRows === 0) return [];
 
-    // Apply filters in application code
-    let filtered = allRows;
+    let candidateK = Math.min(totalRows, Math.max(input.topK, input.topK * 4));
+    let filtered: SqliteVecSearchRow[] = [];
 
-    if (input.documentIds && input.documentIds.length > 0) {
-      const idSet = new Set(input.documentIds);
-      filtered = filtered.filter((r) => idSet.has(r.document_id));
-    }
-    if (input.sectionPattern) {
-      const lower = input.sectionPattern.toLowerCase();
-      filtered = filtered.filter((r) => r.section?.toLowerCase().includes(lower) ?? false);
-    }
-    if (input.pageRange) {
-      const { from, to } = input.pageRange;
-      filtered = filtered.filter((r) => {
-        if (r.page === null) return false;
-        const p = Number(r.page);
-        return p >= from && p <= to;
-      });
+    while (candidateK <= totalRows) {
+      const allRows = this.sqlite
+        .prepare(knnSql)
+        .all(vectorToBlob(input.embedding), candidateK) as SqliteVecSearchRow[];
+      filtered = filterRows(allRows, input);
+      if (filtered.length >= input.topK || candidateK === totalRows) break;
+      candidateK = Math.min(totalRows, Math.max(candidateK + 1, candidateK * 2));
     }
 
     return filtered.slice(0, input.topK).map((r) => ({
@@ -141,6 +112,45 @@ export class SqliteVecStore implements VectorStore {
   async deleteByDocumentId(documentId: string): Promise<void> {
     this.deleteByDocStmt.run(documentId);
   }
+}
+
+interface SqliteVecSearchRow {
+  chunk_id: string;
+  document_id: string;
+  chunk_text: string;
+  page: number | bigint | null;
+  section: string | null;
+  distance: number;
+}
+
+function filterRows(
+  rows: ReadonlyArray<SqliteVecSearchRow>,
+  input: VectorSearchInput,
+): SqliteVecSearchRow[] {
+  let filtered = [...rows];
+  if (input.documentIds && input.documentIds.length > 0) {
+    const idSet = new Set(input.documentIds);
+    filtered = filtered.filter((r) => idSet.has(r.document_id));
+  }
+  if (input.sectionPattern) {
+    const lower = input.sectionPattern.toLowerCase();
+    filtered = filtered.filter((r) => r.section?.toLowerCase().includes(lower) ?? false);
+  }
+  if (input.pageRange) {
+    const { from, to } = input.pageRange;
+    filtered = filtered.filter((r) => {
+      if (r.page === null) return false;
+      const p = Number(r.page);
+      return p >= from && p <= to;
+    });
+  }
+
+  return filtered;
+}
+
+function getCount(sqlite: Database.Database, sql: string): number {
+  const row = sqlite.prepare(sql).get() as { count: number | bigint };
+  return Number(row.count);
 }
 
 /**

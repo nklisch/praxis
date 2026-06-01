@@ -217,6 +217,40 @@ describe("SqliteVecStore", () => {
     expect(results.every((r) => r.documentId === "doc1")).toBe(true);
   });
 
+  it("search widens vector candidates until document filters can return topK", async () => {
+    const nearQuery = makeVec(0);
+    const scopedMatch = makeVec(1);
+    await vecStore.upsertBatch([
+      ...Array.from({ length: 10 }, (_, i) => ({
+        chunkId: `global-${i}`,
+        documentId: "global-doc",
+        embedding: nearQuery,
+        chunkText: `Global ${i}`,
+      })),
+      {
+        chunkId: "scoped-1",
+        documentId: "scoped-doc",
+        embedding: scopedMatch,
+        chunkText: "Scoped 1",
+      },
+      {
+        chunkId: "scoped-2",
+        documentId: "scoped-doc",
+        embedding: scopedMatch,
+        chunkText: "Scoped 2",
+      },
+    ]);
+
+    const results = await vecStore.search({
+      embedding: nearQuery,
+      topK: 2,
+      documentIds: ["scoped-doc"],
+    });
+
+    expect(results).toHaveLength(2);
+    expect(results.every((r) => r.documentId === "scoped-doc")).toBe(true);
+  });
+
   it("search filters by pageRange", async () => {
     await vecStore.upsertBatch([
       {
