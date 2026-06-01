@@ -1,14 +1,14 @@
 ---
 id: bug-scan-empty-gate-threshold-zero
 kind: story
-stage: review
+stage: done
 tags: [bug, time-numbers, high]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: high
 bug_domain: time-numbers
@@ -34,3 +34,13 @@ saveAction.trigger({
 - Changed `packages/ui/src/components/gate-inspector.tsx` to parse mastery-threshold input through a finite 0-100 validator before save and before `onThresholdEdit`.
 - Empty or out-of-range threshold edits now show an inline alert and do not call `author.updateGate`, avoiding the prior `Number("") === 0` persistence path.
 - Added regression coverage in `packages/ui/src/__tests__/gate-inspector.test.tsx`.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
