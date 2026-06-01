@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness
 kind: epic
-stage: review
+stage: done
 tags: []
 parent: null
 depends_on: []
@@ -71,3 +71,23 @@ Replay and synthetic student simulation can drift into flaky live-model tests if
 All five child features reached `done`: tooling research, trace correlation,
 failure replay, student simulation, and debug runbooks. Epic is ready for final
 review.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Final epic review completed inline. Fresh-context peer review was
+not used because no authorized different-model reviewer was available in this
+session. The delivered arc matches the brief: local-first tooling research,
+shared trace/debug correlation, failure bundle capture/replay, deterministic
+and browser-backed student simulation, and an agent-facing progressive
+disclosure debugging skill. Verification used:
+
+- `pnpm vitest run packages/core/src/types/__tests__/student-simulation.test.ts packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts packages/core/src/services/debug/__tests__/debug-bundle-capture-service.test.ts packages/core/src/services/__tests__/session-service.debug-trace.test.ts packages/tools/src/__tests__/registry.test.ts tests/failure-replay-end-to-end.test.ts tests/student-simulation-client.test.ts tests/student-simulation-scenarios.test.ts tests/student-simulation-cli.test.ts tests/agent-debugging-harness-skill.test.ts`
+- `PRAXIS_RUN_BROWSER_SIMULATION=1 pnpm exec playwright test tests/student-simulation-browser.spec.ts`
+- `pnpm typecheck`
+- `git diff --check`
