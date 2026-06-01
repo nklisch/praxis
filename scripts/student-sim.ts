@@ -127,8 +127,9 @@ function parseRunOptions(args: readonly string[], io: StudentSimulationCliIo): R
     valueAfter(args, "--out") ??
     join(
       io.cwd,
-      ".tmp",
-      "student-sim",
+      ".praxis",
+      "debug",
+      "simulations",
       `${Date.now()}-${scenarioId.replaceAll(/[^a-zA-Z0-9_-]/g, "-")}`,
     );
   return {

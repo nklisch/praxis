@@ -72,8 +72,10 @@ async function runBrowserScenario(
     valueAfter(args, "--out") ??
       join(
         io.cwd,
-        ".tmp",
-        "student-sim-browser",
+        ".praxis",
+        "debug",
+        "simulations",
+        "browser",
         `${Date.now()}-${scenarioId.replaceAll(/[^a-zA-Z0-9_-]/g, "-")}`,
       ),
   );
