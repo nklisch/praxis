@@ -1,14 +1,14 @@
 ---
 id: bug-scan-matching-grader-over-100
 kind: story
-stage: implementing
+stage: review
 tags: [bug, time-numbers]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: medium
 bug_domain: time-numbers
@@ -28,3 +28,8 @@ const correctCount = submittedPairs.filter((p) =>
 ).length;
 const score = correctCount / match.correctPairs.length;
 ```
+
+## Implementation notes
+
+- Changed `packages/core/src/services/graders/matching-grader.ts` to validate submitted pair shape, score unique submitted pairs against the unique answer key, and clamp deterministic scores to `[0, 1]`.
+- Added regression coverage in `packages/core/src/services/graders/__tests__/matching-grader.test.ts` for duplicate correct pairs.

@@ -38,14 +38,15 @@ export class MatchingGrader implements ItemGrader {
 
     let submittedPairs: Array<{ leftId: string; rightId: string }>;
     try {
-      submittedPairs = JSON.parse(response.response);
-      if (!Array.isArray(submittedPairs)) {
+      const parsed: unknown = JSON.parse(response.response);
+      if (!Array.isArray(parsed) || !parsed.every(isMatchingPair)) {
         return {
           score: 0,
           feedback: "Response could not be parsed as an array of pairs.",
           tier: "deterministic",
         };
       }
+      submittedPairs = parsed;
     } catch {
       return {
         score: 0,
@@ -55,19 +56,36 @@ export class MatchingGrader implements ItemGrader {
     }
 
     const correctSet = new Set(match.correctPairs.map((p) => `${p.leftId}|${p.rightId}`));
-    const correctCount = submittedPairs.filter((p) =>
-      correctSet.has(`${p.leftId}|${p.rightId}`),
-    ).length;
+    if (correctSet.size === 0) {
+      return {
+        score: null,
+        feedback: "needs-human-review (no unique correct pairs defined)",
+        tier: "needs-human-review",
+      };
+    }
+    const submittedSet = new Set(submittedPairs.map((p) => `${p.leftId}|${p.rightId}`));
+    const correctCount = Array.from(submittedSet).filter((pair) => correctSet.has(pair)).length;
 
-    const score = correctCount / match.correctPairs.length;
+    const score = clamp01(correctCount / correctSet.size);
 
     const feedback =
       score === 1
         ? "Correct."
         : score === 0
           ? "No pairs matched correctly."
-          : `Partially correct: ${correctCount} of ${match.correctPairs.length} pairs matched.`;
+          : `Partially correct: ${correctCount} of ${correctSet.size} pairs matched.`;
 
     return { score, feedback, tier: "deterministic" };
   }
+}
+
+function isMatchingPair(value: unknown): value is { leftId: string; rightId: string } {
+  if (typeof value !== "object" || value === null) return false;
+  const pair = value as { leftId?: unknown; rightId?: unknown };
+  return typeof pair.leftId === "string" && typeof pair.rightId === "string";
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
 }
