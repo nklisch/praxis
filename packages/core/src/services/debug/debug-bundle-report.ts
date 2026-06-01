@@ -4,15 +4,7 @@ import type {
   DebugBundleManifest,
 } from "../../types/index.js";
 
-export interface DebugBundleReportArtifact {
-  path: string;
-  contents?: string;
-}
-
-export function generateDebugBundleReport(input: {
-  manifest: DebugBundleManifest;
-  artifacts?: readonly DebugBundleReportArtifact[];
-}): string {
+export function generateDebugBundleReport(input: { manifest: DebugBundleManifest }): string {
   const { manifest } = input;
   const missingEvidence = manifest.captureEvents.filter(
     (event): event is DebugBundleCaptureEvent & { type: "evidence_missing" } =>

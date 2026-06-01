@@ -37,6 +37,38 @@ describe("DebugDbSnapshotterImpl", () => {
     ]);
   });
 
+  it("resolves a focused session snapshot from callIds", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const targetSessionId = insertSession(db, "session-call-snapshot");
+    const unrelatedSessionId = insertSession(db, "session-call-snapshot-unrelated");
+    insertEvent(db, targetSessionId, "event-call-snapshot-user", {
+      type: "user_message",
+      content: "start",
+    });
+    insertEvent(db, targetSessionId, "event-call-snapshot-tool", {
+      type: "tool_call",
+      toolName: "course.start_drafting",
+      args: { title: "Pathophysiology" },
+      callId: "call-snapshot",
+    });
+    insertEvent(db, unrelatedSessionId, "event-call-snapshot-unrelated", {
+      type: "user_message",
+      content: "ignore",
+    });
+
+    const snapshot = await new DebugDbSnapshotterImpl(db).capture({
+      callIds: ["call-snapshot"],
+    });
+
+    expect(tableRows(snapshot, "sessions")).toEqual([
+      expect.objectContaining({ id: targetSessionId }),
+    ]);
+    expect(tableRows(snapshot, "episodic_events")).toEqual([
+      expect.objectContaining({ id: "event-call-snapshot-user", sessionId: targetSessionId }),
+      expect.objectContaining({ id: "event-call-snapshot-tool", sessionId: targetSessionId }),
+    ]);
+  });
+
   it("captures document scope relationships and summarizes omitted document chunks", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const sessionId = insertSession(db, "session-doc-scope");

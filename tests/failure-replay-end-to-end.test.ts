@@ -128,7 +128,7 @@ describe("failure replay harness", () => {
       replayDebugBundle({ bundleDir, dbPath: join(dbCtx.tmpDir, "broken-replay.db") }),
     ).rejects.toMatchObject({
       code: "artifact_missing",
-      name: "DebugBundleLoadError",
+      name: "ReplayBundleLoadError",
     });
   });
 });

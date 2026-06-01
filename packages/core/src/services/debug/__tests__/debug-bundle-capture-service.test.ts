@@ -167,6 +167,44 @@ describe("DebugBundleCaptureServiceImpl", () => {
     ]);
   });
 
+  it("captures a callId from episodic rows when trace records are unavailable", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const targetSessionId = insertSession(db, "session-call-no-trace");
+    const unrelatedSessionId = insertSession(db, "session-call-unrelated");
+    insertEvent(db, targetSessionId, 0, { type: "user_message", content: "Earlier turn" });
+    insertEvent(db, targetSessionId, 1, { type: "user_message", content: "Start drafting" });
+    insertEvent(db, targetSessionId, 1, {
+      type: "tool_call",
+      toolName: "course.start_drafting",
+      args: { title: "Pathophysiology" },
+      callId: "call-no-trace",
+    });
+    insertEvent(db, targetSessionId, 1, {
+      type: "tool_result",
+      callId: "call-no-trace",
+      result: { ok: false, error: { code: "SQLITE", message: "FK failed", recoverable: false } },
+    });
+    insertEvent(db, targetSessionId, 2, { type: "user_message", content: "Later turn" });
+    insertEvent(db, unrelatedSessionId, 0, {
+      type: "user_message",
+      content: "Unrelated session",
+    });
+
+    const result = await makeService(db).capture({
+      callId: "call-no-trace",
+      failureClass: "tool-dispatch",
+      title: "Dispatch threw without live trace",
+    });
+
+    const engineEvents = await readJsonl(join(result.bundleDir, "engine-events.jsonl"));
+    expect(engineEvents.map((row) => field(row, "sessionId"))).toEqual([
+      targetSessionId,
+      targetSessionId,
+      targetSessionId,
+    ]);
+    expect(engineEvents.map((row) => field(row, "turnIndex"))).toEqual([1, 1, 1]);
+  });
+
   it("records missing trace and log evidence without failing capture", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const sessionId = insertSession(db, "session-missing-trace");

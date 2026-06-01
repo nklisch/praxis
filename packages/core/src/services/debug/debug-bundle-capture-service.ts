@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { episodicEvents } from "@praxis/memory/schema";
-import { asc, inArray } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type {
   DebugBundleArtifact,
@@ -212,6 +212,12 @@ export class DebugBundleCaptureServiceImpl implements DebugBundleCaptureService 
     for (const record of traceRecords) {
       sessionIds.add(record.trace.sessionId);
     }
+    if (sessionIds.size === 0 && input.callId !== undefined) {
+      for (const sessionId of this.readSessionIdsForCallId(input.callId)) {
+        sessionIds.add(sessionId);
+      }
+      if (sessionIds.size === 0) return [];
+    }
 
     const query = this.db
       .select({
@@ -233,6 +239,17 @@ export class DebugBundleCaptureServiceImpl implements DebugBundleCaptureService 
     return filteredQuery
       .orderBy(asc(episodicEvents.sessionId), asc(episodicEvents.turnIndex), asc(episodicEvents.ts))
       .all();
+  }
+
+  private readSessionIdsForCallId(callId: string): string[] {
+    const rows = this.db
+      .select({
+        sessionId: episodicEvents.sessionId,
+      })
+      .from(episodicEvents)
+      .where(eq(sql<string>`json_extract(${episodicEvents.eventJson}, '$.callId')`, callId))
+      .all();
+    return [...new Set(rows.map((row) => row.sessionId))];
   }
 
   private async addLogArtifact(

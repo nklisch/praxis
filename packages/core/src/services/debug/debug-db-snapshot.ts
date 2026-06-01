@@ -6,7 +6,7 @@ import {
   documents,
 } from "@praxis/artifacts/schema";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import { drafts } from "../../schema.js";
 import type { SessionId } from "../../types/index.js";
@@ -111,13 +111,14 @@ export class DebugDbSnapshotterImpl implements DebugDbSnapshotter {
     const rows = this.db
       .select({
         sessionId: episodicEvents.sessionId,
-        eventJson: episodicEvents.eventJson,
       })
       .from(episodicEvents)
+      .where(
+        inArray(sql<string>`json_extract(${episodicEvents.eventJson}, '$.callId')`, [...callIds]),
+      )
       .all();
     for (const row of rows) {
-      const callId = eventCallId(row.eventJson);
-      if (callId !== undefined && callIds.has(callId)) sessionIds.add(row.sessionId);
+      sessionIds.add(row.sessionId);
     }
     return sessionIds;
   }
@@ -456,12 +457,6 @@ function presence(tableName: string, id: string, isPresent: boolean): DebugDbSna
     id,
     ...(!isPresent && { reason: `${tableName} row was referenced but not captured` }),
   };
-}
-
-function eventCallId(event: unknown): string | undefined {
-  if (typeof event !== "object" || event === null || Array.isArray(event)) return undefined;
-  const value = (event as Record<string, unknown>).callId;
-  return typeof value === "string" ? value : undefined;
 }
 
 function toArray<T>(value: T | null | undefined): T[] {

@@ -7,10 +7,7 @@ export {
   type LoadedDebugBundle,
   loadDebugBundle,
 } from "./debug-bundle-loader.js";
-export {
-  type DebugBundleReportArtifact,
-  generateDebugBundleReport,
-} from "./debug-bundle-report.js";
+export { generateDebugBundleReport } from "./debug-bundle-report.js";
 export {
   createDebugBundleWriter,
   DEBUG_BUNDLE_MANIFEST_FILENAME,

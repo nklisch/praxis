@@ -5,6 +5,15 @@ import { DebugBundleCaptureServiceImpl } from "../packages/core/src/services/deb
 import { generateDebugBundleReport } from "../packages/core/src/services/debug/debug-bundle-report.js";
 
 const args = process.argv.slice(2);
+const FAILURE_CLASSES = [
+  "agent-behavior",
+  "tool-dispatch",
+  "subagent",
+  "ipc",
+  "ui-render",
+  "persistence",
+  "simulation",
+] as const satisfies readonly DebugFailureClass[];
 
 async function main(): Promise<void> {
   if (hasFlag("--help")) {
@@ -20,7 +29,7 @@ async function main(): Promise<void> {
     console.log(`Bundle: ${result.bundleDir}`);
     console.log(generateDebugBundleReport({ manifest: result.manifest }));
   } finally {
-    if (dbPath !== undefined) sqlite.close();
+    sqlite.close();
   }
 }
 
@@ -62,15 +71,7 @@ function hasFlag(name: string): boolean {
 }
 
 function isFailureClass(value: string): value is DebugFailureClass {
-  return [
-    "agent-behavior",
-    "tool-dispatch",
-    "subagent",
-    "ipc",
-    "ui-render",
-    "persistence",
-    "simulation",
-  ].includes(value);
+  return FAILURE_CLASSES.includes(value as DebugFailureClass);
 }
 
 function printUsage(): void {
@@ -85,6 +86,9 @@ Options:
   --log <path>        Optional pino JSONL log file.
   --first-bad <text>  First bad observation for the report.
   --next-step <text>  Suggested next debug step.
+
+Failure classes:
+  ${FAILURE_CLASSES.join(", ")}
 `);
 }
 

@@ -77,7 +77,6 @@ export type { DebugBundleCaptureServiceDeps } from "./debug/debug-bundle-capture
 export { DebugBundleCaptureServiceImpl } from "./debug/debug-bundle-capture-service.js";
 export type { LoadedDebugBundle } from "./debug/debug-bundle-loader.js";
 export { DebugBundleLoadError, loadDebugBundle } from "./debug/debug-bundle-loader.js";
-export type { DebugBundleReportArtifact } from "./debug/debug-bundle-report.js";
 export { generateDebugBundleReport } from "./debug/debug-bundle-report.js";
 export type {
   DebugDbSnapshot,
