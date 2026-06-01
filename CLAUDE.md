@@ -116,7 +116,9 @@ The dependency graph is strict — the productization invariant (engine adapters
 
 ## Code patterns
 
-`.claude/rules/patterns.md` indexes ~20 project-specific patterns with concrete `file:line` examples. Each pattern has a full reference under `.claude/skills/patterns/{slug}.md`. **Read the relevant pattern before implementing or reviewing in that area.** Highlights:
+`.agents/rules/patterns.md` indexes project-specific patterns. Each pattern has
+a full reference under `.agents/skills/patterns/{slug}.md`. **Read the relevant
+pattern before implementing or reviewing in that area.** Highlights:
 
 - **engine-session-lifecycle** — `Engine.open(opts)` → `EngineSession`; `send(msg)` reuses the live SDK conversation; `close()` in `finally`.
 - **async-generator-event-stream** — every turn yields `EngineEvent` via `async function*`; persist + forward each event as it arrives, never buffer.
@@ -175,6 +177,19 @@ Prefer `unknown` with a type guard, or a precise union, over `any`.
 - Each commit should leave the repo in a passing `pnpm typecheck && pnpm lint && pnpm test` state.
 - Do not commit generated files in `drizzle/meta/` or `.praxis/`.
 
+## Refactor Style Conventions
+
+These project-specific rules extend agile-workflow refactor/design behavior.
+They are not formatter settings.
+
+- **no-temporal-comments**: Comments describe what the code is now -- no phase numbers, recency markers, rename provenance, or backward-compat narrative.
+- **no-restating-code-comments**: Comments explain why, not what; let well-named identifiers carry the meaning.
+- **no-stale-todos**: Every `TODO`/`FIXME` carries either an owner plus link or a concrete trigger condition.
+- **any-needs-justification**: Every `: any` and `as any` carries a `// biome-ignore lint/suspicious/noExplicitAny: <reason>` comment.
+- **use-load-or-throw**: After `insert/update/delete`, use `loadOrThrow(...)` instead of inline null checks.
+- **prefer-discriminated-result-unions**: For per-item or recoverable failures, return `{ ok: true, ... } | { ok: false, reason: string }` instead of throwing.
+- **early-returns-over-nested-ifs**: Prefer guard clauses and early returns; cap function body nesting at 2 levels.
+
 ## Phase map
 
 Praxis is built in numbered phases; each has a design doc in `docs/designs/`. Always check the relevant design before implementing. Phases 1–19 have shipped (foundation → engine layer → UI shell → verification tools → textbook RAG → courses/lessons/course-create mode → adaptive memory → multi-mode assessment → gates/progress map → knowledge-graph canonical pack → configure-mode authoring → workspace notes/flashcards → editorial foundation → tabs and library → sketch/concept maps → drafter + modalities/assessment loop → item-type expansion + inline quick checks → study-skills + pedagogy pack + remaining memory → biology canonical + Electron packaging + ship). Also shipped as non-phase chunks: **activity rail** (ambient progress surface — replaces the `IngestionProgress` modal; design in `docs/designs/activity-rail.md`) and **language-sandbox-registry** (QuickJS replaces isolated-vm; design in `docs/designs/language-sandbox-registry.md`). Major phase work (a new `Phase NN`) may warrant a `docs/designs/phase-NN-*.md`. Feature- and epic-level designs live in the substrate item body per the Item-IS-the-Work principle — don't create a separate doc unless the work is genuinely cross-cutting. Refactor plans in `docs/refactors/`.
@@ -182,24 +197,38 @@ Praxis is built in numbered phases; each has a design doc in `docs/designs/`. Al
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
 
-This project tracks work in `.work/` (markdown items + frontmatter).
-See `.claude/rules/agile-workflow.md` for navigation primitives.
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`kind, stage, tags, parent, depends_on, release_binding`).
+Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
+`.work/releases/<version>/`, `.work/archive/`.
 
-Quick reference:
-- `.work/bin/work-view --help` — query items
-- `.work/active/` — in-flight; `.work/backlog/` — parked ideas
-- Foundation docs in `docs/` describe the system NOW; never add legacy notes
+**Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind,
+parent, and dependency. Common patterns:
+- `work-view --ready` -- items ready to work (deps satisfied)
+- `work-view --stage review` -- items waiting on user
+- `work-view --parent <id>` / `--blocking <id>` -- hierarchy / sequencing
+- `work-view --help` for the full flag set
 
-Common skills (auto-triggered by conversation):
-- park an idea               | scope a backlog item up
-- design a drafting feature  | implement an implementing feature
-- review work at review      | fix a quick bug as a story
+Foundation docs in `docs/` describe the system's current state or intended
+future state, never the past; git history is the audit trail. Item files are
+the durable state: update the body with implementation discoveries, review
+findings, blockers, and decisions instead of relying on chat history.
 
-Heavy-weight skills (you invoke explicitly):
-- /agile-workflow:ideate          — foundation docs
-- /agile-workflow:epicize         — decompose into epics
-- /agile-workflow:autopilot       — drain queue
-- /agile-workflow:release-deploy  — bind, gate, ship
+Reusable code patterns live in `.agents/skills/patterns/` (load the `patterns`
+skill for detail). Project agent rules live in `.agents/rules/*.md`
+(plugin-managed rules in `.agents/rules/agile-workflow.md`); do not maintain
+`.claude/rules/*.md` as a source of truth.
+
+**Before designing, implementing, or reviewing, read `.agents/rules/*.md`** --
+the project's force-loaded agent rules (tag semantics, test integrity, review
+policy). The agile-workflow hook auto-loads these at session start and after
+compaction; read them directly when working without the hook.
+
+Project-specific refactor style conventions belong in this file under
+`## Refactor Style Conventions`. Detailed refactor convention references belong
+in `.agents/skills/refactor-conventions/` and extend `refactor-design`'s
+defaults; they do not replace the built-in scan and they do not create
+standalone plan docs.
 <!-- agile-workflow:end -->
 
 <!-- ux-ui-design:installed -->

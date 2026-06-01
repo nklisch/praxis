@@ -72,3 +72,5 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [shared-test-fake-factories.md](shared-test-fake-factories.md) — port test doubles live in `tests/helpers/mocks.ts` as factory fns (`inMemorySecretStorage`, `noopLockService`, `recordingLogger`, `noopDocumentScopes`); new ports added to `ServiceDeps` get a factory here when 3+ tests will need it
 - [electron-ipc-test-harness.md](electron-ipc-test-harness.md) — stub `electron` at the module boundary so `ipcMain.handle/on` capture handlers; import `registerIpcHandlers` *after* the mock; invoke `handlers.get("praxis.x.y")?.({}, ...args)` with a minimal fake `Services`
 - [ipc-envelope-test-triad.md](ipc-envelope-test-triad.md) — each `handleEnvelope`-wrapped channel gets a per-`describe` block asserting four outcomes: `ok:true`, `VALIDATION_FAILED`, `INTERNAL` (never rejects), no host-path leakage in INTERNAL message
+
+<!-- agile-workflow:provenance src-sha256=ff4d7cdf612c515afe21c3710acbdb4b6bb17e856fd0bac9a6e5c5e645fc088f -->

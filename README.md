@@ -251,4 +251,4 @@ See `docs/` for the full design documentation:
 - `docs/designs/` — per-phase implementation designs (historical artifacts; new design lives in `.work/active/features/<id>.md` bodies per the rolling-foundation principle)
 - `docs/refactors/` — refactor plans
 
-For agent-facing project conventions, see `CLAUDE.md` and `.claude/skills/patterns/`.
+For agent-facing project conventions, see `CLAUDE.md` and `.agents/skills/patterns/`.

@@ -18,7 +18,7 @@
  * `externalSettle` is safe to call regardless of the current state; it no-ops
  * if `state === "idle"` (i.e. dispatch hasn't fired yet).
  *
- * Pattern: optimistic-dispatch (see .claude/rules/patterns.md once doc lands).
+ * Pattern: optimistic-dispatch (see .agents/rules/patterns.md).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
