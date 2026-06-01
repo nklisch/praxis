@@ -10,10 +10,13 @@ import { brandId } from "@praxis/core/types";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
-import { ProgressRoute } from "../routes/progress.js";
+import { formatRelativeTime, ProgressRoute } from "../routes/progress.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  vi.useRealTimers();
+  cleanup();
+});
 
 // Mock TanStack Router — ProgressRoute calls useNavigate for the empty-state CTA.
 vi.mock("@tanstack/react-router", async (importOriginal) => {
@@ -323,6 +326,13 @@ describe("ProgressRoute", () => {
         // Match any relative-time label: "today", "yesterday", "N days ago", "N weeks ago"
         expect(screen.getByText(/^(today|yesterday|\d+ days ago|\d+ weeks? ago)$/i)).toBeDefined();
       });
+    });
+
+    it("labels late-yesterday activity as yesterday near local midnight", async () => {
+      const now = new Date(2026, 5, 2, 0, 30);
+      const lateYesterday = new Date(2026, 5, 1, 23, 30);
+
+      expect(formatRelativeTime(lateYesterday.getTime(), now)).toBe("yesterday");
     });
   });
 

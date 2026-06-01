@@ -32,11 +32,13 @@ function toRoman(n: number): string {
  * Format a Unix-millisecond timestamp as a relative label.
  * e.g. "today", "yesterday", "3 days ago", "2 weeks ago".
  */
-function formatRelativeTime(atMs: number): string {
+export function formatRelativeTime(atMs: number, now = new Date()): string {
   const DAY = 86_400_000;
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((startOfToday.getTime() - atMs) / DAY);
+  const today = now;
+  const eventDay = new Date(atMs);
+  const todayDate = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const eventDate = Date.UTC(eventDay.getFullYear(), eventDay.getMonth(), eventDay.getDate());
+  const diffDays = Math.round((todayDate - eventDate) / DAY);
 
   if (diffDays <= 0) return "today";
   if (diffDays === 1) return "yesterday";

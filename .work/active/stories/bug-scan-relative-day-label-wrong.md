@@ -1,14 +1,14 @@
 ---
 id: bug-scan-relative-day-label-wrong
 kind: story
-stage: implementing
+stage: review
 tags: [bug, time-numbers]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: low
 bug_domain: time-numbers
@@ -26,3 +26,9 @@ const diffDays = Math.floor((startOfToday.getTime() - atMs) / DAY);
 if (diffDays <= 0) return "today";
 if (diffDays === 1) return "yesterday";
 ```
+
+## Implementation notes
+
+- Changed `packages/ui/src/routes/progress.tsx` to compare local calendar dates by converting local year/month/day fields to UTC date-only values before computing day differences.
+- Late-yesterday activity near local midnight now labels as `yesterday`; DST-length days no longer skew the calendar comparison.
+- Added regression coverage in `packages/ui/src/__tests__/progress-route.test.tsx`.
