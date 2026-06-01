@@ -13,6 +13,7 @@
 
 import { courses, gates as gatesTable, gateUnlockEvents, lessons } from "@praxis/artifacts/schema";
 import { conceptGraphs } from "@praxis/curriculum/schema";
+import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
@@ -280,6 +281,41 @@ describe("ArtifactsServiceImpl.evaluateAndPersistGates()", () => {
     // Only one unlock event row (from the first call)
     const events = db.select().from(gateUnlockEvents).all();
     expect(events).toHaveLength(1);
+  });
+
+  it("does not insert a duplicate unlock event when one already exists", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourse(db);
+    seedLesson(db, "lesson-dedupe", ["concept-dedupe"]);
+    seedGate(db, {
+      id: "gate-dedupe",
+      lessonId: "lesson-dedupe",
+      conceptId: "concept-dedupe",
+    });
+    db.insert(gateUnlockEvents)
+      .values({
+        id: "unlock-existing",
+        studentId: STUDENT_ID,
+        courseId: COURSE_ID,
+        gateId: "gate-dedupe",
+        unlockedAt: new Date(),
+        evidenceJson: [],
+        viewedAt: null,
+      })
+      .run();
+
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) });
+
+    const result = await svc.evaluateAndPersistGates({
+      studentId: STUDENT_ID,
+      courseId: COURSE_ID,
+    });
+
+    expect(result.unlockedGateIds).toHaveLength(0);
+    const events = db.select().from(gateUnlockEvents).all();
+    expect(events).toHaveLength(1);
+    const gateRow = db.select().from(gatesTable).where(eq(gatesTable.id, "gate-dedupe")).get();
+    expect((gateRow?.stateJson as { kind: string } | undefined)?.kind).toBe("unlocked");
   });
 });
 

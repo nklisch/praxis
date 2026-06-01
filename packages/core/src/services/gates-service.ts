@@ -1,7 +1,4 @@
-import {
-  gates as gatesTable,
-  gateUnlockEvents,
-} from "@praxis/artifacts/schema";
+import { gates as gatesTable, gateUnlockEvents } from "@praxis/artifacts/schema";
 import { GateEvaluatorImpl } from "@praxis/curriculum/gates";
 import { and, eq, isNull } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -77,8 +74,7 @@ export class GatesServiceImpl {
     // Identify the active gate: first locked gate whose prerequisites are all unlocked.
     // A gate is "active" when it's the one the student is currently working toward.
     let activeGateIdx = -1;
-    for (let i = 0; i < result.perGate.length; i++) {
-      const e = result.perGate[i]!;
+    for (const [i, e] of result.perGate.entries()) {
       const isLocked = e.afterState.kind === "locked";
       // Active = locked and NOT blocked by prerequisite gates (i.e., its prereqs are all unlocked).
       const blockedByPrereqs =
@@ -91,13 +87,17 @@ export class GatesServiceImpl {
       }
     }
 
-    return result.perGate.map((entry, i) => ({
-      gate: gatesList[i]!,
-      summaryText: entry.summaryText,
-      lockReason: entry.lockReason,
-      progress: entry.progress,
-      isActive: i === activeGateIdx,
-    }));
+    return result.perGate.map((entry, i) => {
+      const gate = gatesList[i];
+      if (!gate) throw new Error(`Gate evaluation missing gate at index ${i}`);
+      return {
+        gate,
+        summaryText: entry.summaryText,
+        lockReason: entry.lockReason,
+        progress: entry.progress,
+        isActive: i === activeGateIdx,
+      };
+    });
   }
 
   /**
@@ -131,19 +131,47 @@ export class GatesServiceImpl {
     // Atomic write: all state changes + unlock event rows in one transaction.
     return this.deps.db.transaction((tx) => {
       const unlockedGateIds: GateId[] = [];
+      const unlockTransitions = new Map(
+        result.transitions
+          .filter((transition) => transition.kind === "unlocked")
+          .map((transition) => [transition.gateId, transition]),
+      );
 
       // Update gate state rows that changed.
       for (const entry of result.perGate) {
         if (entry.beforeState.kind === entry.afterState.kind) continue;
-        tx.update(gatesTable)
+
+        const current = tx
+          .select({ stateJson: gatesTable.stateJson })
+          .from(gatesTable)
+          .where(eq(gatesTable.id, entry.gateId))
+          .get();
+        const currentState = current?.stateJson as GateState | undefined;
+        if (currentState?.kind !== entry.beforeState.kind) continue;
+
+        const updateResult = tx
+          .update(gatesTable)
           .set({ stateJson: entry.afterState })
           .where(eq(gatesTable.id, entry.gateId))
           .run();
-      }
+        if (updateResult.changes === 0) continue;
 
-      // Write gate_unlock_events for each newly unlocked gate.
-      for (const transition of result.transitions) {
-        if (transition.kind !== "unlocked") continue;
+        const transition = unlockTransitions.get(entry.gateId);
+        if (!transition) continue;
+
+        const existingEvent = tx
+          .select({ id: gateUnlockEvents.id })
+          .from(gateUnlockEvents)
+          .where(
+            and(
+              eq(gateUnlockEvents.studentId, input.studentId),
+              eq(gateUnlockEvents.courseId, input.courseId),
+              eq(gateUnlockEvents.gateId, transition.gateId),
+            ),
+          )
+          .get();
+        if (existingEvent) continue;
+
         tx.insert(gateUnlockEvents)
           .values({
             id: uuidv7(),
