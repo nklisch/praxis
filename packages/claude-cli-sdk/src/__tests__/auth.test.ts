@@ -91,6 +91,20 @@ describe("authStatus()", () => {
     expect(result.loggedIn).toBe(false);
     expect(result.error).toMatch(/Failed to parse/);
   });
+
+  it("returns { loggedIn: false } when JSON has no boolean loggedIn field", async () => {
+    const payload = JSON.stringify({ loggedIn: "true", email: "test@example.com" });
+    const { binDir, cleanup: c } = await makeFakeCli(`
+      process.stdout.write(${JSON.stringify(payload)});
+      process.exit(0);
+    `);
+    cleanup = c;
+    _setCliCommand(join(binDir, "claude"));
+
+    const result = await authStatus();
+    expect(result.loggedIn).toBe(false);
+    expect(result.error).toMatch(/Invalid auth status JSON shape/);
+  });
 });
 
 describe("authLogin()", () => {

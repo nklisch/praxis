@@ -52,6 +52,29 @@ export function _resetCliCommand(): void {
 
 const MAX_STDOUT_BYTES = 8 * 1024; // 8KB paranoid cap
 
+function parseAuthStatusJson(stdout: string): ClaudeAuthStatus {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout.trim());
+  } catch {
+    return { loggedIn: false, error: `Failed to parse auth status JSON: ${stdout}` };
+  }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("loggedIn" in parsed) ||
+    typeof parsed.loggedIn !== "boolean"
+  ) {
+    return {
+      loggedIn: false,
+      error: `Invalid auth status JSON shape: expected boolean loggedIn in ${stdout}`,
+    };
+  }
+
+  return parsed as ClaudeAuthStatus;
+}
+
 /**
  * Run `claude auth status --json` and parse the JSON output.
  *
@@ -99,12 +122,7 @@ export function authStatus(): Promise<ClaudeAuthStatus> {
 
     proc.on("close", (code: number | null) => {
       if (code === 0) {
-        try {
-          const parsed = JSON.parse(stdoutBuf.trim()) as ClaudeAuthStatus;
-          resolve(parsed);
-        } catch {
-          resolve({ loggedIn: false, error: `Failed to parse auth status JSON: ${stdoutBuf}` });
-        }
+        resolve(parseAuthStatusJson(stdoutBuf));
       } else {
         resolve({
           loggedIn: false,

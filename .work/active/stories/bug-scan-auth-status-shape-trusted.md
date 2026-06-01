@@ -1,14 +1,14 @@
 ---
 id: bug-scan-auth-status-shape-trusted
 kind: story
-stage: implementing
+stage: review
 tags: [bug, language-footgun]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: low
 bug_domain: language-footgun
@@ -29,3 +29,9 @@ try {
   resolve({ loggedIn: false, error: `Failed to parse auth status JSON: ${stdoutBuf}` });
 }
 ```
+
+## Implementation notes
+
+- Changed `packages/claude-cli-sdk/src/auth.ts` to parse auth status JSON as `unknown` and require a boolean `loggedIn` before trusting the payload.
+- Added coverage in `packages/claude-cli-sdk/src/__tests__/auth.test.ts` for valid JSON with a non-boolean `loggedIn`.
+- Verification: `pnpm --filter @praxis/claude-cli-sdk typecheck`; `TMPDIR=/home/nathan/dev/praxis/.tmp pnpm vitest run packages/claude-cli-sdk/src/__tests__/auth.test.ts packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts packages/claude-cli-sdk/src/__tests__/query.test.ts packages/claude-cli-sdk/src/__tests__/conversation-tool-results.test.ts`.
