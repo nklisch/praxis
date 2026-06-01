@@ -63,7 +63,7 @@ async function runBrowserScenario(
   env: BrowserCliEnv,
   io: BrowserCliIo,
 ): Promise<number> {
-  const scenarioId = args.find((arg) => !arg.startsWith("--"));
+  const scenarioId = firstPositional(args, new Set(["--out", "--app-url"]));
   if (scenarioId === undefined) throw new Error("Missing scenario id.");
   const scenario = getStudentSimulationScenario(scenarioId);
   assertBrowserSimulationAllowed(scenario, env);
@@ -97,6 +97,22 @@ function valueAfter(args: readonly string[], name: string): string | undefined {
   const index = args.indexOf(name);
   if (index === -1) return undefined;
   return args[index + 1];
+}
+
+function firstPositional(
+  args: readonly string[],
+  optionsWithValues: ReadonlySet<string>,
+): string | undefined {
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === undefined) continue;
+    if (arg.startsWith("--")) {
+      if (optionsWithValues.has(arg)) index++;
+      continue;
+    }
+    return arg;
+  }
+  return undefined;
 }
 
 function defaultIo(): BrowserCliIo {

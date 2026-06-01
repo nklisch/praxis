@@ -55,6 +55,23 @@ describe("student simulation CLI", () => {
     expect(report).toContain("simulation-result.json");
   });
 
+  it("accepts value options before the scenario id", async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), "praxis-student-sim-cli-reordered-"));
+    const io = makeIo();
+    const code = await runStudentSimulationCli(
+      ["run", "--driver", "client", "--out", outputDir, "course-create-structured-question"],
+      {},
+      io,
+    );
+
+    expect(code).toBe(0);
+    expect(io.stderrLines).toEqual([]);
+    const result = JSON.parse(
+      await readFile(join(outputDir, "simulation-result.json"), "utf8"),
+    ) as StudentSimulationResult;
+    expect(result.scenarioId).toBe("course-create-structured-question");
+  });
+
   it("refuses live/model-backed scenarios without the explicit env gate", () => {
     const liveScenario: StudentSimulationScenario = {
       ...getStudentSimulationScenario("course-create-structured-question"),
