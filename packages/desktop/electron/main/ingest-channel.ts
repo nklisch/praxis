@@ -1,4 +1,4 @@
-import { readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { getOrCreateDefaultStudentId } from "@praxis/core/services";
@@ -50,6 +50,36 @@ export function walkDirectoryForIngest(root: string, registry: IngestorRegistry)
   return out;
 }
 
+export function writeOwnedTempTextFile(
+  payload: { content: string; filename: string },
+  ownedTempDirsByFile: Map<string, string>,
+): string {
+  const safeFilename = payload.filename.replace(/[/\\?%*:|"<>]/g, "_") || "pasted-text.txt";
+  const tempDir = mkdtempSync(path.join(tmpdir(), "praxis-paste-"));
+  const tmpPath = path.join(tempDir, safeFilename);
+  writeFileSync(tmpPath, payload.content, "utf8");
+  ownedTempDirsByFile.set(tmpPath, tempDir);
+  return tmpPath;
+}
+
+export function cleanupOwnedTempTextFile(
+  filePath: string,
+  ownedTempDirsByFile: Map<string, string>,
+  log: Logger,
+): void {
+  const tempDir = ownedTempDirsByFile.get(filePath);
+  if (!tempDir) return;
+
+  ownedTempDirsByFile.delete(filePath);
+  try {
+    rmSync(tempDir, { recursive: true, force: true });
+  } catch (err) {
+    log.warn("ingest.temp_text_cleanup_failed", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 /**
  * Register IPC handlers for the ingestion channel.
  *
@@ -71,6 +101,7 @@ export function registerIngestHandlers(
   log: Logger,
 ): void {
   const { handle, on } = createIpcHelpers(log);
+  const ownedTempDirsByFile = new Map<string, string>();
 
   // Single-file picker — used by the document-import affordance.
   handle(
@@ -160,10 +191,7 @@ export function registerIngestHandlers(
       "praxis.ingest.writeTempText",
       log,
       async (_event: unknown, payload: { content: string; filename: string }) => {
-        const safeFilename = payload.filename.replace(/[/\\?%*:|"<>]/g, "_");
-        const tmpPath = path.join(tmpdir(), safeFilename);
-        writeFileSync(tmpPath, payload.content, "utf8");
-        return tmpPath;
+        return writeOwnedTempTextFile(payload, ownedTempDirsByFile);
       },
     ),
   );
@@ -184,7 +212,14 @@ export function registerIngestHandlers(
           (services.session as unknown as { deps: { db: import("@praxis/core/db").PraxisDb } }).deps
             .db,
         );
-        return services.ingestion.ingest({ ...req, studentId }, signal);
+        const stream = services.ingestion.ingest({ ...req, studentId }, signal);
+        return (async function* () {
+          try {
+            yield* stream;
+          } finally {
+            cleanupOwnedTempTextFile(req.filePath, ownedTempDirsByFile, log);
+          }
+        })();
       },
     },
   );

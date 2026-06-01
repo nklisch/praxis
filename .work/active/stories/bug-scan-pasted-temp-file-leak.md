@@ -1,14 +1,14 @@
 ---
 id: bug-scan-pasted-temp-file-leak
 kind: story
-stage: implementing
+stage: review
 tags: [bug, resource-leak]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: low
 bug_domain: resource-leak
@@ -27,3 +27,10 @@ const tmpPath = path.join(tmpdir(), safeFilename);
 writeFileSync(tmpPath, payload.content, "utf8");
 return tmpPath;
 ```
+
+## Implementation notes
+- Files changed: `packages/desktop/electron/main/ingest-channel.ts`, `packages/desktop/electron/main/__tests__/walk-directory-for-ingest.test.ts`
+- Tests added: owned pasted-text temp file creation and cleanup regression
+- Discrepancies from design: cleanup is attached to the ingestion stream `finally` path for temp files created by `writeTempText`
+- Adjacent issues parked: none
+- Verification: `TMPDIR=$PWD/.tmp pnpm vitest run packages/client/src/__tests__/ipc-transport.test.ts packages/desktop/electron/main/__tests__/spawned-pid-registry.test.ts packages/desktop/electron/main/__tests__/walk-directory-for-ingest.test.ts`

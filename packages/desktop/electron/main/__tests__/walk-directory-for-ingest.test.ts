@@ -14,13 +14,18 @@
  * - Returns empty array for permission-denied root.
  */
 
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { Logger } from "@praxis/core/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // walkDirectoryForIngest is exported for testability.
-import { walkDirectoryForIngest } from "../ingest-channel.js";
+import {
+  cleanupOwnedTempTextFile,
+  walkDirectoryForIngest,
+  writeOwnedTempTextFile,
+} from "../ingest-channel.js";
 
 // ── Fake IngestorRegistry ─────────────────────────────────────────────────────
 
@@ -167,5 +172,32 @@ describe("walkDirectoryForIngest", () => {
     const names = found.map((f) => path.basename(f)).sort();
 
     expect(names).toEqual(["DOC.PDF", "notes.TXT"]);
+  });
+});
+
+describe("owned pasted-text temp files", () => {
+  it("creates pasted text inside an owned temp directory and cleans that directory", () => {
+    const owned = new Map<string, string>();
+    const filePath = writeOwnedTempTextFile(
+      { content: "hello", filename: "../unsafe:name.txt" },
+      owned,
+    );
+    const tempDir = owned.get(filePath);
+
+    expect(tempDir).toBeDefined();
+    expect(filePath.startsWith(tempDir ?? "")).toBe(true);
+    expect(filePath).toContain(".._unsafe_name.txt");
+    expect(existsSync(filePath)).toBe(true);
+
+    cleanupOwnedTempTextFile(filePath, owned, {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      child: vi.fn(),
+    } as unknown as Logger);
+
+    expect(owned.has(filePath)).toBe(false);
+    expect(existsSync(tempDir ?? "")).toBe(false);
   });
 });
