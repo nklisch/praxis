@@ -1,4 +1,4 @@
-import type { ToolRegistry } from "@praxis/core/types";
+import type { DebugTraceContext, ToolRegistry } from "@praxis/core/types";
 
 export interface ToolBridgeHandle {
   /** MCP server stdio command. */
@@ -28,4 +28,9 @@ export interface StartToolBridgeInput {
    * on every tool call — always sees the live signal.
    */
   getSignal?: () => AbortSignal | undefined;
+  /**
+   * Optional getter for the per-turn debug trace context. Called at dispatch
+   * time so long-lived MCP handlers receive the current send() trace.
+   */
+  getTrace?: () => DebugTraceContext | undefined;
 }

@@ -1,5 +1,6 @@
 import type { GenerationParams, TokenUsage } from "./common.js";
 import type { ConversationTurn } from "./conversation.js";
+import type { DebugTraceContext } from "./debug-trace.js";
 
 // ─── Vision Capability ───────────────────────────────────────────────────────
 
@@ -96,7 +97,11 @@ export interface EngineSession {
    * as the final event so consumers and the episodic log know the turn ended
    * early.
    */
-  send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent>;
+  send(
+    userMessage: string,
+    signal?: AbortSignal,
+    trace?: DebugTraceContext,
+  ): AsyncIterable<EngineEvent>;
 
   /**
    * Tear down the underlying SDK session, MCP bridge subprocess, etc.
@@ -144,6 +149,13 @@ export interface Engine {
 export interface ToolDispatchMeta {
   /** Engine-side correlation id for this tool invocation. */
   callId?: string;
+  /**
+   * AbortSignal threaded from the active engine turn. Tool handlers can use it
+   * directly and pass it into sub-agent sessions.
+   */
+  signal?: AbortSignal;
+  /** Debug trace context for the active engine turn. */
+  trace?: DebugTraceContext;
 }
 
 export interface ToolRegistry {

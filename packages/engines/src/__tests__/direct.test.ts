@@ -450,4 +450,59 @@ describe("DirectEngine — toVercelTools callId threading", () => {
     await execute({}, { toolCallId: "call-2" });
     expect(observedSignal).toBeUndefined();
   });
+
+  it("execute threads the per-turn trace into registry.dispatch when getTrace is provided", async () => {
+    const { toVercelTools } = await import("../direct/tool-conversion.js");
+
+    const trace = {
+      runId: "run-1",
+      sessionId: "session-1" as import("@praxis/core/types").SessionId,
+      turnId: "session-1:turn:0",
+      turnIndex: 0,
+    };
+    let currentTrace: typeof trace | undefined = trace;
+    const getTrace = (): typeof trace | undefined => currentTrace;
+
+    let observedTrace: typeof trace | undefined;
+    const dispatchMock = vi.fn(
+      async (
+        _name: string,
+        _args: unknown,
+        meta: { callId?: string; trace?: typeof trace },
+      ): Promise<ToolResult> => {
+        observedTrace = meta.trace;
+        return { ok: true, value: { ok: true }, tier: "deterministic" };
+      },
+    );
+
+    const registry: ToolRegistry = {
+      list: () => [
+        {
+          name: "test.echo",
+          description: "Echo",
+          inputSchemaJson: { type: "object", properties: {}, additionalProperties: true },
+          tier: "deterministic",
+        },
+      ],
+      dispatch: dispatchMock,
+    };
+
+    const vercelTools = toVercelTools(registry, undefined, getTrace);
+    const echoTool = vercelTools["test.echo"];
+    expect(echoTool).toBeDefined();
+    if (!echoTool) return;
+
+    // biome-ignore lint/suspicious/noExplicitAny: accessing execute on Vercel tool type
+    const execute = (echoTool as any).execute as (
+      input: unknown,
+      opts: { toolCallId: string },
+    ) => Promise<unknown>;
+
+    await execute({}, { toolCallId: "call-1" });
+    expect(observedTrace).toBe(trace);
+
+    currentTrace = undefined;
+    await execute({}, { toolCallId: "call-2" });
+    expect(observedTrace).toBeUndefined();
+  });
 });

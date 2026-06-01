@@ -1,4 +1,4 @@
-import type { ToolRegistry } from "@praxis/core/types";
+import type { DebugTraceContext, ToolRegistry } from "@praxis/core/types";
 import { jsonSchema, type Tool, tool } from "ai";
 
 /**
@@ -18,6 +18,7 @@ import { jsonSchema, type Tool, tool } from "ai";
 export function toVercelTools(
   registry: ToolRegistry,
   getSignal?: () => AbortSignal | undefined,
+  getTrace?: () => DebugTraceContext | undefined,
 ): Record<string, Tool> {
   const summaries = registry.list();
   const out: Record<string, Tool> = {};
@@ -27,9 +28,11 @@ export function toVercelTools(
       inputSchema: jsonSchema(summary.inputSchemaJson as object),
       execute: async (input: unknown, { toolCallId }: { toolCallId: string }) => {
         const signal = getSignal?.();
+        const trace = getTrace?.();
         const result = await registry.dispatch(summary.name, input, {
           callId: toolCallId,
           ...(signal !== undefined && { signal }),
+          ...(trace !== undefined && { trace }),
         });
         if (result.ok) return result.value;
         // Throw so Vercel SDK emits a tool-error event we can map.

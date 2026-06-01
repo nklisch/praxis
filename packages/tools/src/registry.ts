@@ -1,33 +1,20 @@
 import type {
+  DebugTraceContext,
+  DebugTraceRegistry,
   Logger,
   ToolContext,
   ToolDefinition,
   ToolDefinitionSummary,
+  ToolDispatchMeta,
   ToolRegistry,
   ToolResult,
 } from "@praxis/core/types";
 import { serializeError } from "@praxis/core/types";
 import { z } from "zod";
 
-/**
- * Optional per-call metadata passed to `InProcessToolRegistry.dispatch`.
- * Engine adapters supply this to thread the engine-side correlation id
- * through to the tool handler's `ToolContext.callId`, and to propagate
- * the per-turn abort signal so tool handlers and sub-agents can bail
- * when the user clicks Stop.
- */
-export interface DispatchMeta {
-  /** Engine-side correlation id for this tool invocation. */
-  callId?: string;
-  /**
-   * AbortSignal threaded from the engine's send-turn signal. When the
-   * user clicks Stop (or the session is otherwise interrupted), this
-   * signal aborts; tool handlers should bail and sub-agents should
-   * propagate it further. Optional — test stubs and direct invocations
-   * may omit it.
-   */
-  signal?: AbortSignal;
-}
+export type DispatchMeta = ToolDispatchMeta;
+
+type ToolDispatchError = { code: string; message: string; recoverable: boolean };
 
 export interface InProcessToolRegistryOptions {
   /** Tool definitions registered into this registry (Zod-schema-typed). */
@@ -36,6 +23,8 @@ export interface InProcessToolRegistryOptions {
   context: ToolContext;
   /** Logger for dispatch observability. */
   log: Logger;
+  /** Optional side-channel trace registry for compact dispatch records. */
+  debugTrace?: DebugTraceRegistry;
 }
 
 /**
@@ -51,10 +40,12 @@ export class InProcessToolRegistry implements ToolRegistry {
   // NOTE: `readonly` on the field prevents reassignment; the object itself is mutable.
   private readonly context: ToolContext;
   private readonly log: Logger;
+  private readonly debugTrace: DebugTraceRegistry | undefined;
 
   constructor(opts: InProcessToolRegistryOptions) {
     this.context = opts.context;
     this.log = opts.log;
+    this.debugTrace = opts.debugTrace;
     this.tools = new Map();
     this.summaries = [];
     for (const tool of opts.tools) {
@@ -87,21 +78,30 @@ export class InProcessToolRegistry implements ToolRegistry {
   }
 
   async dispatch(name: string, args: unknown, meta?: DispatchMeta): Promise<ToolResult> {
+    const callTrace = buildCallTrace(meta, this.context.debugTrace);
+    const traceFields = traceLogFields(callTrace);
     this.log.debug("tool.dispatch.start", {
       name,
-      ...(meta?.callId !== undefined && { callId: meta.callId }),
+      ...traceFields,
     });
     const t0 = performance.now();
+    this.recordTrace({
+      type: "tool_dispatch_start",
+      trace: callTrace,
+      toolName: name,
+    });
     const tool = this.tools.get(name);
     if (!tool) {
-      return {
+      const result: ToolResult = {
         ok: false,
         error: { code: "tool.not_found", message: `Unknown tool: ${name}`, recoverable: false },
       };
+      this.recordDispatchFailure(name, callTrace, t0, result.error);
+      return result;
     }
     const parsed = tool.input.safeParse(args);
     if (!parsed.success) {
-      return {
+      const result: ToolResult = {
         ok: false,
         error: {
           code: "tool.invalid_args",
@@ -109,36 +109,147 @@ export class InProcessToolRegistry implements ToolRegistry {
           recoverable: true,
         },
       };
+      this.recordDispatchFailure(name, callTrace, t0, result.error);
+      return result;
     }
-    // Build a per-call context with callId and signal injected when supplied by the engine adapter.
-    // We shallow-copy to avoid mutating the registry's stored context. The conditional spread
-    // pattern lets us handle all combinations (callId only, signal only, both, neither) without
-    // allocating a new object on the common path where neither field is supplied.
-    const callContext: ToolContext =
-      meta?.callId !== undefined || meta?.signal !== undefined
-        ? {
-            ...this.context,
-            ...(meta.callId !== undefined && { callId: meta.callId }),
-            ...(meta.signal !== undefined && { signal: meta.signal }),
-          }
-        : this.context;
+    const callContext = this.buildCallContext(meta, callTrace);
     try {
       const value = await tool.handler(parsed.data, callContext);
-      this.log.debug("tool.dispatch.ok", { name, durationMs: Math.round(performance.now() - t0) });
+      const durationMs = Math.round(performance.now() - t0);
+      this.log.debug("tool.dispatch.ok", { name, durationMs, ...traceFields });
+      this.recordTrace({
+        type: "tool_dispatch_end",
+        trace: callTrace,
+        toolName: name,
+        ok: true,
+        durationMs,
+      });
       return { ok: true, value, tier: tool.tier };
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
+      const durationMs = Math.round(performance.now() - t0);
       this.log.warn("tool.dispatch.error", {
         name,
-        durationMs: Math.round(performance.now() - t0),
+        durationMs,
+        ...traceFields,
         err: serializeError(cause),
       });
-      return {
+      const result: ToolResult = {
         ok: false,
         error: { code: "tool.handler_threw", message, recoverable: false },
       };
+      this.recordTrace({
+        type: "tool_dispatch_end",
+        trace: callTrace,
+        toolName: name,
+        ok: false,
+        durationMs,
+        summary: summarizeToolError(result.error),
+      });
+      return result;
     }
   }
+
+  private buildCallContext(
+    meta: DispatchMeta | undefined,
+    callTrace: DebugTraceContext | undefined,
+  ) {
+    if (meta?.callId === undefined && meta?.signal === undefined && callTrace === undefined) {
+      return this.context;
+    }
+    return {
+      ...this.context,
+      ...(meta?.callId !== undefined && { callId: meta.callId }),
+      ...(meta?.signal !== undefined && { signal: meta.signal }),
+      ...(callTrace !== undefined && { debugTrace: callTrace }),
+    } satisfies ToolContext;
+  }
+
+  private recordDispatchFailure(
+    name: string,
+    trace: DebugTraceContext | undefined,
+    startedAt: number,
+    error: ToolDispatchError,
+  ): void {
+    const durationMs = Math.round(performance.now() - startedAt);
+    const traceFields = traceLogFields(trace);
+    this.log.warn("tool.dispatch.error", {
+      name,
+      durationMs,
+      ...traceFields,
+      err: error,
+    });
+    this.recordTrace({
+      type: "tool_dispatch_end",
+      trace,
+      toolName: name,
+      ok: false,
+      durationMs,
+      summary: summarizeToolError(error),
+    });
+  }
+
+  private recordTrace(
+    input:
+      | { type: "tool_dispatch_start"; trace: DebugTraceContext | undefined; toolName: string }
+      | {
+          type: "tool_dispatch_end";
+          trace: DebugTraceContext | undefined;
+          toolName: string;
+          ok: boolean;
+          durationMs: number;
+          summary?: string;
+        },
+  ): void {
+    if (this.debugTrace === undefined || input.trace === undefined) return;
+    try {
+      if (input.type === "tool_dispatch_start") {
+        this.debugTrace.record({
+          type: input.type,
+          trace: input.trace,
+          toolName: input.toolName,
+        });
+        return;
+      }
+      this.debugTrace.record({
+        type: input.type,
+        trace: input.trace,
+        toolName: input.toolName,
+        ok: input.ok,
+        durationMs: input.durationMs,
+        ...(input.summary !== undefined && { summary: input.summary }),
+      });
+    } catch (cause) {
+      this.log.warn("tool.dispatch.trace_record_failed", { err: serializeError(cause) });
+    }
+  }
+}
+
+function buildCallTrace(
+  meta: DispatchMeta | undefined,
+  baseTrace: DebugTraceContext | undefined,
+): DebugTraceContext | undefined {
+  const trace = meta?.trace ?? baseTrace;
+  if (trace === undefined) return undefined;
+  return {
+    ...trace,
+    ...(meta?.callId !== undefined && { callId: meta.callId }),
+  };
+}
+
+function traceLogFields(trace: DebugTraceContext | undefined): Record<string, unknown> {
+  if (trace === undefined) return {};
+  return {
+    runId: trace.runId,
+    sessionId: trace.sessionId,
+    ...(trace.turnId !== undefined && { turnId: trace.turnId }),
+    ...(trace.turnIndex !== undefined && { turnIndex: trace.turnIndex }),
+    ...(trace.callId !== undefined && { callId: trace.callId }),
+  };
+}
+
+function summarizeToolError(error: { code: string; message: string }): string {
+  return `${error.code}: ${error.message}`;
 }
 
 /**

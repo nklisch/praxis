@@ -1,6 +1,6 @@
 import type { ToolDefinition as CCToolDefinition } from "@praxis/claude-cli-sdk";
 import { startToolServer, tool } from "@praxis/claude-cli-sdk";
-import type { ToolDefinitionSummary, ToolRegistry } from "@praxis/core/types";
+import type { DebugTraceContext, ToolDefinitionSummary, ToolRegistry } from "@praxis/core/types";
 import { z } from "zod";
 import { jsonSchemaToZod } from "../util/json-schema-to-zod.js";
 import type { StartToolBridgeInput, ToolBridgeHandle } from "./types.js";
@@ -19,7 +19,7 @@ export async function startToolBridge(input: StartToolBridgeInput): Promise<Tool
   const serverName = input.serverName ?? "praxis";
   const summaries = input.registry.list();
   const sdkTools: CCToolDefinition[] = summaries.map((summary) =>
-    buildSdkTool(summary, input.registry, input.getSignal),
+    buildSdkTool(summary, input.registry, input.getSignal, input.getTrace),
   );
 
   const handle = await startToolServer(sdkTools);
@@ -37,6 +37,7 @@ function buildSdkTool(
   summary: ToolDefinitionSummary,
   registry: ToolRegistry,
   getSignal?: () => AbortSignal | undefined,
+  getTrace?: () => DebugTraceContext | undefined,
 ): CCToolDefinition {
   const inputSchema = resolveInputSchema(summary);
   return tool(
@@ -55,9 +56,11 @@ function buildSdkTool(
       // (not at registration time) so we always read the CURRENT turn's signal, not
       // a stale one from a prior send().
       const signal = getSignal?.();
+      const trace = getTrace?.();
       const result = await registry.dispatch(summary.name, input, {
         callId: meta.callId,
         ...(signal !== undefined && { signal }),
+        ...(trace !== undefined && { trace }),
       });
       if (result.ok) {
         // Pass the structured value directly — the SDK JSON-stringifies at the

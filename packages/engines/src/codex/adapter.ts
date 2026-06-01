@@ -2,6 +2,7 @@ import type { Thread } from "@openai/codex-sdk";
 import { Codex } from "@openai/codex-sdk";
 import type { EngineConfig } from "@praxis/core/config";
 import type {
+  DebugTraceContext,
   Engine,
   EngineEvent,
   EngineOpenOptions,
@@ -12,6 +13,7 @@ import type {
 import { engineError, serializeError } from "@praxis/core/types";
 import { closeBridgeIfPresent } from "../common/close-bridge.js";
 import { SignalThreader } from "../common/signal-threader.js";
+import { TraceThreader } from "../common/trace-threader.js";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
@@ -39,11 +41,16 @@ export class CodexEngine implements Engine {
     // Threads the per-turn AbortSignal through to the bridge's MCP tool
     // handlers. The handler is registered once at open() time; the threader
     // lets send() swap in the live signal for each turn without re-registering.
-    const threader = new SignalThreader();
+    const signalThreader = new SignalThreader();
+    const traceThreader = new TraceThreader();
 
     const bridge: ToolBridgeHandle | null =
       openOpts.tools.list().length > 0
-        ? await startToolBridge({ registry: openOpts.tools, getSignal: threader.getSignal })
+        ? await startToolBridge({
+            registry: openOpts.tools,
+            getSignal: signalThreader.getSignal,
+            getTrace: traceThreader.getTrace,
+          })
         : null;
     let thread: Thread;
     let codex: Codex;
@@ -96,7 +103,8 @@ export class CodexEngine implements Engine {
       seedPreface,
       serverName: bridge?.serverName ?? "praxis",
       log: this.opts.deps.log,
-      threader,
+      signalThreader,
+      traceThreader,
     });
   }
 
@@ -116,7 +124,9 @@ interface CodexSessionInit {
   serverName: string;
   log: EngineDeps["log"];
   /** Threads the per-turn AbortSignal to the bridge's tool-call handlers. */
-  threader: SignalThreader;
+  signalThreader: SignalThreader;
+  /** Threads the per-turn trace context to the bridge's tool-call handlers. */
+  traceThreader: TraceThreader;
 }
 
 class CodexEngineSession implements EngineSession {
@@ -125,7 +135,8 @@ class CodexEngineSession implements EngineSession {
   private readonly bridge: ToolBridgeHandle | null;
   private readonly serverName: string;
   private readonly log: EngineDeps["log"];
-  private readonly threader: SignalThreader;
+  private readonly signalThreader: SignalThreader;
+  private readonly traceThreader: TraceThreader;
   private seedPreface: string;
   private closed = false;
 
@@ -136,10 +147,15 @@ class CodexEngineSession implements EngineSession {
     this.serverName = init.serverName;
     this.log = init.log;
     this.seedPreface = init.seedPreface;
-    this.threader = init.threader;
+    this.signalThreader = init.signalThreader;
+    this.traceThreader = init.traceThreader;
   }
 
-  async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
+  async *send(
+    userMessage: string,
+    signal?: AbortSignal,
+    trace?: DebugTraceContext,
+  ): AsyncIterable<EngineEvent> {
     if (this.closed) {
       yield { type: "error", error: engineError("session.closed", "EngineSession is closed") };
       return;
@@ -151,7 +167,8 @@ class CodexEngineSession implements EngineSession {
     // Publish the per-turn signal so the MCP bridge's tool-call handlers can
     // thread it into registry.dispatch. Cleared in finally so no stale signal
     // leaks into subsequent turns.
-    this.threader.enter(signal);
+    this.signalThreader.enter(signal);
+    this.traceThreader.enter(trace);
 
     try {
       // Pass the AbortSignal to runStreamed — the Codex SDK's TurnOptions honors
@@ -169,7 +186,8 @@ class CodexEngineSession implements EngineSession {
     } finally {
       // Clear the per-turn signal so a stale aborted signal doesn't bleed into
       // the next turn.
-      this.threader.exit();
+      this.signalThreader.exit();
+      this.traceThreader.exit();
     }
   }
 

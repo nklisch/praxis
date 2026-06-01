@@ -391,4 +391,65 @@ describe("startToolBridge", () => {
       expect(observedMeta?.signal).toBeUndefined();
     }
   });
+
+  it("getTrace is called at dispatch time and threads trace into registry.dispatch", async () => {
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { startToolServer } = await import("@praxis/claude-cli-sdk");
+
+    const trace = {
+      runId: "run-1",
+      sessionId: "session-1" as import("@praxis/core/types").SessionId,
+      turnId: "session-1:turn:0",
+      turnIndex: 0,
+    };
+    let currentTrace: typeof trace | undefined;
+    const getTrace = (): typeof trace | undefined => currentTrace;
+
+    let observedTrace: typeof trace | undefined;
+    const dispatchMock = vi.fn(
+      async (
+        _name: string,
+        _args: unknown,
+        meta: { callId?: string; trace?: typeof trace },
+      ): Promise<ToolResult> => {
+        observedTrace = meta.trace;
+        return { ok: true, value: { ok: true }, tier: "deterministic" };
+      },
+    );
+
+    const echoSummary: ToolDefinitionSummary = {
+      name: "test.echo",
+      description: "Echo",
+      inputSchemaJson: { type: "object", properties: {}, required: [] },
+      inputSchemaNative: z.object({}),
+      tier: "deterministic",
+    };
+
+    const registry: ToolRegistry = {
+      list: () => [echoSummary],
+      dispatch: dispatchMock,
+    };
+
+    await startToolBridge({ registry, getTrace });
+
+    const calls = (startToolServer as ReturnType<typeof vi.fn>).mock.calls;
+    const registeredTools = calls[calls.length - 1]?.[0] as Array<{
+      name: string;
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
+    }>;
+    const toolDef = registeredTools?.[0];
+    expect(toolDef).toBeDefined();
+    if (toolDef) {
+      await toolDef.handler({}, { callId: "1" });
+      expect(observedTrace).toBeUndefined();
+
+      currentTrace = trace;
+      await toolDef.handler({}, { callId: "2" });
+      expect(observedTrace).toBe(trace);
+
+      currentTrace = undefined;
+      await toolDef.handler({}, { callId: "3" });
+      expect(observedTrace).toBeUndefined();
+    }
+  });
 });

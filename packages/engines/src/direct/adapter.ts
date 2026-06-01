@@ -1,5 +1,6 @@
 import type { EngineConfig } from "@praxis/core/config";
 import type {
+  DebugTraceContext,
   Engine,
   EngineEvent,
   EngineOpenOptions,
@@ -88,7 +89,11 @@ class DirectEngineSession implements EngineSession {
     this.messages = init.priorTurns.map((t) => ({ role: t.role, content: t.content }));
   }
 
-  async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
+  async *send(
+    userMessage: string,
+    signal?: AbortSignal,
+    trace?: DebugTraceContext,
+  ): AsyncIterable<EngineEvent> {
     this.messages.push({ role: "user", content: userMessage });
     const model = resolveModel(this.provider, this.config);
     // The Vercel AI SDK's streamText accepts abortSignal to cancel the
@@ -101,11 +106,12 @@ class DirectEngineSession implements EngineSession {
     // tool's `execute` callback so handlers and sub-agent spawners can bail early
     // when the user clicks Stop.
     const getSignal = (): AbortSignal | undefined => signal;
+    const getTrace = (): DebugTraceContext | undefined => trace;
     const result = streamText({
       model,
       system: this.systemPrompt,
       messages: this.messages,
-      tools: toVercelTools(this.tools, getSignal),
+      tools: toVercelTools(this.tools, getSignal, getTrace),
       stopWhen: stepCountIs(this.maxSteps),
       ...(signal !== undefined && { abortSignal: signal }),
       ...(this.generation?.temperature !== undefined && {

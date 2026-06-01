@@ -80,6 +80,7 @@ export interface EngineSessionManagerDeps
     | "indexerOrchestrator"
     | "activity"
     | "subAgent"
+    | "debugTrace"
     | "promptCustomization"
     | "engineFactory"
     | "onEngineProcessSpawned"
@@ -431,6 +432,7 @@ export class EngineSessionManager {
       tools: enabledTools,
       context: toolContext,
       log: this.deps.log.child({ component: "tool-dispatch", sessionId }),
+      ...(this.deps.debugTrace !== undefined && { debugTrace: this.deps.debugTrace }),
     });
 
     // Unit 5d: prefer native engine resume over text-splice when possible.

@@ -5,6 +5,7 @@ import type { AuthoringService } from "./authoring-service.js";
 import type { Logger } from "./common.js";
 import type { CourseCreateService } from "./course-create-service.js";
 import type { CourseStateReader } from "./course-state.js";
+import type { DebugTraceContext } from "./debug-trace.js";
 import type { DocumentScopesService } from "./document-scopes.js";
 import type { Engine } from "./engine.js";
 import type { FlashcardsService, FsrsScheduler } from "./flashcards.js";
@@ -127,6 +128,12 @@ export interface ToolContext {
    * signal.
    */
   signal?: AbortSignal;
+  /**
+   * Debug trace context for the current tool invocation. The registry copies
+   * this per call, adding `callId` when the engine supplied one, so tools can
+   * correlate downstream sub-agent work without mutating the base context.
+   */
+  debugTrace?: DebugTraceContext;
   /**
    * Phase 16 (course-create-session-scoped-attachment): set by sub-agent harnesses
    * to the PARENT session's id. For top-level sessions this is undefined.

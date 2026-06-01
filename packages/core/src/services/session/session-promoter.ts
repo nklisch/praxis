@@ -31,6 +31,7 @@ export interface PromotionResult {
   studentId: StudentId;
   modeId: string;
   engineId: string;
+  userEventId: string;
   courseId?: CourseId;
   assignmentId?: AssignmentId;
 }
@@ -74,7 +75,7 @@ export class SessionPromoter {
     this.deps.registry.promote(sessionId, (state) => {
       this.deps.db.transaction(() => {
         this.deps.persistSessionRow(state);
-        recordUserMessage({
+        const userEventId = recordUserMessage({
           db: this.deps.db,
           sessionId,
           studentId: state.studentId,
@@ -83,15 +84,15 @@ export class SessionPromoter {
           turnIndex: 0,
           content: message,
         });
+        result = {
+          studentId: state.studentId,
+          modeId: state.modeId,
+          engineId: state.engineId,
+          userEventId,
+          ...(state.courseId !== undefined && { courseId: state.courseId }),
+          ...(state.assignmentId !== undefined && { assignmentId: state.assignmentId }),
+        };
       });
-
-      result = {
-        studentId: state.studentId,
-        modeId: state.modeId,
-        engineId: state.engineId,
-        ...(state.courseId !== undefined && { courseId: state.courseId }),
-        ...(state.assignmentId !== undefined && { assignmentId: state.assignmentId }),
-      };
     });
 
     return result;

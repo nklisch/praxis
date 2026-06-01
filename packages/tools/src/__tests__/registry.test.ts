@@ -1,7 +1,15 @@
-import type { Logger, ToolContext } from "@praxis/core/types";
+import type {
+  DebugTraceContext,
+  DebugTraceRecord,
+  DebugTraceRecordInput,
+  Logger,
+  Timestamp,
+  ToolContext,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { recordingLogger } from "../../../../tests/helpers/mocks.js";
 import { InProcessToolRegistry } from "../registry.js";
 import { echoTool, nowTool } from "../test-tools/index.js";
 
@@ -45,7 +53,9 @@ const ctx: ToolContext = {
       parseLatex: vi.fn(),
     },
     pedagogyPack: makeEmptyPedagogyPackService(),
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 11 placeholder — not used in this test
     lock: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 11 placeholder — not used in this test
     authoring: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
     notes: null as any,
@@ -72,6 +82,35 @@ const ctx: ToolContext = {
     };
     return l;
   })(),
+};
+
+function makeTraceRegistry() {
+  const records: DebugTraceRecord[] = [];
+  return {
+    records,
+    registry: {
+      record(input: DebugTraceRecordInput): DebugTraceRecord {
+        const record = { ...input, recordedAt: 1 as Timestamp };
+        records.push(record);
+        return record;
+      },
+      list: () => records,
+      findByRunId: (runId: string) => records.filter((record) => record.trace.runId === runId),
+      findBySessionId: (sessionId: string) =>
+        records.filter((record) => record.trace.sessionId === sessionId),
+      findByTurnId: (turnId: string) => records.filter((record) => record.trace.turnId === turnId),
+      clear: () => {
+        records.length = 0;
+      },
+    },
+  };
+}
+
+const turnTrace: DebugTraceContext = {
+  runId: "run-1",
+  sessionId: brandId<"SessionId">("session-1"),
+  turnId: "session-1:turn:2",
+  turnIndex: 2,
 };
 
 describe("InProcessToolRegistry", () => {
@@ -280,5 +319,139 @@ describe("InProcessToolRegistry", () => {
     expect(capturedCallId).toBe("call-xyz");
     expect(signalWasCaptured).toBe(true);
     expect(capturedSignal).toBeUndefined();
+  });
+
+  it("threads callId, signal, and debugTrace into a per-call copied context", async () => {
+    const { registry: debugTrace, records } = makeTraceRegistry();
+    const log = recordingLogger();
+    const controller = new AbortController();
+    let captured: Pick<ToolContext, "callId" | "signal" | "debugTrace"> | undefined;
+
+    const captureTool = {
+      name: "test.capture_trace_context",
+      description: "Captures call context",
+      input: z.object({}),
+      output: z.object({}),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler(_args: unknown, toolCtx: ToolContext) {
+        captured = {
+          callId: toolCtx.callId,
+          signal: toolCtx.signal,
+          debugTrace: toolCtx.debugTrace,
+        };
+        return {};
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [captureTool],
+      context: ctx,
+      log,
+      debugTrace,
+    });
+
+    await registry.dispatch(
+      "test.capture_trace_context",
+      {},
+      {
+        callId: "call-123",
+        signal: controller.signal,
+        trace: turnTrace,
+      },
+    );
+
+    expect(captured?.callId).toBe("call-123");
+    expect(captured?.signal).toBe(controller.signal);
+    expect(captured?.debugTrace).toEqual({ ...turnTrace, callId: "call-123" });
+    expect(ctx.callId).toBeUndefined();
+    expect(ctx.signal).toBeUndefined();
+    expect(ctx.debugTrace).toBeUndefined();
+
+    expect(records.map((record) => record.type)).toEqual([
+      "tool_dispatch_start",
+      "tool_dispatch_end",
+    ]);
+    expect(records[0]?.trace).toEqual({ ...turnTrace, callId: "call-123" });
+    expect(records[1]).toMatchObject({
+      type: "tool_dispatch_end",
+      toolName: "test.capture_trace_context",
+      ok: true,
+    });
+
+    const startLog = log.records.find((record) => record.message === "tool.dispatch.start");
+    const okLog = log.records.find((record) => record.message === "tool.dispatch.ok");
+    expect(startLog?.fields).toMatchObject({
+      name: "test.capture_trace_context",
+      runId: "run-1",
+      turnId: "session-1:turn:2",
+      sessionId: "session-1",
+      turnIndex: 2,
+      callId: "call-123",
+    });
+    expect(okLog?.fields).toMatchObject({
+      name: "test.capture_trace_context",
+      runId: "run-1",
+      turnId: "session-1:turn:2",
+      sessionId: "session-1",
+      turnIndex: 2,
+      callId: "call-123",
+    });
+  });
+
+  it("records thrown handler failure before any sub-agent trace starts", async () => {
+    const { registry: debugTrace, records } = makeTraceRegistry();
+    const log = recordingLogger();
+
+    const throwingTool = {
+      name: "test.throw_before_subagent",
+      description: "Throws before starting a sub-agent",
+      input: z.object({}),
+      output: z.object({}),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler() {
+        throw new Error("boom before sub-agent");
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [throwingTool],
+      context: ctx,
+      log,
+      debugTrace,
+    });
+
+    const result = await registry.dispatch(
+      "test.throw_before_subagent",
+      {},
+      {
+        callId: "call-before-subagent",
+        trace: turnTrace,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "tool.handler_threw", message: "boom before sub-agent" },
+    });
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      type: "tool_dispatch_end",
+      toolName: "test.throw_before_subagent",
+      ok: false,
+      summary: "tool.handler_threw: boom before sub-agent",
+      trace: { ...turnTrace, callId: "call-before-subagent" },
+    });
+    expect(records.some((record) => record.type === "subagent_event")).toBe(false);
+
+    const errorLog = log.records.find((record) => record.message === "tool.dispatch.error");
+    expect(errorLog?.fields).toMatchObject({
+      name: "test.throw_before_subagent",
+      runId: "run-1",
+      turnId: "session-1:turn:2",
+      sessionId: "session-1",
+      callId: "call-before-subagent",
+    });
   });
 });

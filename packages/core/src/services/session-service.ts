@@ -7,6 +7,8 @@ import { appendEpisodic, nextTurnIndex, recordUserMessage } from "../session/epi
 import type {
   AssignmentId,
   CourseId,
+  DebugTraceContext,
+  DebugTraceRecordInput,
   DocumentId,
   EngineEvent,
   GateId,
@@ -21,7 +23,7 @@ import type {
   SystemNoteOrigin,
   Timestamp,
 } from "../types/index.js";
-import { brandId, engineError } from "../types/index.js";
+import { brandId, engineError, makeTurnId, serializeError } from "../types/index.js";
 import { SessionDiscardedError } from "../types/session-discarded-error.js";
 import { type ActiveEntry, EngineSessionManager } from "./session/engine-session-manager.js";
 import { SessionPromoter } from "./session/session-promoter.js";
@@ -58,6 +60,7 @@ export class SessionServiceImpl implements SessionService {
       }),
       ...(deps.activity !== undefined && { activity: deps.activity }),
       ...(deps.subAgent !== undefined && { subAgent: deps.subAgent }),
+      ...(deps.debugTrace !== undefined && { debugTrace: deps.debugTrace }),
       ...(deps.promptCustomization !== undefined && {
         promptCustomization: deps.promptCustomization,
       }),
@@ -222,8 +225,8 @@ export class SessionServiceImpl implements SessionService {
     if (this.promoter?.shouldPromote(sessionId)) {
       try {
         const promoted = this.promoter.promote(sessionId, message);
-        yield { type: "user_message", content: message };
         const mode = this.requireMode(promoted.modeId);
+        const trace = this.createTurnTrace(sessionId, 0);
         const currentEngineId = readEngineConfig(
           this.deps.db,
           this.deps.secretStorage,
@@ -237,6 +240,13 @@ export class SessionServiceImpl implements SessionService {
           ...(promoted.courseId !== undefined && { courseId: promoted.courseId }),
           ...(promoted.assignmentId !== undefined && { assignmentId: promoted.assignmentId }),
         });
+        this.recordTurnStart(trace, mode.id, entry.engineId);
+        this.recordEngineEventTrace(
+          trace,
+          { type: "user_message", content: message },
+          { eventId: promoted.userEventId },
+        );
+        yield { type: "user_message", content: message };
         yield* this._driveEngineTurn({
           entry,
           sessionId,
@@ -244,6 +254,7 @@ export class SessionServiceImpl implements SessionService {
           mode,
           message,
           signal,
+          trace,
         });
         return;
       } catch (err) {
@@ -314,7 +325,9 @@ export class SessionServiceImpl implements SessionService {
       return;
     }
 
-    recordUserMessage({
+    const trace = this.createTurnTrace(sessionId, turnIndex);
+    this.recordTurnStart(trace, mode.id, entry.engineId);
+    const userEventId = recordUserMessage({
       db: this.deps.db,
       sessionId,
       studentId,
@@ -323,8 +336,13 @@ export class SessionServiceImpl implements SessionService {
       turnIndex,
       content: message,
     });
+    this.recordEngineEventTrace(
+      trace,
+      { type: "user_message", content: message },
+      { eventId: userEventId },
+    );
     yield { type: "user_message", content: message };
-    yield* this._driveEngineTurn({ entry, sessionId, studentId, mode, message, signal });
+    yield* this._driveEngineTurn({ entry, sessionId, studentId, mode, message, signal, trace });
   }
 
   /**
@@ -338,8 +356,9 @@ export class SessionServiceImpl implements SessionService {
     mode: Mode;
     message: string;
     signal?: AbortSignal | undefined;
+    trace: DebugTraceContext;
   }): AsyncIterable<EngineEvent> {
-    const { entry, sessionId, studentId, mode, message, signal } = opts;
+    const { entry, sessionId, studentId, mode, message, signal, trace } = opts;
     // Resolve the turn index from the DB (the user_message was already written).
     const turnIndex = nextTurnIndex(this.deps.db, sessionId) - 1;
 
@@ -347,9 +366,9 @@ export class SessionServiceImpl implements SessionService {
     const capturedEntry = entry;
     capturedEntry.turnInFlight = true;
     try {
-      for await (const event of capturedEntry.handle.send(message, signal)) {
+      for await (const event of capturedEntry.handle.send(message, signal, trace)) {
         try {
-          appendEpisodic({
+          const eventId = appendEpisodic({
             db: this.deps.db,
             sessionId,
             studentId,
@@ -358,6 +377,7 @@ export class SessionServiceImpl implements SessionService {
             turnIndex,
             event,
           });
+          this.recordEngineEventTrace(trace, event, { eventId });
         } catch (cause) {
           const writeErrorMsg = cause instanceof Error ? cause.message : String(cause);
           yield {
@@ -376,7 +396,7 @@ export class SessionServiceImpl implements SessionService {
 
           const interrupted: EngineEvent = { type: "interrupted", reason: "user_cancel" };
           try {
-            appendEpisodic({
+            const eventId = appendEpisodic({
               db: this.deps.db,
               sessionId,
               studentId,
@@ -385,8 +405,12 @@ export class SessionServiceImpl implements SessionService {
               turnIndex,
               event: interrupted,
             });
-          } catch {
-            /* non-fatal: episodic write failure on interrupt is best-effort */
+            this.recordEngineEventTrace(trace, interrupted, { eventId });
+          } catch (cause) {
+            this.deps.log.warn("session.interrupt.episodic_write_failed", {
+              sessionId,
+              err: serializeError(cause),
+            });
           }
           yield interrupted;
           return;
@@ -715,9 +739,94 @@ export class SessionServiceImpl implements SessionService {
     this.deps.indexerOrchestrator?.shutdown?.();
   }
 
+  private createTurnTrace(sessionId: SessionId, turnIndex: number): DebugTraceContext {
+    return {
+      runId: uuidv7(),
+      sessionId,
+      turnIndex,
+      turnId: makeTurnId(sessionId, turnIndex),
+    };
+  }
+
+  private recordTurnStart(trace: DebugTraceContext, modeId: string, engineId: string): void {
+    this.deps.log.debug("turn.trace.start", {
+      ...traceLogFields(trace),
+      modeId,
+      engineId,
+    });
+    this.recordDebugTrace({
+      type: "turn_start",
+      trace,
+      modeId,
+      engineId,
+    });
+  }
+
+  private recordEngineEventTrace(
+    trace: DebugTraceContext,
+    event: EngineEvent,
+    opts: { eventId: string },
+  ): void {
+    const eventSummary = summarizeEngineEvent(event);
+    const eventTrace =
+      eventSummary.callId !== undefined ? { ...trace, callId: eventSummary.callId } : trace;
+    this.recordDebugTrace({
+      type: "engine_event",
+      trace: eventTrace,
+      eventType: event.type,
+      eventId: opts.eventId,
+      ...(eventSummary.summary !== undefined && { summary: eventSummary.summary }),
+    });
+  }
+
+  private recordDebugTrace(record: DebugTraceRecordInput): void {
+    if (this.deps.debugTrace === undefined) return;
+    try {
+      this.deps.debugTrace.record(record);
+    } catch (cause) {
+      this.deps.log.warn("session.trace_record_failed", { err: serializeError(cause) });
+    }
+  }
+
   private requireMode(modeId: string): Mode {
     const mode = this.deps.modes.get(modeId);
     if (!mode) throw new Error(`Unknown mode: ${modeId}`);
     return mode;
+  }
+}
+
+function traceLogFields(trace: DebugTraceContext): Record<string, unknown> {
+  return {
+    runId: trace.runId,
+    sessionId: trace.sessionId,
+    ...(trace.turnId !== undefined && { turnId: trace.turnId }),
+    ...(trace.turnIndex !== undefined && { turnIndex: trace.turnIndex }),
+    ...(trace.callId !== undefined && { callId: trace.callId }),
+  };
+}
+
+function summarizeEngineEvent(event: EngineEvent): { callId?: string; summary?: string } {
+  switch (event.type) {
+    case "tool_call":
+      return { callId: event.callId, summary: `tool_call:${event.toolName}` };
+    case "tool_result":
+      return {
+        callId: event.callId,
+        summary: event.result.ok ? "tool_result:ok" : `tool_result:${event.result.error.code}`,
+      };
+    case "final":
+      return { summary: `final:${event.finalReason ?? "success"}` };
+    case "error":
+      return { summary: `error:${event.error.code}` };
+    case "interrupted":
+      return { summary: `interrupted:${event.reason}` };
+    case "model_message":
+      return { summary: event.partial === true ? "model_message:partial" : "model_message:final" };
+    case "thinking":
+      return { summary: "thinking" };
+    case "system_note":
+      return { summary: `system_note:${event.origin.kind}` };
+    case "user_message":
+      return { summary: "user_message" };
   }
 }
