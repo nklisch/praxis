@@ -1,14 +1,14 @@
 ---
 id: bug-scan-tool-result-json-stringify
 kind: story
-stage: implementing
+stage: review
 tags: [bug, language-footgun]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: medium
 bug_domain: language-footgun
@@ -29,3 +29,10 @@ content: results.map((r) => ({
   is_error: r.isError ?? false,
 })),
 ```
+
+## Implementation notes
+
+- Changed `packages/claude-cli-sdk/src/conversation.ts` to normalize tool result values through a JSON-safe encoder before putting them on the CLI/MCP wire.
+- The encoder preserves fields that `JSON.stringify` would drop by converting `undefined` to `null`, `bigint` to decimal strings, functions/symbols to descriptive strings, cycles to `"[Circular]"`, and serialization exceptions to `is_error: true` tool results.
+- Added coverage in `packages/claude-cli-sdk/src/__tests__/conversation-tool-results.test.ts` for non-JSON values, cycles, and serialization failure fallback.
+- Verification: `pnpm --filter @praxis/claude-cli-sdk typecheck`; `TMPDIR=/home/nathan/dev/praxis/.tmp pnpm vitest run packages/claude-cli-sdk/src/__tests__/auth.test.ts packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts packages/claude-cli-sdk/src/__tests__/query.test.ts packages/claude-cli-sdk/src/__tests__/conversation-tool-results.test.ts`.

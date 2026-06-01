@@ -80,6 +80,157 @@ export interface ToolResultContent {
   isError?: boolean;
 }
 
+type JsonSafe = string | number | boolean | null | JsonSafe[] | { [key: string]: JsonSafe };
+
+interface PreparedToolResultContent extends ToolResultContent {
+  value: JsonSafe;
+  content: string;
+  isError: boolean;
+}
+
+const TOOL_HANDLER_ENVELOPE_KEYS = new Set(["value", "isError"]);
+
+function isExplicitToolHandlerEnvelope(
+  result: unknown,
+): result is { value: unknown; isError?: boolean } {
+  if (typeof result !== "object" || result === null || !("value" in result)) return false;
+  const record = result as Record<string, unknown>;
+  if (record.isError !== undefined && typeof record.isError !== "boolean") return false;
+  return Object.keys(record).every((key) => TOOL_HANDLER_ENVELOPE_KEYS.has(key));
+}
+
+function normalizeJsonSafe(value: unknown, seen = new WeakSet<object>()): JsonSafe {
+  switch (typeof value) {
+    case "string":
+    case "boolean":
+      return value;
+    case "number":
+      return Number.isFinite(value) ? value : null;
+    case "undefined":
+      return null;
+    case "bigint":
+      return value.toString();
+    case "function":
+      return value.name ? `[Function: ${value.name}]` : "[Function]";
+    case "symbol":
+      return value.toString();
+    case "object":
+      break;
+  }
+
+  if (value === null) return null;
+  if (seen.has(value)) return "[Circular]";
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+      ...(value.stack !== undefined ? { stack: value.stack } : {}),
+    };
+  }
+
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) => normalizeJsonSafe(item, seen));
+    }
+    if (value instanceof Map) {
+      return Array.from(value.entries()).map(([key, mapValue]) => [
+        normalizeJsonSafe(key, seen),
+        normalizeJsonSafe(mapValue, seen),
+      ]);
+    }
+    if (value instanceof Set) {
+      return Array.from(value.values()).map((item) => normalizeJsonSafe(item, seen));
+    }
+
+    const out: { [key: string]: JsonSafe } = {};
+    for (const key of Reflect.ownKeys(value)) {
+      if (!Object.prototype.propertyIsEnumerable.call(value, key)) continue;
+      const outKey = typeof key === "symbol" ? key.toString() : key;
+      out[outKey] = normalizeJsonSafe((value as Record<PropertyKey, unknown>)[key], seen);
+    }
+    return out;
+  } finally {
+    seen.delete(value);
+  }
+}
+
+function encodeToolResultValue(value: unknown):
+  | { ok: true; value: JsonSafe; content: string }
+  | {
+      ok: false;
+      error: string;
+    } {
+  let normalized: JsonSafe;
+  try {
+    normalized = normalizeJsonSafe(value);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  try {
+    return { ok: true, value: normalized, content: JSON.stringify(normalized) };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function prepareToolResultContent(result: ToolResultContent): PreparedToolResultContent {
+  const encoded = encodeToolResultValue(result.value);
+  if (encoded.ok) {
+    return {
+      ...result,
+      value: encoded.value,
+      content: encoded.content,
+      isError: result.isError ?? false,
+    };
+  }
+
+  const errorMessage = `Tool result could not be serialized: ${encoded.error}`;
+  return {
+    toolUseId: result.toolUseId,
+    value: errorMessage,
+    content: JSON.stringify(errorMessage),
+    isError: true,
+  };
+}
+
+function toolResultContentFromHandlerResult(result: unknown, toolUseId: string): ToolResultContent {
+  if (isExplicitToolHandlerEnvelope(result)) {
+    return { toolUseId, value: result.value, isError: result.isError };
+  }
+  return { toolUseId, value: result };
+}
+
+/** @internal test hook for JSON-safe tool result encoding. */
+export function _prepareToolResultContentForTest(result: ToolResultContent): {
+  toolUseId: string;
+  value: unknown;
+  content: string;
+  isError: boolean;
+} {
+  return prepareToolResultContent(result);
+}
+
+/** @internal test hook for handler-result envelope detection. */
+export function _toolResultContentFromHandlerResultForTest(
+  result: unknown,
+  toolUseId: string,
+): ToolResultContent {
+  return toolResultContentFromHandlerResult(result, toolUseId);
+}
+
 /**
  * A persistent multi-turn conversation backed by a single CLI process.
  *
@@ -360,7 +511,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
     ensureProcess()
       .then((p) => {
-        p.stdin!.write(stdinMessage + "\n");
+        p.stdin?.write(`${stdinMessage}\n`);
       })
       .catch((err: Error) => {
         failTurn(err instanceof CLIError ? err : new CLIError(1, err.message));
@@ -403,18 +554,9 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     try {
       const result = await handler(event);
       // Two acceptable shapes: a bare value (success) or a structured
-      // `{ value, isError? }` for explicit error signaling. Anything that
-      // looks like the structured form is treated as such; everything else
-      // is treated as a bare value.
-      if (
-        result !== null &&
-        typeof result === "object" &&
-        "value" in (result as Record<string, unknown>)
-      ) {
-        const r = result as { value: unknown; isError?: boolean };
-        return { toolUseId: event.toolId, value: r.value, isError: r.isError };
-      }
-      return { toolUseId: event.toolId, value: result };
+      // `{ value, isError? }` for explicit error signaling. Preserve normal
+      // payload objects that happen to include a `value` field plus siblings.
+      return toolResultContentFromHandlerResult(result, event.toolId);
     } catch (err) {
       // Throws from the handler surface as `isError: true` with the message
       // string as the value. Lets handlers signal unexpected failures
@@ -437,20 +579,21 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
       try {
         while (true) {
-          let intercepted: ToolResultContent | null = null;
+          let intercepted: PreparedToolResultContent | null = null;
 
           for await (const event of currentTurn) {
             yield event;
 
             if (!intercepted && event.type === "tool_use" && handlers[event.toolName]) {
               const result = await invokeToolHandler(handlers[event.toolName]!, event);
-              intercepted = result;
+              const prepared = prepareToolResultContent(result);
+              intercepted = prepared;
 
               yield {
                 type: "tool_result" as const,
                 toolId: event.toolId,
-                value: result.value,
-                isError: result.isError,
+                value: prepared.value,
+                isError: prepared.isError,
               };
 
               break;
@@ -481,8 +624,8 @@ export function createConversation(options: ConversationOptions = {}): Conversat
                     tool_use_id: intercepted.toolUseId,
                     // MCP wire requires text. JSON-stringify the structured
                     // value here so the receive side can parse it back.
-                    content: JSON.stringify(intercepted.value),
-                    is_error: intercepted.isError ?? false,
+                    content: intercepted.content,
+                    is_error: intercepted.isError,
                   },
                 ],
               },
@@ -517,18 +660,19 @@ export function createConversation(options: ConversationOptions = {}): Conversat
   }
 
   function sendToolResult(results: ToolResultContent[]): Turn {
+    const preparedResults = results.map((r) => prepareToolResultContent(r));
     const msg = JSON.stringify({
       type: "user",
       message: {
         role: "user",
-        content: results.map((r) => ({
+        content: preparedResults.map((r) => ({
           type: "tool_result",
           tool_use_id: r.toolUseId,
           // MCP wire requires text on the content field. We JSON-stringify
           // the structured value here so callers don't have to. The receive
           // side (parseStreamLine + extractToolResultValue) inverts this.
-          content: JSON.stringify(r.value),
-          is_error: r.isError ?? false,
+          content: r.content,
+          is_error: r.isError,
         })),
       },
     });
