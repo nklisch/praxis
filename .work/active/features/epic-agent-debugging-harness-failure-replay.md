@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-failure-replay
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]
@@ -397,10 +397,7 @@ export async function replayDebugBundle(input: {
 - `package.json`
 
 ```ts
-export function generateDebugBundleReport(input: {
-  manifest: DebugBundleManifest;
-  artifacts: readonly { path: string; contents: string }[];
-}): string;
+export function generateDebugBundleReport(input: { manifest: DebugBundleManifest }): string;
 ```
 
 **Implementation notes**:
@@ -477,3 +474,13 @@ export function generateDebugBundleReport(input: {
 
 All five implementation stories are at `stage: done`; feature advanced to
 `stage: review`.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: `idea-consolidate-debug-replay-helper-with-core-loader`
+**Nits**: accepted inline; removed unused report artifact input, aligned replay helper error naming, documented valid `debug:bundle` failure classes, and closed the debug bundle DB handle consistently.
+
+**Notes**: Deep feature review used a fresh-context peeragent pass with Claude Sonnet. No blockers were found. Accepted fixes also replaced callId lookup scans with DB-side JSON filtering and added callId-without-trace coverage for bundle capture and DB snapshots. The replay-helper duplication remains tracked as follow-up because the current helper intentionally avoids stale project-reference `dist/` behavior in script/test execution.
