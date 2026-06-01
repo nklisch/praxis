@@ -1,14 +1,14 @@
 ---
 id: bug-scan-query-sessionid-hangs
 kind: story
-stage: review
+stage: done
 tags: [bug, error-handling]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: medium
 bug_domain: error-handling
@@ -36,3 +36,13 @@ const result = createDeferredPromise<ResultEvent>();
 - Changed `packages/claude-cli-sdk/src/query.ts` to track whether `system:init` has resolved `sessionId` and reject `query.sessionId` on pre-init build/spawn/stream failures.
 - Added coverage in `packages/claude-cli-sdk/src/__tests__/query.test.ts` for a CLI failure before init rejecting both `result` and `sessionId`.
 - Verification: `pnpm --filter @praxis/claude-cli-sdk typecheck`; `TMPDIR=/home/nathan/dev/praxis/.tmp pnpm vitest run packages/claude-cli-sdk/src/__tests__/auth.test.ts packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts packages/claude-cli-sdk/src/__tests__/query.test.ts packages/claude-cli-sdk/src/__tests__/conversation-tool-results.test.ts`.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
