@@ -1,14 +1,14 @@
 ---
 id: epic-big-bug-squash
 kind: epic
-stage: implementing
+stage: review
 tags: [bug]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 ---
 
 # Big bug squash
@@ -86,3 +86,22 @@ feature layer was added in this design pass.
 - Source report: `bug-scan-report.md`
 - No foundation-doc roll-forward: this is corrective work against existing
   behavior, not a new product or architecture direction.
+
+## Implementation notes
+
+- All 34 direct child bug-scan stories reached `stage: done`.
+- Story reviews used the review fast lane: implementation records were present,
+  and each story was approved with no blockers, important findings, or nits.
+- Integration stabilization follow-up was committed in
+  `4e592ba1` (`implement: stabilize bug-squash integration verification`) after
+  the first full-suite pass exposed pack-import idempotency and exact optional
+  type issues across the combined wave.
+- Verification:
+  - `TMPDIR=$PWD/.tmp pnpm typecheck` passed.
+  - `TMPDIR=$PWD/.tmp pnpm test` passed: 489 files, 5439 tests; 3 files skipped.
+  - Targeted `pnpm exec biome check` over the touched-code set passed with
+    non-blocking warnings in already-touched Claude SDK files.
+
+## Children complete (2026-06-01)
+
+All direct child stories are done, so the epic is ready for deep review.
