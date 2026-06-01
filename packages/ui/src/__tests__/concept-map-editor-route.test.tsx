@@ -13,16 +13,25 @@ import type {
   Timestamp,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ConceptMapEditorRoute } from "../routes/concept-map-editor.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
-afterEach(() => cleanup());
+const routeParams = vi.hoisted(() => ({
+  courseId: "course-xyz",
+  conceptMapId: "map-def",
+}));
 
 const COURSE_ID = "course-xyz";
 const MAP_ID = "map-def";
+
+afterEach(() => {
+  routeParams.courseId = COURSE_ID;
+  routeParams.conceptMapId = MAP_ID;
+  cleanup();
+});
 
 // Mock TanStack Router hooks.
 const mockNavigate = vi.fn().mockResolvedValue(undefined);
@@ -31,7 +40,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: () => ({ courseId: COURSE_ID, conceptMapId: MAP_ID }),
+    useParams: () => routeParams,
   };
 });
 
@@ -274,6 +283,66 @@ describe("ConceptMapEditorRoute", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Map not found.")).toBeDefined();
+    });
+  });
+
+  it("ignores stale concept responses after the course route changes", async () => {
+    routeParams.courseId = "course-a";
+    let resolveFirst!: (
+      concepts: Awaited<ReturnType<PraxisClient["artifacts"]["concepts"]>>,
+    ) => void;
+    const client = makeClient();
+    client.artifacts.concepts = vi.fn().mockImplementation((courseId) => {
+      if (courseId === "course-a") {
+        return new Promise((resolve) => {
+          resolveFirst = resolve;
+        });
+      }
+      return Promise.resolve([
+        {
+          id: "fresh",
+          graphId: "g2",
+          name: "Fresh Concept",
+          description: "",
+          aliases: [],
+          standardsTags: [],
+        },
+      ]);
+    });
+
+    const view = renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Map")).toBeDefined();
+    });
+
+    routeParams.courseId = "course-b";
+    view.rerender(
+      <PraxisClientProvider client={client}>
+        <ConceptMapEditorRoute />
+      </PraxisClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Fresh Concept")).toBeDefined();
+    });
+
+    await act(async () => {
+      resolveFirst([
+        {
+          id: "stale",
+          graphId: "g1",
+          name: "Stale Concept",
+          description: "",
+          aliases: [],
+          standardsTags: [],
+        },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Stale Concept")).toBeNull();
+      expect(screen.getByText("Fresh Concept")).toBeDefined();
     });
   });
 

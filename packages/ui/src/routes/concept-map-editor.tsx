@@ -124,13 +124,21 @@ export function ConceptMapEditorRoute() {
   // ── Canonical concepts (needed for right panel matching) ──────────────────
   const [concepts, setConcepts] = useState<CanonicalConcept[]>([]);
   useEffect(() => {
+    setConcepts([]);
     if (!courseId) return;
+    let cancelled = false;
     client.artifacts
-      .concepts(courseId as CourseId)
-      .then(setConcepts)
+      .concepts(courseId)
+      .then((nextConcepts) => {
+        if (!cancelled) setConcepts(nextConcepts);
+      })
       .catch(() => {
-        // Non-fatal — right panel matching will be empty.
+        // Non-fatal — right panel matching will stay empty.
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [client, courseId]);
 
   // ── Editor and canvas refs ────────────────────────────────────────────────
