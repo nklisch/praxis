@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation-types
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-trace-correlation
 depends_on: []
@@ -61,3 +61,16 @@ foundation; it should not wire session turns, tools, IPC, or renderer code yet.
 - `pnpm vitest run packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts`
 - `pnpm --filter @praxis/core typecheck`
 - `pnpm biome check packages/core/src/types/debug-trace.ts packages/core/src/types/index.ts packages/core/src/services/debug/debug-trace-registry.ts packages/core/src/services/debug/index.ts packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts packages/core/src/services/types.ts packages/core/src/services/index.ts`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation record includes green focused
+verification; host reran `pnpm vitest run
+packages/core/src/services/debug/__tests__/debug-trace-registry.test.ts` and
+`pnpm --filter @praxis/core typecheck`.
