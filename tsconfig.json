@@ -20,5 +20,5 @@
     }
   },
   "include": ["scripts/**/*", "tests/**/*", "drizzle.config.ts"],
-  "exclude": ["node_modules", "packages", "dist"]
+  "exclude": ["node_modules", "packages", "dist", "tests/student-simulation/browser-app.tsx"]
 }

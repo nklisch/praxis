@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-browser-runner
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: [epic-agent-debugging-harness-student-simulation-scenarios]
@@ -32,11 +32,37 @@ and console evidence for visual anomalies.
 
 ## Acceptance criteria
 
-- [ ] Browser scenario list path works without launching a browser.
-- [ ] Browser visual scenario fails on raw tool-call markup or object rendering
+- [x] Browser scenario list path works without launching a browser.
+- [x] Browser visual scenario fails on raw tool-call markup or object rendering
       such as `[object Object]`.
-- [ ] Failure output includes trace, screenshot, DOM excerpt, console log, and
+- [x] Failure output includes trace, screenshot, DOM excerpt, console log, and
       result JSON paths under a local output directory.
-- [ ] Browser runs are gated behind an explicit command/env and do not run in
+- [x] Browser runs are gated behind an explicit command/env and do not run in
       default `pnpm test`.
 
+## Implementation Notes
+
+- Added a Playwright browser simulation tier with `playwright.config.ts`, a gated
+  `student-sim:browser` script, and a list-only `student-sim:browser:list`
+  command.
+- Added `StudentSimulationBrowserRunnerImpl`, which mounts the browser app,
+  runs a browser-capable simulation scenario, detects visible `<invoke` /
+  `[object Object]` anomalies, and writes result JSON plus trace, screenshot,
+  DOM, and console artifacts when evidence is requested or a failure occurs.
+- Added a Vite-backed browser simulation app that uses real chat UI components
+  (`MessageBubble`, `ToolCallDisclosure`, quick-check cards, thinking indicator)
+  with a browser-safe scripted `PraxisClient` fixture.
+- Browser execution is gated by `PRAXIS_RUN_BROWSER_SIMULATION=1`; without the
+  env var, Playwright enumerates/skips the browser tests without launching the
+  browser path.
+- Added `.gitignore` entries for Playwright output directories.
+
+## Verification
+
+- `pnpm student-sim:browser:list`
+- `pnpm exec playwright test tests/student-simulation-browser.spec.ts --list`
+- `pnpm exec playwright test tests/student-simulation-browser.spec.ts`
+- `PRAXIS_RUN_BROWSER_SIMULATION=1 pnpm exec playwright test tests/student-simulation-browser.spec.ts`
+- `pnpm exec biome check package.json tsconfig.json playwright.config.ts tests/helpers/student-simulation/browser-fixture.ts tests/helpers/student-simulation/browser-runner.ts tests/student-simulation/browser-app.tsx tests/student-simulation-browser.spec.ts`
+- `pnpm typecheck`
+- `git diff --check`
