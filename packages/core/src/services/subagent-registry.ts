@@ -37,7 +37,7 @@ export interface SubAgentRegistryDeps {
  * In-memory registry for sub-agent transparency events.
  *
  * Differences from `ActivityRegistryImpl`:
- * - Keyed by `parentCallId` (caller-supplied, not generated uuidv7).
+ * - Keyed by `(sessionId, parentCallId)` (caller-supplied, not generated uuidv7).
  * - No quiet-period: sub-agent starts are intentional; always surface immediately.
  * - Linger: ~30s after `finished` so the user can read the step history.
  * - `subscribe(listener, { parentCallId })` optionally filters to one item.
@@ -66,14 +66,15 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
 
   start(input: SubAgentStartInput): SubAgentHandle {
     const { parentCallId, sessionId, label } = input;
-    if (this.items.has(parentCallId)) {
+    const key = makeItemKey(sessionId, parentCallId);
+    if (this.items.has(key)) {
       // Collision is a registry guarantee, not an error: the caller may
-      // re-invoke start() for the same parentCallId (e.g. a session resumes
-      // a sub-agent stream). Silent-no-op by design — pinned by
-      // "start() with same parentCallId is a silent no-op (by design — collision is a registry guarantee, not an error)"
+      // re-invoke start() for the same session parentCallId (e.g. a session
+      // resumes a sub-agent stream). Silent-no-op by design — pinned by
+      // "start() with same parentCallId in the same session is a silent no-op"
       // in subagent-registry.test.ts.
-      this.deps.log.debug("subagent-registry.start.collision", { parentCallId });
-      return this.makeHandle(parentCallId);
+      this.deps.log.debug("subagent-registry.start.collision", { parentCallId, sessionId });
+      return this.makeHandle(key, parentCallId);
     }
 
     const item: SubAgentItem = {
@@ -84,9 +85,9 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
       startedAt: this.now() as Timestamp,
       steps: [],
     };
-    this.items.set(parentCallId, item);
+    this.items.set(key, item);
     this.emit({ kind: "started", item });
-    return this.makeHandle(parentCallId);
+    return this.makeHandle(key, parentCallId);
   }
 
   list(): readonly SubAgentItem[] {
@@ -113,18 +114,19 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
-  private makeHandle(parentCallId: string): SubAgentHandle {
+  private makeHandle(key: string, parentCallId: string): SubAgentHandle {
     return {
       parentCallId,
-      stepStarted: ({ callId, toolName }) => this.onStepStarted(parentCallId, callId, toolName),
-      stepSettled: ({ callId, ok }) => this.onStepSettled(parentCallId, callId, ok),
-      setLabel: (label) => this.onSetLabel(parentCallId, label),
-      finish: (status, err) => this.onFinish(parentCallId, status, err),
+      stepStarted: ({ callId, toolName }) =>
+        this.onStepStarted(key, parentCallId, callId, toolName),
+      stepSettled: ({ callId, ok }) => this.onStepSettled(key, parentCallId, callId, ok),
+      setLabel: (label) => this.onSetLabel(key, parentCallId, label),
+      finish: (status, err) => this.onFinish(key, parentCallId, status, err),
     };
   }
 
-  private onStepStarted(parentCallId: string, callId: string, toolName: string): void {
-    const item = this.items.get(parentCallId);
+  private onStepStarted(key: string, parentCallId: string, callId: string, toolName: string): void {
+    const item = this.items.get(key);
     if (!item || item.status !== "running") return;
     const step: SubAgentStep = {
       callId,
@@ -138,42 +140,43 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
         ? [...item.steps.slice(1), step]
         : [...item.steps, step];
     const updated: SubAgentItem = { ...item, steps };
-    this.items.set(parentCallId, updated);
+    this.items.set(key, updated);
     this.emit({ kind: "step_started", parentCallId, step });
   }
 
-  private onStepSettled(parentCallId: string, callId: string, ok: boolean): void {
-    const item = this.items.get(parentCallId);
+  private onStepSettled(key: string, parentCallId: string, callId: string, ok: boolean): void {
+    const item = this.items.get(key);
     if (!item || item.status !== "running") return;
     const endedAt = this.now() as Timestamp;
     const steps = item.steps.map((s) => (s.callId === callId ? { ...s, ok, endedAt } : s));
     const updated: SubAgentItem = { ...item, steps };
-    this.items.set(parentCallId, updated);
+    this.items.set(key, updated);
     this.emit({ kind: "step_settled", parentCallId, callId, ok });
   }
 
-  private onSetLabel(parentCallId: string, label: string): void {
-    const item = this.items.get(parentCallId);
+  private onSetLabel(key: string, parentCallId: string, label: string): void {
+    const item = this.items.get(key);
     if (!item || item.status !== "running") return;
     const updated: SubAgentItem = { ...item, label };
-    this.items.set(parentCallId, updated);
+    this.items.set(key, updated);
     this.emit({ kind: "phase_changed", parentCallId, label });
   }
 
   interruptAllForSession(parentSessionId: SessionId): void {
-    for (const [parentCallId, item] of this.items) {
+    for (const [key, item] of this.items) {
       if (item.sessionId === parentSessionId && item.status === "running") {
-        this.onFinish(parentCallId, "interrupted");
+        this.onFinish(key, item.parentCallId, "interrupted");
       }
     }
   }
 
   private onFinish(
+    key: string,
     parentCallId: string,
     status: "done" | "failed" | "interrupted",
     err?: { message: string },
   ): void {
-    const item = this.items.get(parentCallId);
+    const item = this.items.get(key);
     if (!item || item.status !== "running") return;
 
     const endedAt = this.now() as Timestamp;
@@ -183,7 +186,7 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
       endedAt,
       ...(err?.message !== undefined && { errorMessage: err.message }),
     };
-    this.items.set(parentCallId, finished);
+    this.items.set(key, finished);
     this.emit({
       kind: "finished",
       parentCallId,
@@ -193,15 +196,15 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
 
     const lingerMs = DEFAULT_LINGER_MS;
     const t = this.setTimer(() => {
-      this.timers.delete(parentCallId);
+      this.timers.delete(key);
       // Only remove if the item hasn't been replaced (e.g. by a re-start).
-      if (this.items.get(parentCallId) === finished) {
-        this.items.delete(parentCallId);
+      if (this.items.get(key) === finished) {
+        this.items.delete(key);
       }
     }, lingerMs);
     // biome-ignore lint/suspicious/noExplicitAny: NodeJS.Timeout has unref; browser timers don't
     (t as any).unref?.();
-    this.timers.set(parentCallId, t);
+    this.timers.set(key, t);
   }
 
   private emit(event: SubAgentEvent): void {
@@ -219,6 +222,10 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
     }
     notifyListeners(targets, event, this.deps.log, "subagent-registry");
   }
+}
+
+function makeItemKey(sessionId: SessionId, parentCallId: string): string {
+  return `${sessionId}\u0000${parentCallId}`;
 }
 
 /**

@@ -4,8 +4,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { SessionId } from "../../types/index.js";
 import type { SubAgentEvent } from "../../types/subagent.js";
 import { SubAgentRegistryImpl } from "../subagent-registry.js";
+
+function sid(value: string): SessionId {
+  return value as unknown as SessionId;
+}
 
 function noopLogger() {
   return {
@@ -76,8 +81,7 @@ describe("SubAgentRegistryImpl", () => {
   it("start() emits a 'started' event with the supplied fields", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      // biome-ignore lint/suspicious/noExplicitAny: Timestamp brand cast for tests
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading your materials",
     });
     expect(handle.parentCallId).toBe("call-1");
@@ -94,7 +98,7 @@ describe("SubAgentRegistryImpl", () => {
     });
   });
 
-  it("start() with same parentCallId is a silent no-op (by design — collision is a registry guarantee, not an error)", () => {
+  it("start() with same parentCallId in the same session is a silent no-op", () => {
     // Spec-silent contract pin: the registry treats collision as idempotent.
     // Pinned in source: subagent-registry.ts start() early-return.
     // Capture the logger so we can pin the debug-log diagnostic seam.
@@ -109,11 +113,9 @@ describe("SubAgentRegistryImpl", () => {
     const localEvents: SubAgentEvent[] = [];
     const unsub = r.subscribe((e) => localEvents.push(e));
     localEvents.length = 0; // drop snapshot
-    // biome-ignore lint/suspicious/noExplicitAny: Timestamp brand cast for tests
-    r.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "first" });
+    r.start({ parentCallId: "call-1", sessionId: sid("sess-1"), label: "first" });
     localEvents.length = 0; // drop first "started"
-    // biome-ignore lint/suspicious/noExplicitAny: Timestamp brand cast for tests
-    r.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "second" });
+    r.start({ parentCallId: "call-1", sessionId: sid("sess-1"), label: "second" });
     // No event is emitted for the collision.
     expect(localEvents).toHaveLength(0);
     // No duplicate item is created.
@@ -124,12 +126,47 @@ describe("SubAgentRegistryImpl", () => {
     // The collision is logged at debug for diagnosability without alarm.
     expect(logger.debug).toHaveBeenCalledWith("subagent-registry.start.collision", {
       parentCallId: "call-1",
+      sessionId: "sess-1",
     });
     unsub();
   });
 
+  it("tracks the same parentCallId independently across sessions", () => {
+    const sessionA = "sess-A" as unknown as SessionId;
+    const sessionB = "sess-B" as unknown as SessionId;
+    const handleA = registry.start({
+      parentCallId: "call-1",
+      sessionId: sessionA,
+      label: "first",
+    });
+    events.length = 0;
+
+    const handleB = registry.start({
+      parentCallId: "call-1",
+      sessionId: sessionB,
+      label: "second",
+    });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      kind: "started",
+      item: { parentCallId: "call-1", sessionId: "sess-B", label: "second" },
+    });
+    expect(registry.list()).toHaveLength(2);
+
+    handleB.setLabel("second updated");
+    handleA.finish("done");
+
+    const itemA = registry.list().find((item) => item.sessionId === sessionA);
+    const itemB = registry.list().find((item) => item.sessionId === sessionB);
+    expect(itemA?.status).toBe("done");
+    expect(itemA?.label).toBe("first");
+    expect(itemB?.status).toBe("running");
+    expect(itemB?.label).toBe("second updated");
+  });
+
   it("list() returns current items", () => {
-    registry.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "reading" });
+    registry.start({ parentCallId: "call-1", sessionId: sid("sess-1"), label: "reading" });
     expect(registry.list()).toHaveLength(1);
     expect(registry.list()[0]?.parentCallId).toBe("call-1");
   });
@@ -137,7 +174,7 @@ describe("SubAgentRegistryImpl", () => {
   it("stepStarted emits step_started with resolved label", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading",
     });
     events.length = 0;
@@ -164,7 +201,7 @@ describe("SubAgentRegistryImpl", () => {
   it("stepSettled emits step_settled and updates the step's ok/endedAt", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading",
     });
     handle.stepStarted({ callId: "step-1", toolName: "course.draft_init" });
@@ -187,7 +224,7 @@ describe("SubAgentRegistryImpl", () => {
   it("stepSettled with ok=false records failure", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading",
     });
     handle.stepStarted({ callId: "step-1", toolName: "retrieve_from_documents" });
@@ -200,7 +237,7 @@ describe("SubAgentRegistryImpl", () => {
   it("setLabel emits phase_changed and updates item label", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading your materials",
     });
     events.length = 0;
@@ -220,7 +257,7 @@ describe("SubAgentRegistryImpl", () => {
   it("finish emits finished event and item lingers before removal", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading",
     });
     events.length = 0;
@@ -246,7 +283,7 @@ describe("SubAgentRegistryImpl", () => {
   it("finish('failed') includes errorMessage when provided", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "reading",
     });
     events.length = 0;
@@ -262,8 +299,8 @@ describe("SubAgentRegistryImpl", () => {
   });
 
   it("subscribe(listener, { parentCallId }) receives snapshot filtered to that item", () => {
-    registry.start({ parentCallId: "call-A", sessionId: "sess-1" as any, label: "A" });
-    registry.start({ parentCallId: "call-B", sessionId: "sess-2" as any, label: "B" });
+    registry.start({ parentCallId: "call-A", sessionId: sid("sess-1"), label: "A" });
+    registry.start({ parentCallId: "call-B", sessionId: sid("sess-2"), label: "B" });
 
     const filtered: SubAgentEvent[] = [];
     const unsub = registry.subscribe((e) => filtered.push(e), { parentCallId: "call-A" });
@@ -283,10 +320,10 @@ describe("SubAgentRegistryImpl", () => {
   it("subscribe(listener, { parentCallId }) only receives events for that parentCallId", () => {
     const handleA = registry.start({
       parentCallId: "call-A",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "A",
     });
-    registry.start({ parentCallId: "call-B", sessionId: "sess-2" as any, label: "B" });
+    registry.start({ parentCallId: "call-B", sessionId: sid("sess-2"), label: "B" });
 
     const filteredA: SubAgentEvent[] = [];
     const unsub = registry.subscribe((e) => filteredA.push(e), { parentCallId: "call-A" });
@@ -301,10 +338,10 @@ describe("SubAgentRegistryImpl", () => {
   });
 
   it("filtered subscriber does not receive events for other parentCallIds", () => {
-    registry.start({ parentCallId: "call-A", sessionId: "sess-1" as any, label: "A" });
+    registry.start({ parentCallId: "call-A", sessionId: sid("sess-1"), label: "A" });
     const handleB = registry.start({
       parentCallId: "call-B",
-      sessionId: "sess-2" as any,
+      sessionId: sid("sess-2"),
       label: "B",
     });
 
@@ -322,7 +359,7 @@ describe("SubAgentRegistryImpl", () => {
   it("unsubscribe stops delivering events", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "A",
     });
 
@@ -338,7 +375,7 @@ describe("SubAgentRegistryImpl", () => {
   it("after finish, step events are no-ops (item status !== 'running')", () => {
     const handle = registry.start({
       parentCallId: "call-1",
-      sessionId: "sess-1" as any,
+      sessionId: sid("sess-1"),
       label: "A",
     });
     handle.finish("done");
@@ -390,10 +427,10 @@ describe("SubAgentRegistryImpl — interruptAllForSession", () => {
   });
 
   it("transitions running items for the session to interrupted and emits finished event", () => {
-    registry.start({ parentCallId: "call-A", sessionId: "sess-target" as any, label: "A" });
+    registry.start({ parentCallId: "call-A", sessionId: sid("sess-target"), label: "A" });
     events.length = 0;
 
-    registry.interruptAllForSession("sess-target" as any);
+    registry.interruptAllForSession(sid("sess-target"));
 
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
@@ -408,11 +445,11 @@ describe("SubAgentRegistryImpl — interruptAllForSession", () => {
   });
 
   it("does not affect items from other sessions", () => {
-    registry.start({ parentCallId: "call-A", sessionId: "sess-target" as any, label: "A" });
-    registry.start({ parentCallId: "call-B", sessionId: "sess-other" as any, label: "B" });
+    registry.start({ parentCallId: "call-A", sessionId: sid("sess-target"), label: "A" });
+    registry.start({ parentCallId: "call-B", sessionId: sid("sess-other"), label: "B" });
     events.length = 0;
 
-    registry.interruptAllForSession("sess-target" as any);
+    registry.interruptAllForSession(sid("sess-target"));
 
     // Only one finished event — for call-A.
     const finished = events.filter((e) => e.kind === "finished");
@@ -428,13 +465,13 @@ describe("SubAgentRegistryImpl — interruptAllForSession", () => {
   it("is a no-op for items already in a terminal status", () => {
     const handle = registry.start({
       parentCallId: "call-A",
-      sessionId: "sess-target" as any,
+      sessionId: sid("sess-target"),
       label: "A",
     });
     handle.finish("done");
     events.length = 0;
 
-    registry.interruptAllForSession("sess-target" as any);
+    registry.interruptAllForSession(sid("sess-target"));
 
     // No new events — item is already done.
     expect(events).toHaveLength(0);
@@ -443,11 +480,11 @@ describe("SubAgentRegistryImpl — interruptAllForSession", () => {
   });
 
   it("interrupts multiple running items for the same session", () => {
-    registry.start({ parentCallId: "call-A", sessionId: "sess-multi" as any, label: "A" });
-    registry.start({ parentCallId: "call-B", sessionId: "sess-multi" as any, label: "B" });
+    registry.start({ parentCallId: "call-A", sessionId: sid("sess-multi"), label: "A" });
+    registry.start({ parentCallId: "call-B", sessionId: sid("sess-multi"), label: "B" });
     events.length = 0;
 
-    registry.interruptAllForSession("sess-multi" as any);
+    registry.interruptAllForSession(sid("sess-multi"));
 
     const finished = events.filter((e) => e.kind === "finished");
     expect(finished).toHaveLength(2);
@@ -456,15 +493,15 @@ describe("SubAgentRegistryImpl — interruptAllForSession", () => {
     expect(finishedCallIds).toContain("call-B");
 
     for (const item of registry.list()) {
-      if (item.sessionId === ("sess-multi" as any)) {
+      if (item.sessionId === sid("sess-multi")) {
         expect(item.status).toBe("interrupted");
       }
     }
   });
 
   it("interrupted item lingers and is removed after the linger timer fires", () => {
-    registry.start({ parentCallId: "call-A", sessionId: "sess-target" as any, label: "A" });
-    registry.interruptAllForSession("sess-target" as any);
+    registry.start({ parentCallId: "call-A", sessionId: sid("sess-target"), label: "A" });
+    registry.interruptAllForSession(sid("sess-target"));
 
     // Item still present during linger.
     expect(registry.list()).toHaveLength(1);
