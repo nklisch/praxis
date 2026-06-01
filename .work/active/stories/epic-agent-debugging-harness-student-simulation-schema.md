@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-schema
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: []
@@ -51,3 +51,15 @@ client and browser simulation runners consume.
 - `pnpm --filter @praxis/core typecheck`
 - `pnpm exec biome check packages/core/src/types/student-simulation.ts packages/core/src/types/debug-bundle.ts packages/core/src/types/index.ts packages/core/src/types/__tests__/student-simulation.test.ts`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include focused Vitest,
+core typecheck, focused Biome, and whitespace checks; item advanced to
+`stage: done`.
