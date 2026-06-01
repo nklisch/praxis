@@ -1,14 +1,14 @@
 ---
 id: bug-scan-assignment-submit-race
 kind: story
-stage: implementing
+stage: review
 tags: [bug, data-layer, high]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: high
 bug_domain: data-layer
@@ -28,3 +28,8 @@ if (assignment.submittedAt) {
 const grade: Grade = await this.orchestrator.gradeAssignment({ assignment, responses, mode });
 this.deps.db.update(assignments).set({ submittedAt, gradeJson: grade }).where(eq(assignments.id, input.assignmentId)).run();
 ```
+
+## Implementation notes
+
+- Changed `packages/core/src/services/assignment-service.ts` so `submit()` atomically claims an unsubmitted assignment before async grading with `WHERE submitted_at IS NULL`; concurrent callers now fail before invoking the grader, and failed grading releases the claim for retry.
+- Added regression coverage in `packages/core/src/__tests__/assignment-service.test.ts` proving a concurrent second submit does not trigger a second grade or overwrite the first result.

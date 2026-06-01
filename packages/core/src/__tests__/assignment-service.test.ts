@@ -5,14 +5,16 @@
  * Tests: create, get, list, recordResponse, submit, blending, validation.
  */
 
-import { courses } from "@praxis/artifacts/schema";
+import { assignments, courses } from "@praxis/artifacts/schema";
 import { conceptGraphs } from "@praxis/curriculum/schema";
+import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { AssignmentServiceImpl } from "../services/assignment-service.js";
+import type { GradingOrchestrator } from "../services/graders/grading-orchestrator.js";
 import type { GraderServices } from "../services/graders/types.js";
-import type { Engine, EngineEvent } from "../types/index.js";
+import type { Engine, EngineEvent, Grade } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 const dbCtx = useTempDb();
@@ -520,6 +522,77 @@ describe("AssignmentServiceImpl.submit", () => {
     await svc.recordResponse({ assignmentId, itemId: "q1", response: "0" });
     await svc.submit({ assignmentId });
     await expect(svc.submit({ assignmentId })).rejects.toThrow("already submitted");
+  });
+
+  it("claims submission before grading so concurrent submit cannot grade twice", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourse(db);
+
+    let releaseGrading!: () => void;
+    let resolveGradingStarted!: () => void;
+    const gradingStarted = new Promise<void>((resolve) => {
+      resolveGradingStarted = resolve;
+    });
+    const grade: Grade = {
+      total: 1,
+      perItem: [{ itemId: "q1", score: 1, feedback: "Correct.", gradedBy: "deterministic" }],
+      reviewedBy: "deterministic",
+    };
+    const release = new Promise<Grade>((resolveGrade) => {
+      releaseGrading = () => resolveGrade(grade);
+    });
+    const orchestrator: GradingOrchestrator = {
+      gradeAssignment: vi.fn().mockImplementation(() => {
+        resolveGradingStarted();
+        return release;
+      }),
+    };
+
+    const svc = new AssignmentServiceImpl({
+      db,
+      log: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        child: vi.fn().mockReturnValue(undefined),
+      },
+      graderServices: {
+        sympy: {} as GraderServices["sympy"],
+        sandbox: {} as GraderServices["sandbox"],
+        engineResolver: vi.fn(),
+      },
+      resolveSubmissionMode: () => "quiz",
+      orchestrator,
+    });
+
+    const { assignmentId } = await svc.create({
+      courseId: COURSE_ID,
+      studentId: STUDENT_ID,
+      kind: "quiz",
+      title: "Concurrent Quiz",
+      items: [
+        {
+          id: "q1",
+          kind: "single-choice",
+          prompt: "Q?",
+          options: ["A", "B"],
+          correctOptionIndex: 0,
+        },
+      ],
+      conceptIds: [],
+    });
+    await svc.recordResponse({ assignmentId, itemId: "q1", response: "0" });
+
+    const firstSubmit = svc.submit({ assignmentId });
+    await gradingStarted;
+    await expect(svc.submit({ assignmentId })).rejects.toThrow(/already submitted|in progress/);
+    expect(orchestrator.gradeAssignment).toHaveBeenCalledTimes(1);
+
+    releaseGrading();
+    await expect(firstSubmit).resolves.toMatchObject({ assignmentId });
+    const row = db.select().from(assignments).where(eq(assignments.id, assignmentId)).get();
+    expect(row?.gradeJson).not.toBeNull();
   });
 
   it("uses null score for unanswered items (score=0 for single-choice)", async () => {

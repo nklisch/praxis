@@ -11,7 +11,7 @@
  */
 
 import { assignmentResponses, assignments } from "@praxis/artifacts/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type { GradeReader } from "../types/gate.js";
@@ -260,6 +260,20 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       throw new Error(`Assignment already submitted: ${input.assignmentId}`);
     }
 
+    const submittedAt = new Date();
+    const claimResult = this.deps.db
+      .update(assignments)
+      .set({ submittedAt })
+      .where(and(eq(assignments.id, input.assignmentId), isNull(assignments.submittedAt)))
+      .run();
+    if (claimResult.changes === 0) {
+      const current = await this.get({ assignmentId: input.assignmentId });
+      if (current?.grade) {
+        throw new Error(`Assignment already submitted: ${input.assignmentId}`);
+      }
+      throw new Error(`Assignment submission already in progress: ${input.assignmentId}`);
+    }
+
     // 3. Load responses (use caller-supplied or read from DB).
     const responses =
       input.responses ?? (await this.getResponses({ assignmentId: input.assignmentId }));
@@ -267,16 +281,40 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
     // 4. Resolve the submission mode from the session that owns this assignment.
     const mode = this.deps.resolveSubmissionMode(input.assignmentId);
 
-    // 5. Delegate grading to the orchestrator.
-    const grade: Grade = await this.orchestrator.gradeAssignment({ assignment, responses, mode });
+    let grade: Grade;
+    try {
+      // 5. Delegate grading to the orchestrator after this caller has claimed submission.
+      grade = await this.orchestrator.gradeAssignment({ assignment, responses, mode });
+    } catch (err) {
+      this.deps.db
+        .update(assignments)
+        .set({ submittedAt: null, gradeJson: null })
+        .where(
+          and(
+            eq(assignments.id, input.assignmentId),
+            eq(assignments.submittedAt, submittedAt),
+            isNull(assignments.gradeJson),
+          ),
+        )
+        .run();
+      throw err;
+    }
 
     // 6. Persist: mark submitted + write grade.
-    const submittedAt = new Date();
-    this.deps.db
+    const finalizeResult = this.deps.db
       .update(assignments)
-      .set({ submittedAt, gradeJson: grade })
-      .where(eq(assignments.id, input.assignmentId))
+      .set({ gradeJson: grade })
+      .where(
+        and(
+          eq(assignments.id, input.assignmentId),
+          eq(assignments.submittedAt, submittedAt),
+          isNull(assignments.gradeJson),
+        ),
+      )
       .run();
+    if (finalizeResult.changes === 0) {
+      throw new Error(`Assignment submission claim lost before finalize: ${input.assignmentId}`);
+    }
 
     // 7. Phase 16: notify parent teach-mode session if this assignment was authored live.
     //    Fire-and-forget — don't block submit() on the notification. Non-fatal if it fails.
