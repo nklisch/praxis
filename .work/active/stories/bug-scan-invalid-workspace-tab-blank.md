@@ -1,14 +1,14 @@
 ---
 id: bug-scan-invalid-workspace-tab-blank
 kind: story
-stage: review
+stage: done
 tags: [bug, language-footgun]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: low
 bug_domain: language-footgun
@@ -31,3 +31,13 @@ const activeTab: WorkspaceTab = search.tab ?? "notes";
 - Changed `packages/ui/src/routes/workspace.tsx` to validate `search.tab` against the known workspace tab ids before selecting a tab.
 - Invalid tab query values now fall back to Notes instead of rendering an empty workspace.
 - Added regression coverage in `packages/ui/src/__tests__/workspace-route.test.tsx`.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
