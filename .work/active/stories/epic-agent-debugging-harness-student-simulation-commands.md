@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-commands
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: [epic-agent-debugging-harness-student-simulation-browser-runner]
@@ -61,3 +61,14 @@ and failure-bundle handoff text for the simulation harness.
 - `pnpm exec playwright test tests/student-simulation-browser.spec.ts --list`
 - `pnpm typecheck`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review; implementation recorded green CLI,
+focused test, focused lint, Playwright listing, typecheck, and diff checks.

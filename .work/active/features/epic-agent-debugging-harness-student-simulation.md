@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]
@@ -435,3 +435,9 @@ export function generateStudentSimulationReport(input: {
 - `epic-agent-debugging-harness-student-simulation-scenarios` - depends on `epic-agent-debugging-harness-student-simulation-client-runner`.
 - `epic-agent-debugging-harness-student-simulation-browser-runner` - depends on `epic-agent-debugging-harness-student-simulation-scenarios`.
 - `epic-agent-debugging-harness-student-simulation-commands` - depends on `epic-agent-debugging-harness-student-simulation-browser-runner`.
+
+## Children Complete (2026-06-01)
+
+All five child stories reached `done`: shared schema, deterministic client
+runner, scenario catalog, browser visual runner, and command/report surface.
+Feature is ready for review.
