@@ -163,4 +163,17 @@ describe("GateInspector", () => {
     // Resolve so no pending state leaks between tests.
     resolveUpdate();
   });
+
+  it("treats an empty threshold as invalid instead of saving zero", () => {
+    const client = makeClient();
+    renderInspector(client, makeGate());
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: /mastery threshold/i }), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save threshold/i }));
+
+    expect(screen.getByRole("alert").textContent).toMatch(/0 to 100/i);
+    expect(client.author.updateGate).not.toHaveBeenCalled();
+  });
 });

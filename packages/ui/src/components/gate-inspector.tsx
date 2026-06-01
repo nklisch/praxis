@@ -52,6 +52,15 @@ function formatState(gate: Gate): string {
   }
 }
 
+function parseThresholdPercent(value: string): number | null {
+  if (value.trim() === "") return null;
+
+  const percent = Number(value);
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100) return null;
+
+  return percent / 100;
+}
+
 /**
  * Inspector panel for a single gate in the Gates tab.
  *
@@ -82,6 +91,7 @@ export function GateInspector({
   );
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [minScoreError, setMinScoreError] = useState<string | null>(null);
 
   const canEditMinScore = gate.successCriteria.kind === "mastery-threshold";
 
@@ -100,7 +110,12 @@ export function GateInspector({
   const handleSave = (e: FormEvent) => {
     e.preventDefault();
     if (!canEditMinScore) return;
-    const score = Number(minScore) / 100;
+    const score = parseThresholdPercent(minScore);
+    if (score === null) {
+      setMinScoreError("Enter a mastery threshold from 0 to 100.");
+      return;
+    }
+    setMinScoreError(null);
     saveAction.trigger({
       gateId: gate.id,
       patch: {
@@ -167,15 +182,26 @@ export function GateInspector({
                 className={styles.input}
                 value={minScore}
                 onChange={(e) => {
-                  setMinScore(e.target.value);
-                  const parsed = Number(e.target.value) / 100;
-                  if (!Number.isNaN(parsed)) onThresholdEdit?.(gate.id, parsed);
+                  const next = e.target.value;
+                  setMinScore(next);
+                  const parsed = parseThresholdPercent(next);
+                  setMinScoreError(
+                    parsed === null ? "Enter a mastery threshold from 0 to 100." : null,
+                  );
+                  if (parsed !== null) onThresholdEdit?.(gate.id, parsed);
                 }}
                 min={0}
                 max={100}
                 step={5}
+                aria-invalid={minScoreError !== null}
+                aria-describedby={minScoreError ? "gate-threshold-error" : undefined}
               />
             </label>
+            {minScoreError && (
+              <p id="gate-threshold-error" className={styles.error} role="alert">
+                {minScoreError}
+              </p>
+            )}
 
             <div
               style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4 }}
