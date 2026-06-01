@@ -1,14 +1,14 @@
 ---
 id: bug-scan-ipc-stream-startup-hangs
 kind: story
-stage: implementing
+stage: review
 tags: [bug, error-handling, high]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: high
 bug_domain: error-handling
@@ -32,3 +32,10 @@ async next(): Promise<IteratorResult<T, undefined>> {
   }
 }
 ```
+
+## Implementation notes
+- Files changed: `packages/client/src/transport/ipc.ts`, `packages/client/src/__tests__/ipc-transport.test.ts`
+- Tests added: startup invoke rejection regression in `ipc-transport.test.ts`
+- Discrepancies from design: none
+- Adjacent issues parked: none
+- Verification: `TMPDIR=$PWD/.tmp pnpm vitest run packages/client/src/__tests__/ipc-transport.test.ts packages/desktop/electron/main/__tests__/spawned-pid-registry.test.ts packages/desktop/electron/main/__tests__/walk-directory-for-ingest.test.ts`

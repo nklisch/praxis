@@ -61,19 +61,34 @@ export function streamAsAsyncIterable<T>(
       let unsubscribe: (() => void) | null = null;
       let done = false;
 
-      // Subscribe before invoking start — no race condition.
-      const removeListener = bridge.on(eventsChannel, (data: unknown) => {
-        queue.push(data as IpcStreamMessage<T>);
+      const wake = (): void => {
         if (wakeup) {
           const w = wakeup;
           wakeup = null;
           w();
         }
+      };
+
+      const push = (msg: IpcStreamMessage<T>): void => {
+        if (done) return;
+        queue.push(msg);
+        wake();
+      };
+
+      // Subscribe before invoking start — no race condition.
+      const removeListener = bridge.on(eventsChannel, (data: unknown) => {
+        push(data as IpcStreamMessage<T>);
       });
       unsubscribe = removeListener;
 
-      // Kick off the stream (fire and forget — errors surface via the events channel).
-      bridge.invoke(startChannel, streamId, ...args).catch(() => {});
+      // Kick off the stream. Startup failures can happen before the main
+      // process can push an error event, so surface them through this iterator.
+      bridge.invoke(startChannel, streamId, ...args).catch((err: unknown) => {
+        push({
+          kind: "error",
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
 
       return {
         async next(): Promise<IteratorResult<T, undefined>> {

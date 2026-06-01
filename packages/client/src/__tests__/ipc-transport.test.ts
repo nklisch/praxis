@@ -53,6 +53,27 @@ function makeBridge(): TestBridge {
 }
 
 describe("streamAsAsyncIterable", () => {
+  it("rejects the iterator when startup invoke fails before any event arrives", async () => {
+    const { bridge } = makeBridge();
+    bridge.invoke = () => Promise.reject(new Error("start failed"));
+
+    const iterable = streamAsAsyncIterable<string>(
+      bridge,
+      "ch.start",
+      "ch.events.",
+      "ch.cancel",
+      [],
+    );
+
+    await expect(
+      (async () => {
+        for await (const _event of iterable) {
+          // no-op
+        }
+      })(),
+    ).rejects.toThrow("start failed");
+  });
+
   it("yields events and completes on done", async () => {
     const { bridge, pushToRegisteredChannel } = makeBridge();
 
