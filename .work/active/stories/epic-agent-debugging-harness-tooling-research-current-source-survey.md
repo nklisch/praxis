@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-tooling-research-current-source-survey
 kind: story
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agent-debugging-harness-tooling-research
 depends_on: []
@@ -28,12 +28,20 @@ Feature unit 1: current-source tooling survey.
 
 ## Acceptance Criteria
 
-- [ ] `docs/research/agent-debugging-tooling.md` exists with criteria, candidate matrix, and recommendation summary.
-- [ ] Every external-tool row includes an official-source link and a dated/accessed note.
-- [ ] The survey compares logging/tracing, browser automation, replay-oriented artifacts, and agent-evaluation/observability options.
-- [ ] The survey identifies what to build in-house, what existing Praxis dependencies already cover, and where a new dependency is justified or deferred.
-- [ ] The survey does not recommend any default behavior that exports prompts, screenshots, student data, or traces off-device.
+- [x] `docs/research/agent-debugging-tooling.md` exists with criteria, candidate matrix, and recommendation summary.
+- [x] Every external-tool row includes an official-source link and a dated/accessed note.
+- [x] The survey compares logging/tracing, browser automation, replay-oriented artifacts, and agent-evaluation/observability options.
+- [x] The survey identifies what to build in-house, what existing Praxis dependencies already cover, and where a new dependency is justified or deferred.
+- [x] The survey does not recommend any default behavior that exports prompts, screenshots, student data, or traces off-device.
 
 ## Notes
 
 Use official docs or first-party repos for tooling claims. Start with current pino/Vitest/Praxis logger behavior from the repo, Playwright/Vitest Browser Mode docs for browser traces, OpenTelemetry JavaScript docs for trace/export vocabulary, and Phoenix/Langfuse/Braintrust docs for agent observability/eval reference points.
+
+## Implementation notes
+
+- Files changed: `docs/research/agent-debugging-tooling.md`, `.work/active/stories/epic-agent-debugging-harness-tooling-research-current-source-survey.md`
+- Tests added: none; docs-only research story.
+- Verification: `git diff --check`
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
