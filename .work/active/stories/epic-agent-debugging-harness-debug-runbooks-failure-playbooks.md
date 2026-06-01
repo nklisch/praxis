@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-debug-runbooks-failure-playbooks
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agent-debugging-harness-debug-runbooks
 depends_on: [epic-agent-debugging-harness-debug-runbooks-skill-shell]
@@ -60,3 +60,14 @@ checks, evidence to gather, commands, likely owners, and next debug step.
 - `pnpm exec biome check --no-errors-on-unmatched .agents/skills/agent-debugging-harness/references/tool-call-leaked-into-chat.md .agents/skills/agent-debugging-harness/references/tool-dispatch-before-subagent.md .agents/skills/agent-debugging-harness/references/react-tool-result-crash.md .agents/skills/agent-debugging-harness/references/ipc-stream-died.md .agents/skills/agent-debugging-harness/references/subagent-missing-or-stalled.md .agents/skills/agent-debugging-harness/references/persistence-fk-failure.md .agents/skills/agent-debugging-harness/references/student-simulation-visual-mismatch.md`
   - Biome processed 0 files because `.agents/skills` is ignored by repo config.
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review; implementation recorded file presence,
+ignored-path Biome behavior, and diff checks.
