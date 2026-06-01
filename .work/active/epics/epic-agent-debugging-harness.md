@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness
 kind: epic
-stage: implementing
+stage: review
 tags: []
 parent: null
 depends_on: []
@@ -65,3 +65,9 @@ Split by capability rather than by package layer: one feature chooses the eviden
 The riskiest seam is trace correlation: if it becomes a broad observability rewrite, the downstream features will inherit churn. Keep it additive, local-first, full-fidelity for local debug bundles, explicit about bounded retention, and shaped around existing `EngineEvent`, logger, tool dispatch, sub-agent, and IPC contracts. Sanitization belongs to export/share adapters.
 
 Replay and synthetic student simulation can drift into flaky live-model tests if not bounded. Feature design should separate deterministic regression paths from optional live-engine probes and should record nondeterminism explicitly in each run's output.
+
+## Children Complete (2026-06-01)
+
+All five child features reached `done`: tooling research, trace correlation,
+failure replay, student simulation, and debug runbooks. Epic is ready for final
+review.
