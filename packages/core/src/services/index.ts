@@ -75,6 +75,14 @@ export type { CoursesServiceDeps } from "./courses-service.js";
 export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
 export type { DebugBundleCaptureServiceDeps } from "./debug/debug-bundle-capture-service.js";
 export { DebugBundleCaptureServiceImpl } from "./debug/debug-bundle-capture-service.js";
+export type {
+  DebugDbSnapshot,
+  DebugDbSnapshotRelationship,
+  DebugDbSnapshotTable,
+  DebugDbSnapshotter,
+  DebugSnapshotTableName,
+} from "./debug/debug-db-snapshot.js";
+export { DebugDbSnapshotterImpl, restoreDebugDbSnapshot } from "./debug/debug-db-snapshot.js";
 export type { DebugLogFilters, DebugLogReader } from "./debug/debug-log-reader.js";
 export { JsonlDebugLogReader } from "./debug/debug-log-reader.js";
 export type { DebugTraceRegistryDeps } from "./debug/debug-trace-registry.js";

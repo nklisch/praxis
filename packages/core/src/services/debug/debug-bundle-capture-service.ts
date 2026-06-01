@@ -18,6 +18,7 @@ import type {
 } from "../../types/index.js";
 import { makeTurnId } from "../../types/index.js";
 import { createDebugBundleWriter } from "./debug-bundle-writer.js";
+import { type DebugDbSnapshotter, DebugDbSnapshotterImpl } from "./debug-db-snapshot.js";
 import {
   type DebugLogFilters,
   type DebugLogReader,
@@ -29,6 +30,7 @@ export interface DebugBundleCaptureServiceDeps {
   debugTrace?: DebugTraceRegistry;
   writer?: DebugBundleWriter;
   logReader?: DebugLogReader;
+  dbSnapshotter?: DebugDbSnapshotter;
   now?: () => Date;
   defaultOutputRoot?: string;
 }
@@ -62,6 +64,7 @@ export class DebugBundleCaptureServiceImpl implements DebugBundleCaptureService 
   private readonly debugTrace: DebugTraceRegistry | undefined;
   private readonly writer: DebugBundleWriter;
   private readonly logReader: DebugLogReader;
+  private readonly dbSnapshotter: DebugDbSnapshotter;
   private readonly now: () => Date;
   private readonly defaultOutputRoot: string;
 
@@ -70,6 +73,7 @@ export class DebugBundleCaptureServiceImpl implements DebugBundleCaptureService 
     this.debugTrace = deps.debugTrace;
     this.writer = deps.writer ?? createDebugBundleWriter();
     this.logReader = deps.logReader ?? new JsonlDebugLogReader();
+    this.dbSnapshotter = deps.dbSnapshotter ?? new DebugDbSnapshotterImpl(deps.db);
     this.now = deps.now ?? (() => new Date());
     this.defaultOutputRoot =
       deps.defaultOutputRoot ?? join(process.cwd(), ".praxis", "debug", "bundles");
@@ -90,6 +94,7 @@ export class DebugBundleCaptureServiceImpl implements DebugBundleCaptureService 
     addEpisodicArtifact(accumulator, episodicRows);
 
     const correlation = buildCorrelation(input, traceSelection.records, episodicRows);
+    await this.addDbSnapshotArtifact(accumulator, input, correlation, episodicRows);
     await this.addLogArtifact(accumulator, input, correlation);
     const sessionSummary = buildSessionSummary(input, traceSelection.records, episodicRows);
 
@@ -260,6 +265,38 @@ export class DebugBundleCaptureServiceImpl implements DebugBundleCaptureService 
       addMissing(accumulator, "log", `failed to read log file: ${errorMessage(err)}`);
     }
   }
+
+  private async addDbSnapshotArtifact(
+    accumulator: BundleAccumulator,
+    input: DebugBundleCaptureInput,
+    correlation: DebugBundleManifest["correlation"],
+    episodicRows: readonly EpisodicRow[],
+  ): Promise<void> {
+    try {
+      const sessionId = input.sessionId ?? (episodicRows[0]?.sessionId as SessionId | undefined);
+      const snapshot = await this.dbSnapshotter.capture({
+        ...(sessionId !== undefined && { sessionId }),
+        ...(correlation.callIds.length > 0 && { callIds: correlation.callIds }),
+      });
+      if (snapshot.tables.length === 0 && snapshot.relationships.length === 0) {
+        addMissing(accumulator, "db_snapshot", "no focused DB rows matched capture input");
+        return;
+      }
+      addJsonArtifact(accumulator, {
+        path: "db-snapshot.json",
+        source: "db_snapshot",
+        capture: "full_local",
+        description: "Focused row-level DB snapshot for local replay.",
+        value: snapshot,
+      });
+    } catch (err) {
+      addMissing(
+        accumulator,
+        "db_snapshot",
+        `failed to capture focused DB snapshot: ${errorMessage(err)}`,
+      );
+    }
+  }
 }
 
 function addTraceArtifacts(
@@ -372,6 +409,34 @@ function addJsonlArtifact(
   });
   accumulator.manifestArtifacts.push({
     kind: "jsonl",
+    path: input.path,
+    source: input.source,
+    capture: input.capture,
+    ...(input.description !== undefined && { description: input.description }),
+  });
+  accumulator.captureEvents.push({
+    type: "evidence_captured",
+    source: input.source,
+    artifactPath: input.path,
+  });
+}
+
+function addJsonArtifact(
+  accumulator: BundleAccumulator,
+  input: {
+    path: string;
+    source: DebugBundleEvidenceSource;
+    capture: DebugBundleCapturePolicy;
+    value: unknown;
+    description?: string;
+  },
+): void {
+  accumulator.artifacts.push({
+    path: input.path,
+    contents: `${JSON.stringify(input.value, null, 2)}\n`,
+  });
+  accumulator.manifestArtifacts.push({
+    kind: "json",
     path: input.path,
     source: input.source,
     capture: input.capture,

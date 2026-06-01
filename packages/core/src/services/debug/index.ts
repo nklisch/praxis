@@ -9,6 +9,15 @@ export {
   normalizeBundleRelativePath,
 } from "./debug-bundle-writer.js";
 export {
+  type DebugDbSnapshot,
+  type DebugDbSnapshotRelationship,
+  type DebugDbSnapshotTable,
+  type DebugDbSnapshotter,
+  DebugDbSnapshotterImpl,
+  type DebugSnapshotTableName,
+  restoreDebugDbSnapshot,
+} from "./debug-db-snapshot.js";
+export {
   type DebugLogFilters,
   type DebugLogReader,
   JsonlDebugLogReader,

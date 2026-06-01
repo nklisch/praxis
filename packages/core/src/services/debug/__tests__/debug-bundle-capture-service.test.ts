@@ -62,7 +62,7 @@ describe("DebugBundleCaptureServiceImpl", () => {
 
     expect(result.manifest.runId).toBe("run-session");
     expect(result.manifest.artifacts.map((artifact) => artifact.path)).toEqual(
-      expect.arrayContaining(["trace-records.jsonl", "engine-events.jsonl"]),
+      expect.arrayContaining(["trace-records.jsonl", "engine-events.jsonl", "db-snapshot.json"]),
     );
 
     const traceRecords = await readJsonl(join(result.bundleDir, "trace-records.jsonl"));
@@ -80,6 +80,19 @@ describe("DebugBundleCaptureServiceImpl", () => {
           }),
         }),
       ]),
+    );
+
+    const dbSnapshot = JSON.parse(
+      await readFile(join(result.bundleDir, "db-snapshot.json"), "utf8"),
+    );
+    expect(dbSnapshot).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        tables: expect.arrayContaining([
+          expect.objectContaining({ name: "sessions" }),
+          expect.objectContaining({ name: "episodic_events" }),
+        ]),
+      }),
     );
   });
 
