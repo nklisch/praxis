@@ -1,14 +1,14 @@
 ---
 id: bug-scan-half-indexed-ingested-doc
 kind: story
-stage: implementing
+stage: review
 tags: [bug, data-layer, high]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: high
 bug_domain: data-layer
@@ -31,3 +31,8 @@ await Promise.all([
   this.deps.ftsStore.upsertBatch(ftsUpserts),
 ]);
 ```
+
+## Implementation notes
+
+- Changed `packages/core/src/ingestion/service.ts` to clean up persisted document rows, chunk rows via cascade, and vector/FTS index rows when post-parse indexing or cancellation fails after the document was made durable.
+- Added regression coverage in `packages/core/src/__tests__/ingestion-service.test.ts` for vector/FTS cleanup after an indexing failure.

@@ -13,6 +13,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { documents } from "@praxis/artifacts/schema";
 import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
@@ -218,6 +219,74 @@ describe("IngestionService", () => {
 
     expect(vectorStore.upsertBatch).toHaveBeenCalled();
     expect(ftsStore.upsertBatch).toHaveBeenCalled();
+  });
+
+  it("removes the persisted document and indexes when indexing fails", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { vectorStore, ftsStore, embeddings } = makeStores();
+    const result = makeIngestorResult(2);
+    const ingestor = makeIngestor(result);
+    ftsStore.upsertBatch.mockRejectedValueOnce(new Error("fts unavailable"));
+
+    const svc = new IngestionService({
+      db,
+      log: noopLogger(),
+      vectorStore,
+      ftsStore,
+      embeddings,
+      ingestorRegistry: makeRegistry(ingestor),
+      pageImageStore,
+      embeddedImageStore,
+    });
+
+    const events = await collectEvents(svc, {
+      filePath: "/fake/doc.txt",
+      filename: "doc.txt",
+      mimeType: "text/plain",
+      studentId: "student-1",
+    });
+
+    expect(events.at(-1)?.type).toBe("error");
+    expect(db.select().from(documents).all()).toHaveLength(0);
+    expect(vectorStore.deleteByDocumentId).toHaveBeenCalled();
+    expect(ftsStore.deleteByDocumentId).toHaveBeenCalled();
+  });
+
+  it("finishes the activity as failed when post-parse indexing fails", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { vectorStore, ftsStore, embeddings } = makeStores();
+    const result = makeIngestorResult(2);
+    const ingestor = makeIngestor(result);
+    vectorStore.upsertBatch.mockRejectedValueOnce(new Error("vector unavailable"));
+    const finish = vi.fn();
+    const activity = {
+      start: vi.fn().mockReturnValue({ id: "act-1", update: vi.fn(), finish }),
+      list: vi.fn().mockReturnValue([]),
+      subscribe: vi.fn().mockReturnValue(() => {}),
+      dismiss: vi.fn(),
+      shutdown: vi.fn(),
+    };
+
+    const svc = new IngestionService({
+      db,
+      log: noopLogger(),
+      vectorStore,
+      ftsStore,
+      embeddings,
+      ingestorRegistry: makeRegistry(ingestor),
+      pageImageStore,
+      embeddedImageStore,
+      activity,
+    });
+
+    await collectEvents(svc, {
+      filePath: "/fake/doc.txt",
+      filename: "doc.txt",
+      mimeType: "text/plain",
+      studentId: "student-1",
+    });
+
+    expect(finish).toHaveBeenCalledWith("failed", { message: "vector unavailable" });
   });
 
   it("embedBatch called with chunk texts", async () => {
