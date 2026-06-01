@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-client-runner
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: [epic-agent-debugging-harness-student-simulation-schema]
@@ -56,3 +56,15 @@ student/persona steps and fake engine output, producing a
 - `pnpm --filter @praxis/core build`
 - `pnpm typecheck`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Verification is green, and the review pass
+fixed the one edge case found: missing pending quick-check events now fail with a
+recorded timeout instead of risking a hung iterator.
