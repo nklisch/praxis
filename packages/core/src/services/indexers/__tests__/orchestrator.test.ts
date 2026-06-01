@@ -25,6 +25,14 @@ const MOCK_LOG = {
 
 const dbCtx = useTempDb();
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 // Helper: insert a session + episodic event
 function insertSessionAndEvent(
   db: ReturnType<typeof openDb>["db"],
@@ -285,6 +293,62 @@ describe("IndexerOrchestratorImpl — turnFloor increments", () => {
 
     expect(seenEvents[1]).toContain("evt-floor-2");
     expect(seenEvents[1]).not.toContain("evt-floor-1");
+    orch.shutdown();
+  });
+
+  it("serializes overlapping post-turn runs for the same session", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    insertSessionAndEvent(db, "evt-overlap-1", 0);
+
+    const firstStarted = deferred();
+    const releaseFirst = deferred();
+    const secondStarted = deferred();
+    let active = 0;
+    let maxActive = 0;
+    const seenEvents: string[][] = [];
+    const trackingIndexer: Indexer = {
+      id: "overlap-tracker",
+      schedule: "post-turn",
+      async run(ctx) {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        seenEvents.push(ctx.events.map((e) => e.id));
+        if (seenEvents.length === 1) {
+          firstStarted.resolve();
+          await releaseFirst.promise;
+        }
+        if (seenEvents.length === 2) {
+          secondStarted.resolve();
+        }
+        active -= 1;
+      },
+    };
+
+    const orch = new IndexerOrchestratorImpl({
+      db,
+      log: MOCK_LOG,
+      indexers: [trackingIndexer],
+      debounceMs: 100,
+    });
+
+    orch.scheduleAfterTurn({ studentId: STUDENT_ID, sessionId: SESSION_ID });
+    vi.advanceTimersByTime(200);
+    await firstStarted.promise;
+
+    insertSessionAndEvent(db, "evt-overlap-2", 1);
+    orch.scheduleAfterTurn({ studentId: STUDENT_ID, sessionId: SESSION_ID });
+    vi.advanceTimersByTime(200);
+    await Promise.resolve();
+
+    expect(maxActive).toBe(1);
+    expect(seenEvents).toHaveLength(1);
+
+    releaseFirst.resolve();
+    await secondStarted.promise;
+
+    expect(maxActive).toBe(1);
+    expect(seenEvents[1]).toContain("evt-overlap-2");
+    expect(seenEvents[1]).not.toContain("evt-overlap-1");
     orch.shutdown();
   });
 });

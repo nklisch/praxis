@@ -1,14 +1,14 @@
 ---
 id: bug-scan-post-turn-indexer-overlap
 kind: story
-stage: implementing
+stage: review
 tags: [bug, concurrency]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: medium
 bug_domain: concurrency
@@ -27,3 +27,9 @@ const timer = setTimeout(() => {
   this.runScope("post-turn", input, true).catch(/* ... */);
 }, debounce);
 ```
+
+## Implementation notes
+
+- Changed `packages/core/src/services/indexers/orchestrator.ts` to serialize all indexer runs per session through a small promise queue, including debounced post-turn runs and synchronous session-end passes.
+- Post-turn floor advancement now uses `Math.max(currentFloor, lastTurn + 1)` so queued/overlapping completions cannot move floors backward.
+- Added `packages/core/src/services/indexers/__tests__/orchestrator.test.ts` coverage proving a second post-turn pass waits for the first and only sees events above the advanced floor.

@@ -49,6 +49,8 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
    * Reset to 0 at construction; advanced after each successful run.
    */
   private readonly turnFloors = new Map<string, number>();
+  /** sessionId -> serialized in-flight/queued indexer work. */
+  private readonly sessionRuns = new Map<string, Promise<void>>();
 
   constructor(private readonly deps: IndexerOrchestratorDeps) {}
 
@@ -61,9 +63,11 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
     const debounce = this.deps.debounceMs ?? 3000;
     const timer = setTimeout(() => {
       this.timers.delete(input.sessionId);
-      this.runScope("post-turn", input, true).catch((err) => {
-        this.deps.log.warn("indexer.post_turn_failed", { error: String(err) });
-      });
+      this.enqueueSessionRun(input.sessionId, () => this.runScope("post-turn", input, true)).catch(
+        (err) => {
+          this.deps.log.warn("indexer.post_turn_failed", { error: String(err) });
+        },
+      );
     }, debounce);
 
     // unref so timers don't keep the process alive (critical for Electron main).
@@ -76,11 +80,11 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
     this.cancel(input.sessionId);
 
     // Session-end indexers always see the full session (no turnFloor restriction).
-    await this.runScope("session-end", input, false);
+    await this.enqueueSessionRun(input.sessionId, () => this.runScope("session-end", input, false));
 
     // Also run post-turn indexers once more to catch any signal from the final turn
     // that the debounce window may have missed.
-    await this.runScope("post-turn", input, true);
+    await this.enqueueSessionRun(input.sessionId, () => this.runScope("post-turn", input, true));
   }
 
   cancel(sessionId: SessionId): void {
@@ -104,6 +108,20 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
   }
 
   // ── Internal ──────────────────────────────────────────────────────────────────
+
+  private enqueueSessionRun(sessionId: SessionId, run: () => Promise<void>): Promise<void> {
+    const previous = this.sessionRuns.get(sessionId) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(run);
+    this.sessionRuns.set(sessionId, next);
+    next
+      .finally(() => {
+        if (this.sessionRuns.get(sessionId) === next) {
+          this.sessionRuns.delete(sessionId);
+        }
+      })
+      .catch(() => undefined);
+    return next;
+  }
 
   private async runScope(
     schedule: "post-turn" | "session-end",
@@ -154,7 +172,9 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
     // Advance turn floor for next post-turn pass.
     if (schedule === "post-turn") {
       const lastTurn = events.at(-1)?.turnIndex ?? 0;
-      this.turnFloors.set(input.sessionId, lastTurn + 1);
+      const nextFloor = lastTurn + 1;
+      const currentFloor = this.turnFloors.get(input.sessionId) ?? 0;
+      this.turnFloors.set(input.sessionId, Math.max(currentFloor, nextFloor));
     }
   }
 
