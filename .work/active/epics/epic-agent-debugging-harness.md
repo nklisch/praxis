@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Agent debugging harness
@@ -26,7 +26,7 @@ Recent failures motivate the scope: raw tool-call markup leaked into course-crea
 - **Audience**: Internal developers and coding agents first, not students. Any UI should be a diagnostic surface or report, not a tutoring product surface.
 - **Tool choice**: Do not lock in a vendor or framework at scope time. The design pass should run current-source research for candidate tracing, logging, replay, evaluation, and browser automation tools before choosing.
 - **Simulation style**: Include both replay of captured real sessions and synthetic student personas that drive live sessions through public app/client surfaces.
-- **Evidence standard**: A useful run emits structured traces, correlated logs, inputs, tool calls, model events, UI-visible outcomes, and a short failure summary that another agent can consume without re-running the whole app.
+- **Evidence standard**: A useful run emits full-fidelity local traces, correlated logs, inputs, tool calls, model events, UI-visible outcomes, and a short failure summary that another agent can consume without re-running the whole app. Sanitization is an explicit export/share step, not the local capture default.
 - **Boundary**: The harness complements unit, integration, and e2e tests; it does not replace them or weaken test integrity. Failing scenarios should still become substrate items when they expose product bugs.
 
 ## Initial Area Map
@@ -58,10 +58,10 @@ Split by capability rather than by package layer: one feature chooses the eviden
 - `epic-agent-debugging-harness-trace-correlation` - shared trace IDs and capture hooks across session, engine, tool, sub-agent, IPC, and UI outcomes - depends on: `[epic-agent-debugging-harness-tooling-research]`
 - `epic-agent-debugging-harness-failure-replay` - failure bundle export and deterministic replay/inspection primitives - depends on: `[epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]`
 - `epic-agent-debugging-harness-student-simulation` - synthetic student personas and scenario runner through public app/client surfaces - depends on: `[epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]`
-- `epic-agent-debugging-harness-debug-runbooks` - agent-facing reports, commands, and debugging runbooks - depends on: `[epic-agent-debugging-harness-failure-replay, epic-agent-debugging-harness-student-simulation]`
+- `epic-agent-debugging-harness-debug-runbooks` - agent-facing progressive-disclosure skill(s) for reports, commands, owner routing, and debugging runbooks - depends on: `[epic-agent-debugging-harness-failure-replay, epic-agent-debugging-harness-student-simulation]`
 
 ### Decomposition risks
 
-The riskiest seam is trace correlation: if it becomes a broad observability rewrite, the downstream features will inherit churn. Keep it additive, local-first, redacted by default, and shaped around existing `EngineEvent`, logger, tool dispatch, sub-agent, and IPC contracts.
+The riskiest seam is trace correlation: if it becomes a broad observability rewrite, the downstream features will inherit churn. Keep it additive, local-first, full-fidelity for local debug bundles, explicit about bounded retention, and shaped around existing `EngineEvent`, logger, tool dispatch, sub-agent, and IPC contracts. Sanitization belongs to export/share adapters.
 
 Replay and synthetic student simulation can drift into flaky live-model tests if not bounded. Feature design should separate deterministic regression paths from optional live-engine probes and should record nondeterminism explicitly in each run's output.

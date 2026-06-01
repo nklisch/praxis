@@ -8,14 +8,14 @@ depends_on: [epic-agent-debugging-harness-tooling-research]
 release_binding: null
 gate_origin: null
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Trace Correlation
 
 ## Brief
 
-Define and implement the shared correlation layer that lets a debugging run connect session turns, engine events, tool dispatches, sub-agent steps, IPC stream messages, UI-visible render outcomes, logs, and persisted episodic rows. The implementation should extend existing structured logging and event-flow patterns rather than bypassing them, preserving redaction and local-first defaults.
+Define and implement the shared correlation layer that lets a debugging run connect session turns, engine events, tool dispatches, sub-agent steps, IPC stream messages, UI-visible render outcomes, logs, and persisted episodic rows. The implementation should extend existing structured logging and event-flow patterns rather than bypassing them, preserving local-first ownership, full-fidelity local debug capture, bounded retention, and explicit export/share boundaries.
 
 This feature should produce the common trace identifiers and capture hooks needed by replay, failure bundles, and student simulation. It should cover the critical path through `SessionServiceImpl.send`, `EngineSessionManager`, engine adapters, `InProcessToolRegistry.dispatch`, `SubAgentRegistry`, streaming IPC helpers, and the chat render surfaces enough that a later report can explain "what happened" without reading raw logs manually.
 

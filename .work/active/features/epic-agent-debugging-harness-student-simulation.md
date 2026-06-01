@@ -8,7 +8,7 @@ depends_on: [epic-agent-debugging-harness-tooling-research, epic-agent-debugging
 release_binding: null
 gate_origin: null
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Student Simulation
@@ -29,6 +29,6 @@ This feature does not define the trace format or failure bundle format. It consu
 ## Foundation references
 
 - `docs/VISION.md` - Praxis optimizes learning, productive struggle, verification, and source awareness.
-- `docs/SPEC.md` - verification rules, human-in-the-loop dispatch, local-first privacy, and v1 scope.
+- `docs/SPEC.md` - verification rules, human-in-the-loop dispatch, local-first ownership, and v1 scope.
 - `docs/UX.md` - student and course-create journeys, mode behavior, quick checks, structured questions, and tab persistence.
 - `docs/ARCHITECTURE.md` - `@praxis/client` transport boundary, session flow, tools, memory, and artifacts.
