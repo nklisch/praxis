@@ -3,6 +3,11 @@ export {
   DebugBundleCaptureServiceImpl,
 } from "./debug-bundle-capture-service.js";
 export {
+  DebugBundleLoadError,
+  type LoadedDebugBundle,
+  loadDebugBundle,
+} from "./debug-bundle-loader.js";
+export {
   createDebugBundleWriter,
   DEBUG_BUNDLE_MANIFEST_FILENAME,
   FsDebugBundleWriter,

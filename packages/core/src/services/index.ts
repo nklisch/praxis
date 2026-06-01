@@ -75,6 +75,8 @@ export type { CoursesServiceDeps } from "./courses-service.js";
 export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
 export type { DebugBundleCaptureServiceDeps } from "./debug/debug-bundle-capture-service.js";
 export { DebugBundleCaptureServiceImpl } from "./debug/debug-bundle-capture-service.js";
+export type { LoadedDebugBundle } from "./debug/debug-bundle-loader.js";
+export { DebugBundleLoadError, loadDebugBundle } from "./debug/debug-bundle-loader.js";
 export type {
   DebugDbSnapshot,
   DebugDbSnapshotRelationship,
