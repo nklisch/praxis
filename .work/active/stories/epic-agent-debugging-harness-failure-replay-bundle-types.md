@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-failure-replay-bundle-types
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-failure-replay
 depends_on: []
@@ -55,3 +55,15 @@ filesystem writer for local bundle directories.
 - `pnpm --filter @praxis/core typecheck`
 - `pnpm exec biome check packages/core/src/types/debug-bundle.ts packages/core/src/types/index.ts packages/core/src/services/debug/debug-bundle-writer.ts packages/core/src/services/debug/index.ts packages/core/src/services/debug/__tests__/debug-bundle-writer.test.ts`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green focused
+tests, core typecheck, focused Biome, and whitespace checks; item advanced to
+`stage: done`.
