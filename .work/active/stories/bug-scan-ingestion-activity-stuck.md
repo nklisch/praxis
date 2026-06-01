@@ -1,14 +1,14 @@
 ---
 id: bug-scan-ingestion-activity-stuck
 kind: story
-stage: implementing
+stage: review
 tags: [bug, resource-leak]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: medium
 bug_domain: resource-leak
@@ -31,3 +31,8 @@ await Promise.all([
 ]);
 actHandle?.finish("done");
 ```
+
+## Implementation notes
+
+- Changed `packages/core/src/ingestion/service.ts` to wrap the full ingestion body after activity creation in a guarded failure path, with a final fallback that fails any unfinished activity handle.
+- Added regression coverage in `packages/core/src/__tests__/ingestion-service.test.ts` confirming post-parse indexing failures finish the activity as failed.
