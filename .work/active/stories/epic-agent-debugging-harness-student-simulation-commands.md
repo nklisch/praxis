@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-commands
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: [epic-agent-debugging-harness-student-simulation-browser-runner]
@@ -28,9 +28,36 @@ and failure-bundle handoff text for the simulation harness.
 
 ## Acceptance criteria
 
-- [ ] CLI list and deterministic run paths work.
-- [ ] Live/model-backed scenarios refuse to run unless
+- [x] CLI list and deterministic run paths work.
+- [x] Live/model-backed scenarios refuse to run unless
       `PRAXIS_RUN_LIVE_SIMULATION=1` is set.
-- [ ] Report includes scenario id, persona, driver, determinism, first bad
+- [x] Report includes scenario id, persona, driver, determinism, first bad
       observation, correlation ids, artifact paths, and next debug step.
-- [ ] Report suggests the appropriate `debug:bundle` command when a run fails.
+- [x] Report suggests the appropriate `debug:bundle` command when a run fails.
+
+## Implementation Notes
+
+- Added `scripts/student-sim.ts` for scenario listing and deterministic
+  client-driver runs. Runs write `simulation-result.json`, events/steps JSONL,
+  and `simulation-report.md` under the selected output directory.
+- Added `scripts/student-sim-browser.ts` for browser-capable scenario listing
+  and direct browser-run handoff when `PRAXIS_RUN_BROWSER_SIMULATION=1` is set.
+- Added `tests/helpers/student-simulation/report.ts` to render compact run
+  reports with scenario/persona/driver/determinism, first bad observation,
+  correlation ids, artifact paths, next debug step, and failed-run
+  `pnpm debug:bundle ... --failure-class simulation` guidance.
+- Added package scripts `student-sim`, `student-sim:list`, `student-sim:run`,
+  and moved `student-sim:browser:list` to the browser CLI wrapper.
+- Live/model-backed scenarios now require `PRAXIS_RUN_LIVE_SIMULATION=1` before
+  the command layer will run them.
+
+## Verification
+
+- `pnpm vitest run tests/student-simulation-cli.test.ts tests/student-simulation-client.test.ts`
+- `pnpm exec biome check package.json scripts/student-sim.ts scripts/student-sim-browser.ts tests/helpers/student-simulation/report.ts tests/student-simulation-cli.test.ts`
+- `pnpm student-sim:list`
+- `pnpm student-sim:run course-create-structured-question --out .tmp/student-sim-command-smoke --run command-smoke`
+- `pnpm student-sim:browser:list`
+- `pnpm exec playwright test tests/student-simulation-browser.spec.ts --list`
+- `pnpm typecheck`
+- `git diff --check`
