@@ -27,10 +27,21 @@ export function useSubAgent(parentCallId: string): UseSubAgentResult {
 
   useEffect(() => {
     let cancelled = false;
+    let returnStream: (() => void) | null = null;
 
     (async () => {
+      const iterator = client.subAgent.events({ parentCallId })[Symbol.asyncIterator]();
+      returnStream = () => {
+        void Promise.resolve(iterator.return?.()).catch(() => {
+          // Best-effort cancellation: the stream may already be closed.
+        });
+      };
+
       try {
-        for await (const event of client.subAgent.events({ parentCallId })) {
+        while (true) {
+          const result = await iterator.next();
+          if (result.done) break;
+          const event = result.value;
           if (cancelled) break;
 
           switch (event.kind) {
@@ -101,6 +112,7 @@ export function useSubAgent(parentCallId: string): UseSubAgentResult {
 
     return () => {
       cancelled = true;
+      returnStream?.();
     };
   }, [client, parentCallId]);
 

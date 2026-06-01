@@ -212,6 +212,35 @@ describe("useSubAgent", () => {
     expect(() => unmount()).not.toThrow();
   });
 
+  it("unmount calls return() on the active stream iterator", async () => {
+    const next = vi.fn(() => new Promise<IteratorResult<SubAgentEvent, void>>(() => {}));
+    const returnStream = vi.fn().mockResolvedValue({ done: true, value: undefined });
+    const iterator: AsyncIterator<SubAgentEvent, void, unknown> = {
+      next,
+      return: returnStream,
+    };
+    const client = makeFakeClient({
+      subAgent: {
+        events: vi.fn(
+          () =>
+            ({
+              [Symbol.asyncIterator]: () => iterator,
+            }) as ReturnType<PraxisClient["subAgent"]["events"]>,
+        ),
+        list: vi.fn().mockResolvedValue([]),
+      } as PraxisClient["subAgent"],
+    });
+
+    const { unmount } = renderHook(() => useSubAgent(TEST_CALL_ID), {
+      wrapper: wrapper(client),
+    });
+    await waitFor(() => expect(next).toHaveBeenCalledOnce());
+
+    unmount();
+
+    expect(returnStream).toHaveBeenCalledOnce();
+  });
+
   it("stream error — keeps last good state", async () => {
     const item = makeItem();
     // Stream throws after the snapshot.
