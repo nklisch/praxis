@@ -316,9 +316,16 @@ async function waitForPendingQuickCheck(
   stepIndex: number,
 ): Promise<Extract<QuickCheckEvent, { kind: "pending" }>> {
   const iterator = state.client.quickCheck.events()[Symbol.asyncIterator]();
+  let timedOut = false;
   try {
     for (;;) {
-      const next = await nextWithTimeout(iterator, 1_000);
+      let next: IteratorResult<QuickCheckEvent>;
+      try {
+        next = await nextWithTimeout(iterator, 1_000);
+      } catch (err) {
+        timedOut = true;
+        throw err;
+      }
       if (next.done === true) throw new Error("quick-check event stream ended");
       const event = next.value;
       const sessionId = event.kind === "pending" ? event.sessionId : undefined;
@@ -336,7 +343,8 @@ async function waitForPendingQuickCheck(
       }
     }
   } finally {
-    await iterator.return?.();
+    const close = iterator.return?.();
+    if (!timedOut) await close;
   }
 }
 
@@ -344,13 +352,18 @@ async function nextWithTimeout<T>(
   iterator: AsyncIterator<T>,
   timeoutMs: number,
 ): Promise<IteratorResult<T>> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<IteratorResult<T>>((_, reject) => {
-    setTimeout(
+    timeoutId = setTimeout(
       () => reject(new Error(`Timed out waiting for quick-check event after ${timeoutMs}ms`)),
       timeoutMs,
     );
   });
-  return Promise.race([iterator.next(), timeout]);
+  try {
+    return await Promise.race([iterator.next(), timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
 }
 
 function buildQuickCheckAnswer(input: {

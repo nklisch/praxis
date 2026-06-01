@@ -151,6 +151,50 @@ describe("student simulation client runner", () => {
     expect(failure?.observation).toContain("calls=call-qc-1");
   });
 
+  it("fails instead of hanging when no quick check is pending", async () => {
+    const debugTrace = new DebugTraceRegistryImpl({ now: () => 3_000, maxRecords: 10_000 });
+    const client = await createInProcessSimulationClient({
+      dbPath: db.dbPath,
+      engineTurns: [
+        {
+          turnIndex: 0,
+          userMessage: "Just explain it.",
+          events: [{ type: "final", usage: { inputTokens: 1, outputTokens: 1 } }],
+        },
+      ],
+      debugTrace,
+    });
+
+    const result = await createStudentSimulationClientRunner().run({
+      scenario: {
+        id: "client-runner-no-pending-quick-check",
+        title: "Client runner no pending quick check",
+        persona: HESITANT_NURSING_STUDENT,
+        determinism: "scripted",
+        drivers: ["client"],
+        tags: ["failure"],
+        steps: [
+          { kind: "start-session", ref: "teach", modeId: "teach" },
+          { kind: "send-message", sessionRef: "teach", text: "Just explain it." },
+          { kind: "answer-quick-check", strategy: "right" },
+        ],
+      },
+      client,
+      outputDir: join(db.tmpDir, "simulation-no-pending"),
+      runId: "run-client-no-pending",
+      debugTrace,
+      now: () => new Date("2026-06-01T00:00:00.000Z"),
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.steps.at(-1)).toMatchObject({
+      index: 2,
+      kind: "answer-quick-check",
+      status: "failed",
+    });
+    expect(result.steps.at(-1)?.error).toContain("Timed out waiting for quick-check event");
+  });
+
   it("refuses to use the local dev database", async () => {
     const debugTrace = new DebugTraceRegistryImpl({ maxRecords: 10_000 });
     await expect(
