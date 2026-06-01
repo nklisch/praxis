@@ -52,43 +52,64 @@ export function query(prompt: string, options: Options = {}): Query {
 
   const sessionId = createDeferredPromise<string>();
   const result = createDeferredPromise<ResultEvent>();
+  let sessionIdSettled = false;
 
   // Prevent unhandled rejection if caller never awaits .result
   result.promise.catch(() => {});
+  sessionId.promise.catch(() => {});
 
   // Abort controller — caller can abort, or we create one to expose .abort()
   const ac = options.abortController ?? new AbortController();
   let procKilled = false;
 
   async function* generate(): AsyncGenerator<StreamEvent, ResultEvent, unknown> {
-    const { args, tempFiles } = await buildCliArgs(prompt, options);
+    const rejectBeforeInit = (err: Error): void => {
+      if (!sessionIdSettled) {
+        sessionIdSettled = true;
+        sessionId.reject(err);
+      }
+    };
 
-    logger.debug("Spawning CLI", { args: args.slice(0, 6), workDir: options.workDir });
+    const resolveSessionId = (id: string): void => {
+      if (!sessionIdSettled) {
+        sessionIdSettled = true;
+        sessionId.resolve(id);
+      }
+    };
 
-    const { proc, cleanup } = spawnCli(
-      args,
-      { workDir: options.workDir, env: options.env },
-      tempFiles,
-    );
+    let proc: ReturnType<typeof spawnCli>["proc"] | undefined;
+    let cleanup = async () => {};
 
     // Wire abort signal to process kill
     const onAbort = () => {
-      if (!procKilled) {
+      if (!procKilled && proc) {
         procKilled = true;
         proc.kill("SIGTERM");
       }
     };
-    ac.signal.addEventListener("abort", onAbort, { once: true });
-
-    // Handle ENOENT spawn error
-    attachSpawnErrorHandler(proc, result.reject);
 
     let resultEvent: ResultEvent | undefined;
 
     try {
+      const { args, tempFiles } = await buildCliArgs(prompt, options);
+
+      logger.debug("Spawning CLI", { args: args.slice(0, 6), workDir: options.workDir });
+
+      const spawnResult = spawnCli(args, { workDir: options.workDir, env: options.env }, tempFiles);
+      proc = spawnResult.proc;
+      cleanup = spawnResult.cleanup;
+
+      ac.signal.addEventListener("abort", onAbort, { once: true });
+
+      // Handle ENOENT spawn error
+      attachSpawnErrorHandler(proc, (err) => {
+        result.reject(err);
+        rejectBeforeInit(err);
+      });
+
       for await (const event of streamEvents(proc, timeout)) {
         if (event.type === "system" && event.subtype === "init") {
-          sessionId.resolve(event.sessionId);
+          resolveSessionId(event.sessionId);
         }
 
         if (event.type === "result") {
@@ -102,11 +123,13 @@ export function query(prompt: string, options: Options = {}): Query {
         if (resultEvent) break;
       }
     } catch (err) {
-      result.reject(err instanceof Error ? err : new Error(String(err)));
+      const error = err instanceof Error ? err : new Error(String(err));
+      result.reject(error);
+      rejectBeforeInit(error);
       throw err;
     } finally {
       // Kill the process if it's still running (e.g. stuck during cleanup)
-      if (!procKilled && proc.exitCode === null) {
+      if (!procKilled && proc && proc.exitCode === null) {
         procKilled = true;
         proc.kill("SIGTERM");
       }
@@ -118,8 +141,7 @@ export function query(prompt: string, options: Options = {}): Query {
       // Process ended without a result event
       const err = new CLIError(0, "Claude CLI exited without a result event");
       result.reject(err);
-      // Resolve sessionId with empty string if never set
-      sessionId.resolve("");
+      rejectBeforeInit(err);
       throw err;
     }
 
