@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation-session-tools
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-trace-correlation
 depends_on: [epic-agent-debugging-harness-trace-correlation-types]
@@ -75,3 +75,15 @@ adapters into tool dispatch and tool context.
 - `pnpm --filter @praxis/tools typecheck`
 - `pnpm --filter @praxis/engines typecheck`
 - `pnpm biome check packages/core/src/types/engine.ts packages/core/src/types/tool.ts packages/core/src/services/session-service.ts packages/core/src/services/session/session-promoter.ts packages/core/src/services/session/engine-session-manager.ts packages/tools/src/registry.ts packages/tools/src/__tests__/registry.test.ts packages/engines/src/common/trace-threader.ts packages/engines/src/direct/adapter.ts packages/engines/src/direct/tool-conversion.ts packages/engines/src/mcp/types.ts packages/engines/src/mcp/tool-bridge.ts packages/engines/src/claude-code/adapter.ts packages/engines/src/codex/adapter.ts packages/engines/src/__tests__/direct.test.ts packages/engines/src/__tests__/tool-bridge.test.ts packages/core/src/services/__tests__/session-service.debug-trace.test.ts`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation record includes green focused
+verification; host reran the core/tools trace tests, engines direct/tool-bridge
+tests, and `@praxis/core`, `@praxis/tools`, and `@praxis/engines` typechecks.
