@@ -8,6 +8,10 @@ export {
   loadDebugBundle,
 } from "./debug-bundle-loader.js";
 export {
+  type DebugBundleReportArtifact,
+  generateDebugBundleReport,
+} from "./debug-bundle-report.js";
+export {
   createDebugBundleWriter,
   DEBUG_BUNDLE_MANIFEST_FILENAME,
   FsDebugBundleWriter,

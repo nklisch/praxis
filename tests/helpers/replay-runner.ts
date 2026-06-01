@@ -13,10 +13,18 @@ import { runMigrations } from "@praxis/core/db/migrate";
 import { drafts } from "@praxis/core/schema";
 import type { ServiceDeps } from "@praxis/core/services";
 import { DebugTraceRegistryImpl, SessionServiceImpl } from "@praxis/core/services";
-import type { DebugTraceRecord, EngineEvent, Mode, SessionId } from "@praxis/core/types";
+import type {
+  DebugTraceRecord,
+  DocumentScopesService,
+  EngineEvent,
+  LockService,
+  Logger,
+  Mode,
+  SecretStorage,
+  SessionId,
+} from "@praxis/core/types";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { and, asc, eq, gte } from "drizzle-orm";
-import { inMemorySecretStorage, noopDocumentScopes, noopLockService, noopLogger } from "./mocks.js";
 import { ReplayEngine, type ReplayTurn } from "./replay-engine.js";
 
 export class ReplayBundleLoadError extends Error {
@@ -408,4 +416,53 @@ const TIMESTAMP_COLUMNS: Record<DebugSnapshotTableName, readonly string[]> = {
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function noopLogger(): Logger {
+  const logger: Logger = {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    child: () => logger,
+  };
+  return logger;
+}
+
+function inMemorySecretStorage(): SecretStorage {
+  return {
+    isAvailable: () => true,
+    encrypt: (plaintext) => Buffer.from(plaintext, "utf8").toString("base64"),
+    decrypt: (b64) => {
+      try {
+        return Buffer.from(b64, "base64").toString("utf8");
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+function noopLockService(): LockService {
+  return {
+    isSet: async () => false,
+    isUnlocked: async () => true,
+    setLockCode: async () => {},
+    unlock: async () => ({ ok: true }),
+    lock: async () => {},
+    clearLock: async () => {},
+  };
+}
+
+function noopDocumentScopes(): DocumentScopesService {
+  return {
+    listForScope: async () => [],
+    listForScopeDetailed: async () => [],
+    attach: async () => ({ attached: false }),
+    detach: async () => ({ detached: false }),
+    attachMany: async () => ({ newlyAttached: [] }),
+    listScopesForDocument: async () => [],
+    promoteScope: async () => ({ promoted: [] }),
+    listOrphaned: async () => [],
+  };
 }
