@@ -80,7 +80,7 @@ async function bootstrap(): Promise<void> {
     });
 
   mainWindow = createMainWindow();
-  registerLogChannel(log);
+  registerLogChannel(log, services.debugTrace);
   const ipcResult = registerIpcHandlers(services, () => mainWindow?.webContents ?? null, log);
   activeAbortControllers = ipcResult.activeAbortControllers;
 

@@ -62,6 +62,7 @@ export type DebugTraceRecordInput =
   | (DebugTraceRecordBase & {
       type: "renderer_outcome";
       surface: string;
+      eventType: string;
       outcome: string;
     });
 

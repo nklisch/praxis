@@ -1,4 +1,5 @@
-import type { LogRecord } from "@praxis/core/types";
+import { DebugTraceRegistryImpl } from "@praxis/core/services";
+import type { LogRecord, SessionId } from "@praxis/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
@@ -54,6 +55,45 @@ describe("registerLogChannel", () => {
     expect(call.message).toBe("renderer.hello");
     expect(call.fields).toEqual({ foo: "bar" });
     expect(call.bindings).toEqual({ component: "renderer" });
+  });
+
+  it("mirrors renderer outcome records into the debug trace registry", () => {
+    const log = makeSpyLogger();
+    const debugTrace = new DebugTraceRegistryImpl({ now: () => 1_700_000_000_000 });
+    registerLogChannel(log, debugTrace);
+    const record: LogRecord = {
+      level: "debug",
+      time: 1_700_000_000_000,
+      message: "renderer.trace.outcome",
+      fields: {
+        rendererEventId: "renderer-1",
+        sessionId: "session-1",
+        eventType: "tool_result",
+        outcome: "rendered",
+        callId: "call-1",
+        streamId: "stream-1",
+      },
+      bindings: { component: "renderer-trace", surface: "chat" },
+    };
+
+    listeners.get(LOG_CHANNEL)?.({}, record);
+
+    expect(log._spies.ingestRendererRecord).toHaveBeenCalledOnce();
+    expect(debugTrace.findBySessionId("session-1" as SessionId)).toEqual([
+      expect.objectContaining({
+        type: "renderer_outcome",
+        surface: "chat",
+        eventType: "tool_result",
+        outcome: "rendered",
+        trace: expect.objectContaining({
+          runId: "renderer:session-1",
+          sessionId: "session-1",
+          rendererEventId: "renderer-1",
+          callId: "call-1",
+          streamId: "stream-1",
+        }),
+      }),
+    ]);
   });
 
   it("accepts a record without optional fields/bindings", () => {

@@ -86,6 +86,7 @@ describe("DebugTraceRegistryImpl", () => {
       type: "renderer_outcome",
       trace: { runId: "run-2", sessionId: sessionB },
       surface: "chat",
+      eventType: "tool_result",
       outcome: "rendered",
     });
 

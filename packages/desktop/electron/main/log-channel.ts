@@ -1,4 +1,9 @@
-import { LOG_LEVELS, type LogRecord } from "@praxis/core/types";
+import {
+  type DebugTraceRegistry,
+  LOG_LEVELS,
+  type LogRecord,
+  type SessionId,
+} from "@praxis/core/types";
 import { ipcMain } from "electron";
 import type { MainLogger } from "./logger.js";
 
@@ -13,14 +18,75 @@ import type { MainLogger } from "./logger.js";
  */
 export const LOG_CHANNEL = "praxis.log.record" as const;
 
-export function registerLogChannel(log: MainLogger): void {
+export function registerLogChannel(log: MainLogger, debugTrace?: DebugTraceRegistry): void {
   ipcMain.on(LOG_CHANNEL, (_event, payload: unknown) => {
     if (!isLogRecord(payload)) {
       log.debug("log.record.malformed", { payload });
       return;
     }
     log.ingestRendererRecord(payload);
+    recordRendererOutcome(debugTrace, log, payload);
   });
+}
+
+function recordRendererOutcome(
+  debugTrace: DebugTraceRegistry | undefined,
+  log: MainLogger,
+  record: LogRecord,
+): void {
+  if (debugTrace === undefined || record.message !== "renderer.trace.outcome") return;
+
+  const fields = record.fields;
+  const sessionId = stringField(fields, "sessionId");
+  const rendererEventId = stringField(fields, "rendererEventId");
+  const eventType = stringField(fields, "eventType");
+  const outcome = stringField(fields, "outcome");
+  if (
+    fields === undefined ||
+    sessionId === undefined ||
+    rendererEventId === undefined ||
+    eventType === undefined ||
+    outcome === undefined
+  ) {
+    log.debug("log.record.renderer_trace.malformed", { fields });
+    return;
+  }
+
+  const surface =
+    stringField(record.bindings, "surface") ?? stringField(fields, "surface") ?? "unknown";
+  const runId = stringField(fields, "runId") ?? `renderer:${sessionId}`;
+  const callId = stringField(fields, "callId");
+  const streamId = stringField(fields, "streamId");
+  const errorSummary = stringField(fields, "errorSummary");
+
+  try {
+    debugTrace.record({
+      type: "renderer_outcome",
+      trace: {
+        runId,
+        sessionId: sessionId as SessionId,
+        rendererEventId,
+        ...(callId !== undefined && { callId }),
+        ...(streamId !== undefined && { streamId }),
+      },
+      surface,
+      eventType,
+      outcome,
+      summary:
+        errorSummary === undefined
+          ? `${eventType}:${outcome}`
+          : `${eventType}:${outcome} ${errorSummary}`,
+    });
+  } catch (err) {
+    log.debug("log.record.renderer_trace.failed", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+function stringField(fields: Record<string, unknown> | undefined, key: string): string | undefined {
+  const value = fields?.[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function isLogRecord(x: unknown): x is LogRecord {
