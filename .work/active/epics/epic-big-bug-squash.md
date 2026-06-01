@@ -29,6 +29,12 @@ items before moving into medium and low polish.
 
 ## Child stories
 
+Decomposition pre-existed: this epic already has 34 direct child stories from
+the bug-scan scope pass. The existing story set is coherent for this bug-squash
+epic because each child is a concrete, independently actionable bug finding with
+preserved severity, domain, location, and remediation direction. No child
+feature layer was added in this design pass.
+
 ### Critical
 
 - `bug-scan-pyodide-timeout-keeps-running`
