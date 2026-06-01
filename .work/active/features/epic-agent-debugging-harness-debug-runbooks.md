@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-debug-runbooks
 kind: feature
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-failure-replay, epic-agent-debugging-harness-student-simulation]
@@ -268,3 +268,20 @@ describe("agent debugging harness skill", () => {
 
 All three child stories reached `done`: skill shell, failure-specific playbook
 references, and static validation coverage. Feature is ready for review.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Deep feature review completed inline. Fresh-context review was not
+used because no authorized different-model reviewer was available in this
+session. Checked the skill activation surface, progressive-disclosure reference
+links, report/command/owner-routing coverage, failure-specific playbooks,
+local-full-fidelity evidence stance, and static validation. Verification used
+`pnpm vitest run tests/agent-debugging-harness-skill.test.ts`,
+`pnpm exec biome check tests/agent-debugging-harness-skill.test.ts`,
+`pnpm typecheck`, and `git diff --check`.
