@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-debug-runbooks-skill-shell
 kind: story
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agent-debugging-harness-debug-runbooks
 depends_on: []
@@ -28,12 +28,30 @@ command index, and symptom-to-owner routing map.
 
 ## Acceptance Criteria
 
-- [ ] Skill activates on common Praxis agent-harness debugging phrases.
-- [ ] `SKILL.md` stays concise and links report, command, owner-routing, and
+- [x] Skill activates on common Praxis agent-harness debugging phrases.
+- [x] `SKILL.md` stays concise and links report, command, owner-routing, and
       failure-runbook references.
-- [ ] Report reference includes failure class, first bad observation, ids,
+- [x] Report reference includes failure class, first bad observation, ids,
       artifacts/log slices, likely owner, and next debug step.
-- [ ] Commands reference includes work-view, debug bundle/replay, student
+- [x] Commands reference includes work-view, debug bundle/replay, student
       simulation, browser trace, DB inspector, and targeted test commands.
-- [ ] Owner-routing reference covers tool dispatch, sub-agent, IPC/stream,
+- [x] Owner-routing reference covers tool dispatch, sub-agent, IPC/stream,
       UI/render, persistence/FK, and student-simulation symptoms.
+
+## Implementation Notes
+
+- Added `.agents/skills/agent-debugging-harness/SKILL.md` with activation
+  phrases for tool-call leaks, tool dispatch errors, sub-agent stalls, IPC
+  failures, UI crashes, persistence/FK failures, course-create drafting
+  failures, and student-simulation/browser mismatches.
+- Added progressive-disclosure references for compact report shape, practical
+  commands, and owner routing.
+- `SKILL.md` links the failure-specific runbook references that the next story
+  will fill in.
+
+## Verification
+
+- `find .agents/skills/agent-debugging-harness -maxdepth 2 -type f -print | sort`
+- `pnpm exec biome check --no-errors-on-unmatched .agents/skills/agent-debugging-harness/SKILL.md .agents/skills/agent-debugging-harness/references/report-shape.md .agents/skills/agent-debugging-harness/references/commands.md .agents/skills/agent-debugging-harness/references/owner-routing.md`
+  - Biome processed 0 files because `.agents/skills` is ignored by repo config.
+- `git diff --check`
