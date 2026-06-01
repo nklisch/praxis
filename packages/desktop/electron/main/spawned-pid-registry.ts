@@ -36,7 +36,7 @@
  * process is recoverable; the registry clears itself on successful sweep.
  */
 
-import { readFile, unlink, writeFile } from "node:fs/promises";
+import { readFile, rename, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { join } from "node:path";
 
@@ -144,35 +144,54 @@ export interface SpawnedPidRegistry {
 export function createSpawnedPidRegistry(dataDir: string, log: Logger): SpawnedPidRegistry {
   const filePath = join(dataDir, FILE_NAME);
   const pids = new Set<number>();
+  let opChain = Promise.resolve();
+  let persistCounter = 0;
 
   async function persist(): Promise<void> {
+    const tmpPath = `${filePath}.${process.pid}.${++persistCounter}.tmp`;
     try {
-      await writeFile(filePath, JSON.stringify([...pids]), "utf8");
+      await writeFile(tmpPath, JSON.stringify([...pids]), "utf8");
+      await rename(tmpPath, filePath);
     } catch (err) {
+      await unlink(tmpPath).catch(() => {});
       log.warn("spawned-pid-registry.persist_failed", {
         err: err instanceof Error ? err.message : String(err),
       });
     }
   }
 
+  function enqueueMutation(mutate: () => Promise<void> | void, persistAfter = true): Promise<void> {
+    opChain = opChain.then(async () => {
+      await mutate();
+      if (persistAfter) {
+        await persist();
+      }
+    });
+    return opChain;
+  }
+
   return {
     async register(pid: number): Promise<void> {
-      pids.add(pid);
-      await persist();
+      await enqueueMutation(() => {
+        pids.add(pid);
+      });
     },
 
     async deregister(pid: number): Promise<void> {
-      pids.delete(pid);
-      await persist();
+      await enqueueMutation(() => {
+        pids.delete(pid);
+      });
     },
 
     async clear(): Promise<void> {
-      pids.clear();
-      try {
-        await unlink(filePath);
-      } catch {
-        // File may not exist if we never registered any PIDs — fine
-      }
+      await enqueueMutation(async () => {
+        pids.clear();
+        try {
+          await unlink(filePath);
+        } catch {
+          // File may not exist if we never registered any PIDs — fine
+        }
+      }, false);
     },
   };
 }

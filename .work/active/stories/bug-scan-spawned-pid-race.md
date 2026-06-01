@@ -1,14 +1,14 @@
 ---
 id: bug-scan-spawned-pid-race
 kind: story
-stage: implementing
+stage: review
 tags: [bug, concurrency]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-05-31
 bug_origin: scan
 bug_severity: medium
 bug_domain: concurrency
@@ -29,3 +29,10 @@ const onProcessExited = (pid: number): void => {
   pidRegistry.deregister(pid).catch(() => {});
 };
 ```
+
+## Implementation notes
+- Files changed: `packages/desktop/electron/main/spawned-pid-registry.ts`, `packages/desktop/electron/main/__tests__/spawned-pid-registry.test.ts`
+- Tests added: concurrent register/deregister persistence regression and atomic temp-file cleanup assertion
+- Discrepancies from design: fixed in the registry itself rather than the `services.ts` callback site so all callers share serialized persistence
+- Adjacent issues parked: none
+- Verification: `TMPDIR=$PWD/.tmp pnpm vitest run packages/client/src/__tests__/ipc-transport.test.ts packages/desktop/electron/main/__tests__/spawned-pid-registry.test.ts packages/desktop/electron/main/__tests__/walk-directory-for-ingest.test.ts`
