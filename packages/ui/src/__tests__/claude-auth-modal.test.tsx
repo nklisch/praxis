@@ -66,6 +66,39 @@ describe("ClaudeAuthModal", () => {
     });
   });
 
+  it("cancels the login iterator when the modal is closed mid-stream", async () => {
+    const next = vi.fn(() => new Promise<IteratorResult<never>>(() => {}));
+    const returnStream = vi.fn().mockResolvedValue({ done: true, value: undefined as never });
+    const iterator: AsyncIterator<never> = {
+      next,
+      return: returnStream,
+    };
+    const client = makeFakeClient({
+      claudeAuth: {
+        status: vi.fn(),
+        login: vi.fn(
+          () =>
+            ({
+              [Symbol.asyncIterator]: () => iterator,
+            }) as ReturnType<PraxisClient["claudeAuth"]["login"]>,
+        ),
+      } as PraxisClient["claudeAuth"],
+      shell: {
+        openExternal: vi.fn().mockResolvedValue(undefined),
+      } as PraxisClient["shell"],
+    });
+    const onClose = vi.fn();
+    renderModal(client, onClose);
+
+    fireEvent.click(screen.getByRole("button", { name: /sign in with claude\.ai/i }));
+    await waitFor(() => expect(next).toHaveBeenCalledOnce());
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(returnStream).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("transitions to awaiting_url after started event", async () => {
     const client = makeClient({
       loginEvents: [{ kind: "started" }],

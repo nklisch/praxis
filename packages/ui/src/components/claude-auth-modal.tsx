@@ -34,13 +34,20 @@ export function ClaudeAuthModal({ onClose, onSignedIn }: ClaudeAuthModalProps) {
   const startLogin = useCallback(async () => {
     setPhase({ kind: "starting" });
     const stream = client.claudeAuth.login();
+    const iter = stream[Symbol.asyncIterator]();
     let openedExternal = false;
     let canceled = false;
     cancelRef.current = () => {
       canceled = true;
+      void Promise.resolve(iter.return?.()).catch(() => {
+        // Best-effort cancellation: the stream may already be closed.
+      });
     };
     try {
-      for await (const event of stream) {
+      while (true) {
+        const result = await iter.next();
+        if (result.done) break;
+        const event = result.value;
         if (canceled) break;
         switch (event.kind) {
           case "started":
