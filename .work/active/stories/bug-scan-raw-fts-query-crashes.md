@@ -1,14 +1,14 @@
 ---
 id: bug-scan-raw-fts-query-crashes
 kind: story
-stage: review
+stage: done
 tags: [bug, data-layer]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: medium
 bug_domain: data-layer
@@ -34,3 +34,13 @@ let hits = stmt.all(...params).map(rawRowToNoteHit);
 
 - Changed `packages/core/src/services/library-service.ts` to convert user FTS input into plain tokens before `MATCH` and to treat any remaining FTS parse/runtime error as an empty result set.
 - Added regression coverage in `packages/core/src/services/__tests__/library-service.test.ts` for malformed quoted FTS input.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
