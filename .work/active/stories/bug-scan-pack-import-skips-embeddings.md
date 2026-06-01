@@ -1,14 +1,14 @@
 ---
 id: bug-scan-pack-import-skips-embeddings
 kind: story
-stage: review
+stage: done
 tags: [bug, data-layer, high]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: high
 bug_domain: data-layer
@@ -36,3 +36,13 @@ this.deps.db.transaction((tx) => {
 - Changed `packages/curriculum/src/packs/import-service.ts` so the existing-import path rewrites concept embeddings for the recorded graph before returning, repairing failed or partial vector writes from a previous import attempt.
 - Added regression coverage in `packages/curriculum/src/packs/__tests__/import-service.test.ts` that simulates a vector write failure after the relational `pack_imports` row commits, then confirms re-import repairs embeddings without creating a second import row.
 - Verification: `TMPDIR=/home/nathan/dev/praxis/.tmp pnpm vitest run packages/curriculum/src/packs/__tests__/import-service.test.ts` passed.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
