@@ -453,6 +453,54 @@ formats, simulation-step transcript schema, vendor export mappings, and any
 platform-specific dataset/evaluation vocabulary from Phoenix, Langfuse,
 Braintrust, or LangSmith.
 
+## Tooling decision record
+
+This record consumes the current-source survey in
+`docs/research/agent-debugging-tooling.md` and the `## Evidence standard`
+above. No dependency should be added by this tooling-research feature. Browser
+and export dependencies belong to the later implementation feature that proves a
+concrete need.
+
+| Area | Decision | Rationale | Downstream owner |
+|---|---|---|---|
+| Log substrate | adopt current Praxis logger/pino | Praxis already wraps pino with local JSONL output, child bindings, credential redaction, renderer ingestion, and opt-in prompt logging. Extending correlation fields preserves the local-first default without replacing working logging infrastructure. | `epic-agent-debugging-harness-trace-correlation` |
+| Praxis-native evidence bundle | adopt build-in-house | The evidence standard needs stable local manifests, redacted event/log slices, DB relationship summaries, optional artifact pointers, and a concise failure summary. That contract is Praxis-specific and must be readable from disk without a hosted service or chat history. | `epic-agent-debugging-harness-failure-replay` |
+| Correlation vocabulary | adopt build-in-house | Use `runId`, `sessionId`, `turnId`, `callId`, `parentCallId`, `streamId`, renderer event id, and artifact paths as the first stable vocabulary. OpenTelemetry-style `traceId`/`spanId` may appear as optional vocabulary, not as required runtime semantics. | `epic-agent-debugging-harness-trace-correlation` |
+| OpenTelemetry JS runtime | defer | The survey found OpenTelemetry useful as vendor-neutral vocabulary and future export shape, but not necessary for the v1 local bundle. Logs/browser instrumentation maturity and package-boundary risk make a runtime dependency premature. | `epic-agent-debugging-harness-trace-correlation` |
+| Whole-app browser automation | defer | Add only if simulation or replay needs browser-driven app flows and `.trace.zip` artifacts. If chosen, the exact package is `@playwright/test` as a devDependency, likely in the root test workspace or the first test-owning workspace introduced by `epic-agent-debugging-harness-student-simulation` or `epic-agent-debugging-harness-failure-replay`. Privacy implication: traces are local sensitive artifacts containing possible DOM, screenshot, console, and network evidence; retain only on failure or explicit capture. | `epic-agent-debugging-harness-student-simulation` |
+| Component-level real-browser traces | defer | `@vitest/browser-playwright` should only be added if a downstream story proves component-level real-browser traces are better than direct Playwright tests. If chosen, it is a devDependency for `@praxis/ui` or the UI/test-owning workspace, with local trace retention and no default export of DOM/screenshots. | `epic-agent-debugging-harness-student-simulation` |
+| Phoenix, Langfuse, Braintrust, and LangSmith | defer | Treat these as reference models and optional export/integration candidates after the local bundle schema is stable. Any adapter must be disabled by default, redacted, opt-in, and explicit about hosted or self-hosted data flow. | `epic-agent-debugging-harness-debug-runbooks` |
+| Hosted observability as default evidence store | reject | A hosted default conflicts with Praxis's local-first privacy stance and would make prompt, tool, student, screenshot, DOM, and trace evidence leave the machine unless every path is carefully gated. Local bundles are the source of truth. | `epic-agent-debugging-harness-failure-replay` |
+| Default export of sensitive evidence | reject | Prompt text, screenshots, DOM snapshots, student messages, tool inputs/results, logs, traces, and eval datasets must not be exported by default. Capture/export requires explicit debug mode or opt-in adapter behavior plus redaction. | `epic-agent-debugging-harness-debug-runbooks` |
+| Hosted eval platforms replacing local fixtures/tests | reject | Phoenix, Braintrust, LangSmith, and similar systems can inform report/eval vocabulary, but Praxis regression evidence must remain local, replayable, and reviewable through fixtures, bundles, and test harness outputs. | `epic-agent-debugging-harness-debug-runbooks` |
+
+## Downstream handoff
+
+- `epic-agent-debugging-harness-trace-correlation`: Implement the in-house
+  correlation layer over existing Praxis events/logs. Start with the stable
+  identifiers from the evidence standard (`runId`, `sessionId`, `turnId`,
+  `callId`, `parentCallId`, `streamId`, renderer event id, artifact path) and
+  pino child bindings. Do not add OpenTelemetry JS unless a later export story
+  proves the local schema is stable and needs OTLP mapping.
+- `epic-agent-debugging-harness-failure-replay`: Implement the local evidence
+  bundle as the source of truth. Bundle manifests should link redacted JSONL
+  slices, pino log windows, tool/sub-agent/IPC records, minimal DB relationship
+  summaries, optional browser trace pointers, and a human-readable failure
+  summary. No hosted store, full DB dump, or raw prompt/tool/student content by
+  default.
+- `epic-agent-debugging-harness-student-simulation`: Begin with local scenario
+  results tied to the correlation vocabulary. Add `@playwright/test` later only
+  if whole-app browser automation or `.trace.zip` artifacts are required; add
+  `@vitest/browser-playwright` only if component-level real-browser traces are
+  demonstrably better than direct Playwright tests. In both cases, traces remain
+  local and retained only on failure or explicit capture by default.
+- `epic-agent-debugging-harness-debug-runbooks`: Document local bundle review,
+  redaction expectations, failure classes, owner routing, and optional export
+  posture. Phoenix, Langfuse, Braintrust, LangSmith, and OpenTelemetry should be
+  described as references or opt-in adapters only; runbooks must reject default
+  export of prompts, screenshots, DOM, student content, tool content, logs,
+  traces, or eval datasets.
+
 ### Unit 3: Final decision record and downstream handoff
 
 **File**: `.work/active/features/epic-agent-debugging-harness-tooling-research.md`
