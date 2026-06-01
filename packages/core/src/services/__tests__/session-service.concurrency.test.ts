@@ -113,4 +113,45 @@ describe("SessionServiceImpl concurrency", () => {
       error: { code: "session.turn_in_flight" },
     });
   });
+
+  it("claims session end before async indexer work so duplicate end calls are idempotent", async () => {
+    const indexerStarted = deferred();
+    const releaseIndexer = deferred();
+    const handle: EngineSession = {
+      id: "engine-session-2",
+      send: vi.fn().mockImplementation(async function* () {
+        yield { type: "final", usage: { inputTokens: 1, outputTokens: 1 } } satisfies EngineEvent;
+      }),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    const engine: Engine = {
+      id: "claude-code",
+      kind: "looped",
+      health: vi.fn(),
+      open: vi.fn().mockResolvedValue(handle),
+    };
+    const indexerOrchestrator: IndexerOrchestrator = {
+      scheduleAfterTurn: vi.fn(),
+      runAtSessionEnd: vi.fn().mockImplementation(async () => {
+        indexerStarted.resolve();
+        await releaseIndexer.promise;
+      }),
+      cancel: vi.fn(),
+      pendingCount: vi.fn(() => 0),
+      shutdown: vi.fn(),
+    };
+    const svc = makeService(engine, { indexerOrchestrator });
+    const session = await svc.start({ modeId: "teach" });
+
+    const firstEnd = svc.end(session.sessionId);
+    await indexerStarted.promise;
+    const secondSummary = await svc.end(session.sessionId);
+    releaseIndexer.resolve();
+    const firstSummary = await firstEnd;
+
+    expect(indexerOrchestrator.runAtSessionEnd).toHaveBeenCalledTimes(1);
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(secondSummary.sessionId).toBe(session.sessionId);
+    expect(secondSummary.endedAt).toBe(firstSummary.endedAt);
+  });
 });

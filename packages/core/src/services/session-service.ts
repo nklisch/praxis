@@ -407,41 +407,65 @@ export class SessionServiceImpl implements SessionService {
   }
 
   async end(sessionId: SessionId): Promise<SessionEndSummary> {
-    await this.engineManager.close(sessionId);
+    const sessionRow = this.deps.db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
+    if (!sessionRow) {
+      const endedAt = new Date();
+      return {
+        sessionId,
+        endedAt: endedAt.getTime() as Timestamp,
+        unlockedGates: [],
+        newMisconceptions: 0,
+      };
+    }
+
+    if (sessionRow.endedAt) {
+      return {
+        sessionId,
+        endedAt: sessionRow.endedAt.getTime() as Timestamp,
+        unlockedGates: [],
+        newMisconceptions: 0,
+      };
+    }
+
+    const endedAt = new Date();
+    const claim = this.deps.db
+      .update(sessions)
+      .set({ endedAt })
+      .where(and(eq(sessions.id, sessionId), isNull(sessions.endedAt)))
+      .run();
+    if (claim.changes === 0) {
+      const endedRow = this.deps.db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
+      return {
+        sessionId,
+        endedAt: (endedRow?.endedAt ?? endedAt).getTime() as Timestamp,
+        unlockedGates: [],
+        newMisconceptions: 0,
+      };
+    }
 
     // Phase 7: run session-end indexers (e.g. misconception detection) synchronously
-    // before closing the session row so misconceptions land before the UI navigates away.
+    // after atomically claiming the close so duplicate end() calls do not rerun them.
+    await this.engineManager.close(sessionId);
+
     if (this.deps.indexerOrchestrator) {
-      const sessionRow = this.deps.db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, sessionId))
-        .get();
-      if (sessionRow) {
-        await this.deps.indexerOrchestrator
-          .runAtSessionEnd({
-            studentId: brandId<"StudentId">(sessionRow.studentId),
-            sessionId: brandId<"SessionId">(sessionId),
-          })
-          .catch((err: unknown) => {
-            this.deps.log.warn("session.end.indexer_failed", { error: String(err) });
-          });
-        this.deps.indexerOrchestrator.cancel(brandId<"SessionId">(sessionId));
-      }
+      await this.deps.indexerOrchestrator
+        .runAtSessionEnd({
+          studentId: brandId<"StudentId">(sessionRow.studentId),
+          sessionId: brandId<"SessionId">(sessionId),
+        })
+        .catch((err: unknown) => {
+          this.deps.log.warn("session.end.indexer_failed", { error: String(err) });
+        });
+      this.deps.indexerOrchestrator.cancel(brandId<"SessionId">(sessionId));
     }
 
     // Phase 9: Run gate evaluator if the session has a courseId.
     let unlockedGates: GateId[] = [];
-    const sessionRowForGates = this.deps.db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
-    if (sessionRowForGates?.courseId) {
+    if (sessionRow.courseId) {
       try {
         const result = await this.deps.toolServices.artifacts.evaluateAndPersistGates({
-          studentId: brandId<"StudentId">(sessionRowForGates.studentId),
-          courseId: brandId<"CourseId">(sessionRowForGates.courseId),
+          studentId: brandId<"StudentId">(sessionRow.studentId),
+          courseId: brandId<"CourseId">(sessionRow.courseId),
         });
         unlockedGates = result.unlockedGateIds;
       } catch (cause) {
@@ -452,8 +476,6 @@ export class SessionServiceImpl implements SessionService {
       }
     }
 
-    const endedAt = new Date();
-    this.deps.db.update(sessions).set({ endedAt }).where(eq(sessions.id, sessionId)).run();
     return {
       sessionId,
       endedAt: endedAt.getTime() as Timestamp,
