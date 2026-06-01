@@ -69,6 +69,10 @@ export interface InterstitialApi {
    */
   onToolResult: (event: ToolResultEvent, setItems: SetItems) => BubbleRenderables;
   /**
+   * True when a tool_result can be paired with a tool_call seen in this turn.
+   */
+  isToolResultExpected: (callId: string) => boolean;
+  /**
    * Called on `interrupted`. Clears all pending pacing timers without firing
    * settleNow — cancelled turns leave in_flight interstitials as-is per spec.
    */
@@ -150,10 +154,7 @@ export function useInterstitialLifecycle(): InterstitialApi {
     if (label.spawnsSubAgent === true) {
       // Promote to a sub-agent block — subscribes to client.subAgent.events
       // rather than showing a static tool entry. No pacing timer applied.
-      setItems((prev) => [
-        ...prev,
-        { kind: "sub-agent", callId, toolName, status: "in_flight" },
-      ]);
+      setItems((prev) => [...prev, { kind: "sub-agent", callId, toolName, status: "in_flight" }]);
     } else if (!label.hidden) {
       // Push a visible tool-entry item for this tool call.
       const firstSeenAt = Date.now();
@@ -296,6 +297,10 @@ export function useInterstitialLifecycle(): InterstitialApi {
     return harvested;
   };
 
+  const isToolResultExpected = (callId: string): boolean => {
+    return ref.current.pendingByCallId.has(callId);
+  };
+
   const onInterrupted = (): void => {
     // Clear pacing timers without settling — cancelled turns leave interstitials
     // in_flight per spec (the turn is gone; the unsettled state is intentional).
@@ -383,6 +388,7 @@ export function useInterstitialLifecycle(): InterstitialApi {
   return {
     onToolCall,
     onToolResult,
+    isToolResultExpected,
     onInterrupted,
     drainOnFinally,
     drainRenderables,

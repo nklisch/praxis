@@ -11,6 +11,9 @@ export function createWebSocketTransport(_url: string): ClientTransport {
         new Error("WebSocketTransport not implemented in Phase 3 (deferred to Phase 15)"),
       );
     },
+    send(_channel: string, ..._args: unknown[]): void {
+      throw new Error("WebSocketTransport not implemented in Phase 3 (deferred to Phase 15)");
+    },
     stream<T>(_channel: string, ..._args: unknown[]): AsyncIterable<T> {
       return {
         [Symbol.asyncIterator]() {

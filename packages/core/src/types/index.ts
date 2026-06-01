@@ -42,6 +42,7 @@ export type * from "./ingestion.js";
 // Per-service type files (split from tool.ts — public surface unchanged).
 export type * from "./library-service.js";
 export type * from "./lock-service.js";
+export type * from "./log-client.js";
 // memory.ts: `export *` (not `export type *`) so MASTERY_SIGNAL_KINDS const is exported as a runtime value.
 export * from "./memory.js";
 export type * from "./mode.js";

@@ -169,6 +169,13 @@ describe("createIpcTransport", () => {
     expect(invokeSpy[0]?.channel).toBe("praxis.session.active");
   });
 
+  it("send delegates to bridge.send", () => {
+    const { bridge, sendSpy } = makeBridge();
+    const transport = createIpcTransport(bridge);
+    transport.send("praxis.log.record", { level: "debug" });
+    expect(sendSpy).toEqual([{ channel: "praxis.log.record", args: [{ level: "debug" }] }]);
+  });
+
   it("stream uses .start / .events. / .cancel channel convention", async () => {
     const { bridge, invokeSpy, pushToRegisteredChannel, getLastRegisteredEventsChannel } =
       makeBridge();

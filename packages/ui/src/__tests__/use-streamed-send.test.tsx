@@ -1,11 +1,15 @@
-import type { EngineEvent, EpisodicEvent, PraxisClient } from "@praxis/core/types";
+import type { EngineEvent, EpisodicEvent, LogRecord, PraxisClient } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
-function makeClient(events: EngineEvent[], history: EpisodicEvent[] = []): PraxisClient {
+function makeClient(
+  events: EngineEvent[],
+  history: EpisodicEvent[] = [],
+  logRecords?: LogRecord[],
+): PraxisClient {
   return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
@@ -25,7 +29,20 @@ function makeClient(events: EngineEvent[], history: EpisodicEvent[] = []): Praxi
         for (const ev of history) yield ev;
       }) as unknown as PraxisClient["memory"]["episodic"],
     } as unknown as PraxisClient["memory"],
+    ...(logRecords !== undefined && {
+      log: {
+        record: vi.fn((record: LogRecord) => {
+          logRecords.push(record);
+        }),
+      },
+    }),
   });
+}
+
+function rendererOutcomeFields(records: LogRecord[]): Array<Record<string, unknown>> {
+  return records
+    .filter((record) => record.message === "renderer.trace.outcome")
+    .map((record) => record.fields ?? {});
 }
 
 describe("useStreamedSend", () => {
@@ -121,6 +138,42 @@ describe("useStreamedSend", () => {
     expect(assistantMsg?.kind === "message" && assistantMsg.streaming).toBe(false);
   });
 
+  it("normalizes object-shaped model content before it reaches message children", async () => {
+    const records: LogRecord[] = [];
+    const malformedModelEvent = {
+      type: "model_message",
+      content: { text: "object payload" },
+      partial: false,
+    } as unknown as EngineEvent;
+    const client = makeClient(
+      [malformedModelEvent, { type: "final", usage: { inputTokens: 0, outputTokens: 0 } }],
+      [],
+      records,
+    );
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.content).toBe(
+      JSON.stringify({ text: "object payload" }),
+    );
+    expect(rendererOutcomeFields(records)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: "model_message",
+          outcome: "content_normalized",
+          contentType: "object",
+        }),
+      ]),
+    );
+  });
+
   it("sets lastError on error event", async () => {
     const client = makeClient([
       { type: "error", error: { code: "engine.error", message: "boom", recoverable: false } },
@@ -133,6 +186,121 @@ describe("useStreamedSend", () => {
     });
 
     expect(result.current.lastError).toBe("boom");
+  });
+
+  it("emits renderer outcome records for model, tool, and final events", async () => {
+    const records: LogRecord[] = [];
+    const client = makeClient(
+      [
+        { type: "tool_call", toolName: "grade_math", args: { expr: "x^2" }, callId: "c1" },
+        {
+          type: "tool_result",
+          callId: "c1",
+          result: { ok: true, tier: "deterministic", value: { score: 10 } },
+        },
+        { type: "model_message", content: "done", partial: false },
+        { type: "final", usage: { inputTokens: 1, outputTokens: 2 } },
+      ],
+      [],
+      records,
+    );
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "grade this");
+    });
+
+    const fields = rendererOutcomeFields(records);
+    expect(fields.length).toBeGreaterThan(0);
+    expect(fields.every((field) => field.sessionId === "s1")).toBe(true);
+    expect(fields.every((field) => typeof field.rendererEventId === "string")).toBe(true);
+    expect(new Set(fields.map((field) => field.rendererEventId)).size).toBe(fields.length);
+
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: "tool_call",
+          outcome: "tool_call_rendered",
+          callId: "c1",
+        }),
+        expect.objectContaining({
+          eventType: "tool_result",
+          outcome: "tool_result_rendered",
+          callId: "c1",
+        }),
+        expect.objectContaining({
+          eventType: "model_message",
+          outcome: "model_message_rendered",
+        }),
+        expect.objectContaining({
+          eventType: "final",
+          outcome: "final_completed",
+          finalReason: "success",
+        }),
+        expect.objectContaining({
+          eventType: "stream",
+          outcome: "stream_finalized",
+        }),
+      ]),
+    );
+  });
+
+  it("emits renderer outcome records for stream error events", async () => {
+    const records: LogRecord[] = [];
+    const client = makeClient(
+      [{ type: "error", error: { code: "engine.error", message: "boom", recoverable: false } }],
+      [],
+      records,
+    );
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const fields = rendererOutcomeFields(records);
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rendererEventId: expect.stringMatching(/^renderer-event-\d+$/),
+          sessionId: "s1",
+          eventType: "error",
+          outcome: "stream_error",
+          errorSummary: "boom",
+        }),
+      ]),
+    );
+  });
+
+  it("keeps rendering when renderer outcome logging throws", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = makeClient([
+      { type: "model_message", content: "still renders", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+    client.log = {
+      record: vi.fn(() => {
+        throw new Error("log sink unavailable");
+      }),
+    };
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    try {
+      await act(async () => {
+        await result.current.send(brandId<"SessionId">("s1"), "hi");
+      });
+    } finally {
+      warnSpy.mockRestore();
+    }
+
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.content).toBe("still renders");
+    expect(result.current.lastError).toBeNull();
   });
 
   it("marks assistant message as done (not streaming) after stream ends", async () => {
@@ -512,28 +680,48 @@ describe("useStreamedSend", () => {
   });
 
   it("unmatched tool_result is a no-op (no throw, no items mutation)", async () => {
-    const client = makeClient([
-      // tool_result with no preceding tool_call (unmatched)
-      {
-        type: "tool_result",
-        callId: "orphan",
-        result: { ok: true, tier: "deterministic", value: {} },
-      },
-      { type: "model_message", content: "ok", partial: false },
-      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
-    ]);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const records: LogRecord[] = [];
+    const client = makeClient(
+      [
+        // tool_result with no preceding tool_call (unmatched)
+        {
+          type: "tool_result",
+          callId: "orphan",
+          result: { ok: true, tier: "deterministic", value: {} },
+        },
+        { type: "model_message", content: "ok", partial: false },
+        { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+      ],
+      [],
+      records,
+    );
 
     const { result } = renderHook(() => useStreamedSend(client));
 
-    // Should not throw
-    await act(async () => {
-      await result.current.send(brandId<"SessionId">("s1"), "hi");
-    });
+    try {
+      // Should not throw
+      await act(async () => {
+        await result.current.send(brandId<"SessionId">("s1"), "hi");
+      });
+    } finally {
+      warnSpy.mockRestore();
+    }
 
     const interstitials = result.current.items.filter((i) => i.kind === "tool-entry");
     expect(interstitials).toHaveLength(0);
     // Stream completed normally
     expect(result.current.lastError).toBeNull();
+    expect(rendererOutcomeFields(records)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: "tool_result",
+          outcome: "tool_result_unmatched",
+          callId: "orphan",
+          sessionId: "s1",
+        }),
+      ]),
+    );
   });
 
   it("clearMessages empties items and lastError", async () => {

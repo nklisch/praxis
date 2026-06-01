@@ -20,6 +20,7 @@ function makeTransport(
     invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
       return Promise.resolve(invokeImpl(channel, ...args) as T);
     },
+    send(_channel: string, ..._args: unknown[]): void {},
     stream<T>(_channel: string, ..._args: unknown[]): AsyncIterable<T> {
       return {
         [Symbol.asyncIterator]() {

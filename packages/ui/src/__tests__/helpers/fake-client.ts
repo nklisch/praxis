@@ -46,6 +46,9 @@ export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient 
     progress: {
       rollup: async () => [],
     } as PraxisClient["progress"],
+    log: {
+      record: () => {},
+    },
     ...overrides,
   };
 }

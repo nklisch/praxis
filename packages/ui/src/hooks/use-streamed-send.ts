@@ -1,5 +1,7 @@
 import type {
+  EngineEvent,
   EpisodicEvent,
+  LogRecord,
   Note,
   PraxisClient,
   ProposedCourse,
@@ -7,6 +9,7 @@ import type {
   SessionId,
   SystemNoteOrigin,
 } from "@praxis/core/types";
+import { getToolLabel } from "@praxis/tools/labels";
 import { useRef, useState } from "react";
 import type { ReviewCard } from "../components/flashcard-review.js";
 import { episodicToItems } from "./episodic-to-messages.js";
@@ -212,6 +215,52 @@ function nextId(): string {
   return `msg-${++msgCounter}`;
 }
 
+let rendererEventCounter = 0;
+function nextRendererEventId(): string {
+  return `renderer-event-${++rendererEventCounter}`;
+}
+
+interface NormalizedStreamText {
+  text: string;
+  normalized: boolean;
+  contentType: string;
+}
+
+function normalizeStreamText(content: unknown): NormalizedStreamText {
+  if (typeof content === "string") {
+    return { text: content, normalized: false, contentType: "string" };
+  }
+
+  const contentType = Array.isArray(content) ? "array" : content === null ? "null" : typeof content;
+  if (content === undefined || content === null) {
+    return { text: "", normalized: true, contentType };
+  }
+
+  try {
+    const json = JSON.stringify(content);
+    return { text: json ?? String(content), normalized: true, contentType };
+  } catch {
+    return { text: String(content), normalized: true, contentType };
+  }
+}
+
+function callIdForEvent(event: EngineEvent): string | undefined {
+  if (event.type === "tool_call" || event.type === "tool_result") {
+    return event.callId;
+  }
+  return undefined;
+}
+
+interface RendererOutcomeInput {
+  sessionId: SessionId;
+  eventType: string;
+  outcome: string;
+  callId?: string;
+  streamId?: string;
+  errorSummary?: string;
+  details?: Record<string, unknown>;
+}
+
 export function useStreamedSend(
   client: PraxisClient,
   opts?: {
@@ -239,6 +288,35 @@ export function useStreamedSend(
    * Keeps the direct-send and markFailed paths consistent.
    */
   const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
+  const emitRendererOutcome = (input: RendererOutcomeInput): string => {
+    const rendererEventId = nextRendererEventId();
+    const fields: Record<string, unknown> = {
+      rendererEventId,
+      sessionId: input.sessionId,
+      eventType: input.eventType,
+      outcome: input.outcome,
+      ...(input.callId !== undefined && { callId: input.callId }),
+      ...(input.streamId !== undefined && { streamId: input.streamId }),
+      ...(input.errorSummary !== undefined && { errorSummary: input.errorSummary }),
+      ...(input.details ?? {}),
+    };
+    const record: LogRecord = {
+      level: "debug",
+      time: Date.now(),
+      message: "renderer.trace.outcome",
+      bindings: { component: "renderer-trace", surface: "chat" },
+      fields,
+    };
+
+    try {
+      client.log.record(record);
+    } catch (err) {
+      console.warn("[praxis] renderer outcome logging failed", err);
+    }
+
+    return rendererEventId;
+  };
 
   /**
    * Core send dispatcher. Called both for:
@@ -268,6 +346,12 @@ export function useStreamedSend(
       ...prev,
       { kind: "message", id: userMsgId, role: "user", content: message, rawContent: message },
     ]);
+    emitRendererOutcome({
+      sessionId,
+      eventType: "user_message",
+      outcome: "user_message_rendered",
+      details: { itemId: userMsgId },
+    });
 
     setIsStreaming(true);
     setThinking(true);
@@ -284,58 +368,158 @@ export function useStreamedSend(
         const r = await iter.next();
         if (r.done) break;
         const event = r.value;
+        const callId = callIdForEvent(event);
+        emitRendererOutcome({
+          sessionId,
+          eventType: event.type,
+          outcome: "event_accepted",
+          ...(callId !== undefined && { callId }),
+        });
 
         if (event.type === "user_message") continue;
 
         if (event.type === "thinking") {
-          reasoning.onThinking(event.content, setItems);
+          const content = normalizeStreamText(event.content);
+          if (content.normalized) {
+            emitRendererOutcome({
+              sessionId,
+              eventType: event.type,
+              outcome: "content_normalized",
+              details: { contentType: content.contentType },
+            });
+          }
+          reasoning.onThinking(content.text, setItems);
         } else if (event.type === "model_message") {
           reasoning.closeReasoningBlock(setItems);
 
           if (bubbles.currentAssistantId === null) {
             bubbles.openAssistantBubble(interstitial.drainRenderables());
           }
+          const content = normalizeStreamText(event.content);
+          if (content.normalized) {
+            emitRendererOutcome({
+              sessionId,
+              eventType: event.type,
+              outcome: "content_normalized",
+              details: { contentType: content.contentType },
+            });
+          }
           if (event.partial === true) {
-            bubbles.appendContent(event.content, setItems);
+            bubbles.appendContent(content.text, setItems);
           } else {
-            bubbles.setContent(event.content, setItems);
+            bubbles.setContent(content.text, setItems);
             bubbles.closeAssistantBubble();
           }
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome: "model_message_rendered",
+            details: { partial: event.partial === true },
+          });
         } else if (event.type === "tool_call") {
           bubbles.closeAssistantBubble();
           reasoning.closeReasoningBlock(setItems);
           interstitial.onToolCall(event, setItems);
+          const toolLabel = getToolLabel(event.toolName);
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome:
+              toolLabel.spawnsSubAgent === true ? "sub_agent_rendered" : "tool_call_rendered",
+            callId: event.callId,
+            details: { toolName: event.toolName },
+          });
         } else if (event.type === "tool_result") {
           setThinking(true);
+          const matched = interstitial.isToolResultExpected(event.callId);
           interstitial.onToolResult(event, setItems);
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome: matched ? "tool_result_rendered" : "tool_result_unmatched",
+            callId: event.callId,
+            ...(!matched && { errorSummary: "tool_result had no matching tool_call in renderer" }),
+          });
         } else if (event.type === "system_note") {
           bubbles.closeAssistantBubble();
+          const content = normalizeStreamText(event.content);
+          if (content.normalized) {
+            emitRendererOutcome({
+              sessionId,
+              eventType: event.type,
+              outcome: "content_normalized",
+              details: { contentType: content.contentType },
+            });
+          }
+          const itemId = nextId();
           setItems((prev) => [
             ...prev,
-            { kind: "system-note", id: nextId(), content: event.content, origin: event.origin },
+            { kind: "system-note", id: itemId, content: content.text, origin: event.origin },
           ]);
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome: "system_note_rendered",
+            details: { itemId, originKind: event.origin.kind },
+          });
           opts?.onSystemNote?.(sessionId);
         } else if (event.type === "interrupted") {
           bubbles.closeAssistantBubble();
           reasoning.closeReasoningBlock(setItems);
           interstitial.onInterrupted();
           setThinking(false);
-          setItems((prev) => [...prev, { kind: "cancel-marker", id: nextId() }]);
+          const itemId = nextId();
+          setItems((prev) => [...prev, { kind: "cancel-marker", id: itemId }]);
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome: "cancel_marker_rendered",
+            errorSummary: event.reason,
+            details: { itemId },
+          });
           break;
         } else if (event.type === "error") {
           bubbles.closeAssistantBubble();
           setThinking(false);
           setLastError(event.error.message);
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome: "stream_error",
+            errorSummary: event.error.message,
+            details: { code: event.error.code, recoverable: event.error.recoverable },
+          });
           break;
+        } else if (event.type === "final") {
+          emitRendererOutcome({
+            sessionId,
+            eventType: event.type,
+            outcome: "final_completed",
+            ...(event.errorMessage !== undefined && { errorSummary: event.errorMessage }),
+            details: { finalReason: event.finalReason ?? "success" },
+          });
         }
       }
     } catch (err) {
       setThinking(false);
+      const summary = errorMessage(err);
       if (queue.userCancelledRef.current) {
         // User-initiated cancel via Stop button — do NOT mark failed.
         // The queue is preserved; the user can retry manually.
+        emitRendererOutcome({
+          sessionId,
+          eventType: "stream",
+          outcome: "stream_cancelled",
+          errorSummary: summary,
+        });
         return;
       }
+      emitRendererOutcome({
+        sessionId,
+        eventType: "stream",
+        outcome: "stream_exception",
+        errorSummary: summary,
+      });
       if (pendingId !== null) {
         // Queue-dispatched send failed. The pending bubble was already removed
         // from items by `dequeueNext`, so we re-inject it as a "failed" item
@@ -347,7 +531,7 @@ export function useStreamedSend(
             id: pendingId,
             text: message,
             status: "failed",
-            errorReason: errorMessage(err),
+            errorReason: summary,
             failedAt: Date.now(),
             ...(sketchId !== undefined && { sketchId }),
           } satisfies PendingMessageItem,
@@ -355,12 +539,17 @@ export function useStreamedSend(
         return;
       }
       // Direct (non-queued) send error — fall back to the orchestrator-level banner.
-      setLastError(errorMessage(err));
+      setLastError(summary);
     } finally {
       queue.iteratorRef.current = null;
       bubbles.closeAssistantBubble();
       reasoning.closeReasoningBlock(setItems);
       interstitial.drainOnFinally(bubbles.lastAssistantId, setItems);
+      emitRendererOutcome({
+        sessionId,
+        eventType: "stream",
+        outcome: "stream_finalized",
+      });
       const next = queue.dequeueNext(setItems);
       if (next !== null) {
         setIsStreaming(false);

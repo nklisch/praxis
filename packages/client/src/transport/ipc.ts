@@ -163,6 +163,10 @@ export function createIpcTransport(bridge: PraxisIpcBridge): ClientTransport {
       return bridge.invoke(channel, ...args) as Promise<T>;
     },
 
+    send(channel: string, ...args: unknown[]): void {
+      bridge.send(channel, ...args);
+    },
+
     stream<T>(channel: string, ...args: unknown[]): AsyncIterable<T> {
       // Derive per-stream channels from the base channel name.
       // e.g. "praxis.session.send" → start: "praxis.session.send.start"

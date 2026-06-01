@@ -21,6 +21,7 @@ function makeTransport(
     invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
       return Promise.resolve(invokeImpl(channel, ...args) as T);
     },
+    send(_channel: string, ..._args: unknown[]): void {},
     stream<T>(_channel: string, ..._args: unknown[]): AsyncIterable<T> {
       return {
         [Symbol.asyncIterator]() {
@@ -46,12 +47,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
 
     const client = new ConfigClient(transport);
 
-    // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
     const malformedPayload1 = {
       engineId: "claude-code",
       hasApiKey: false,
       apiKeyEncrypted: "c29tZWJsb2I=",
-    } as any;
+    } as unknown as Parameters<ConfigClient["setEngineConfig"]>[0];
     await expect(client.setEngineConfig(malformedPayload1)).rejects.toThrow(IpcError);
   });
 
@@ -67,12 +67,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
 
     const client = new ConfigClient(transport);
 
-    // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
     const malformedPayload2 = {
       engineId: "claude-code",
       hasApiKey: false,
       apiKeyEncrypted: "c29tZWJsb2I=",
-    } as any;
+    } as unknown as Parameters<ConfigClient["setEngineConfig"]>[0];
     let thrown: unknown;
     try {
       await client.setEngineConfig(malformedPayload2);

@@ -24,7 +24,8 @@ function makeTransport(): {
       invokedChannels.push({ channel, args });
       return Promise.resolve(undefined as unknown as T);
     },
-    stream<T>(channel: string, ...args: unknown[]): AsyncIterable<T> {
+    send(_channel: string, ..._args: unknown[]): void {},
+    stream<T>(_channel: string, ..._args: unknown[]): AsyncIterable<T> {
       return {
         [Symbol.asyncIterator]() {
           return { next: () => Promise.resolve({ done: true, value: undefined as T }) };

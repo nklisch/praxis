@@ -14,6 +14,7 @@ import { FlashcardsClient } from "./services/flashcards-client.js";
 import { IngestClient } from "./services/ingest-client.js";
 import { LibraryClient } from "./services/library-client.js";
 import { LockClientImpl } from "./services/lock-client.js";
+import { LogClient } from "./services/log-client.js";
 import { MemoryClient } from "./services/memory-client.js";
 import { NotesClient } from "./services/notes-client.js";
 import { PacksClientImpl } from "./services/packs-client.js";
@@ -62,5 +63,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     citations: new CitationsClient(transport),
     library: new LibraryClient(transport),
     progress: new ProgressClient(transport),
+    log: new LogClient(transport),
   };
 }

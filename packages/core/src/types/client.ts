@@ -13,6 +13,7 @@ import type { FlashcardsClient } from "./flashcards.js";
 import type { DocumentsClient, IngestionClient } from "./ingestion.js";
 import type { LibraryClientApi } from "./library-service.js";
 import type { LockClient } from "./lock-service.js";
+import type { LogClientApi } from "./log-client.js";
 import type { NotesClient } from "./notes.js";
 import type { ProgressClientApi } from "./progress.js";
 import type { QuickCheckClientApi } from "./quick-check.js";
@@ -76,4 +77,6 @@ export interface PraxisClient {
   library: LibraryClientApi;
   /** Per-course progress aggregator for the /progress route. */
   progress: ProgressClientApi;
+  /** Renderer-to-main structured log sink. Best-effort and non-blocking. */
+  log: LogClientApi;
 }
