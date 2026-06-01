@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-debug-runbooks-skill-shell
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agent-debugging-harness-debug-runbooks
 depends_on: []
@@ -55,3 +55,14 @@ command index, and symptom-to-owner routing map.
 - `pnpm exec biome check --no-errors-on-unmatched .agents/skills/agent-debugging-harness/SKILL.md .agents/skills/agent-debugging-harness/references/report-shape.md .agents/skills/agent-debugging-harness/references/commands.md .agents/skills/agent-debugging-harness/references/owner-routing.md`
   - Biome processed 0 files because `.agents/skills` is ignored by repo config.
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review; implementation recorded file presence,
+ignored-path Biome behavior, and diff checks.
