@@ -88,6 +88,7 @@ export type {
   SketchService,
   SketchSummary,
 } from "./sketches.js";
+export type * from "./student-simulation.js";
 // Agent-transparency: sub-agent registry + event types + client API.
 export type {
   SubAgentClientApi,

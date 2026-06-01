@@ -27,6 +27,7 @@ export type DebugBundleEvidenceSource =
   | "renderer"
   | "db_snapshot"
   | "browser_trace"
+  | "simulation_step"
   | "log"
   | "manual_note";
 

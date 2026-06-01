@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-schema
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: []
@@ -27,10 +27,27 @@ client and browser simulation runners consume.
 
 ## Acceptance criteria
 
-- [ ] Shared types export from `@praxis/core/types`.
-- [ ] `DebugBundleArtifact` can reference `simulation_step` artifacts.
-- [ ] Scenario/result types include driver, determinism, step status, session
+- [x] Shared types export from `@praxis/core/types`.
+- [x] `DebugBundleArtifact` can reference `simulation_step` artifacts.
+- [x] Scenario/result types include driver, determinism, step status, session
       ids, call ids, renderer event ids, and artifact paths.
-- [ ] Local results make no redaction promise; export/share sanitization is out
+- [x] Local results make no redaction promise; export/share sanitization is out
       of scope.
 
+## Implementation Notes
+
+- Added `StudentSimulationScenario`, `StudentPersona`, `StudentSimulationStep`,
+  `StudentSimulationResult`, artifact, status, driver, and determinism types.
+- Exported the new types through `@praxis/core/types`.
+- Added `simulation_step` as a debug bundle evidence source so later stories can
+  attach scenario transcripts to failure bundles.
+- Added focused type-shape tests proving deterministic scenarios, trace-linked
+  results, and debug bundle simulation-step artifacts compile and behave as
+  expected.
+
+## Verification
+
+- `pnpm vitest run packages/core/src/types/__tests__/student-simulation.test.ts packages/core/src/services/debug/__tests__/debug-bundle-writer.test.ts`
+- `pnpm --filter @praxis/core typecheck`
+- `pnpm exec biome check packages/core/src/types/student-simulation.ts packages/core/src/types/debug-bundle.ts packages/core/src/types/index.ts packages/core/src/types/__tests__/student-simulation.test.ts`
+- `git diff --check`
