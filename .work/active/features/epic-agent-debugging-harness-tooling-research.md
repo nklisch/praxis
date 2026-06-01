@@ -203,6 +203,256 @@ interface DebugEvidenceBundleSketch {
 - [ ] The standard explicitly covers the motivating failures: raw tool-call markup in chat, `course.start_drafting` FK failure before sub-agent launch, and React crash on structured tool summary object rendering.
 - [ ] The standard identifies which fields are stable enough for downstream implementation and which remain research notes.
 
+## Evidence standard
+
+Praxis will build a native local evidence bundle first. The bundle is a bounded
+directory of redacted JSON/JSONL/markdown artifacts plus pointers to optional
+browser traces; pino/current logger records are the log substrate. OpenTelemetry
+terms such as `traceId` and `spanId` are vocabulary only for v1 and must not
+become a runtime dependency in this research slice. Phoenix, Langfuse,
+Braintrust, and LangSmith are references or explicit future export targets, not
+default evidence stores.
+
+The standard's job is to let another agent debug a failed tutoring run from disk
+without chat-history archaeology. It therefore captures stable correlation
+metadata, redacted boundary events, local artifact pointers, and a human-readable
+failure summary. Prompt, message, model-output, screenshot, DOM, tool input, and
+tool result content is redacted by default unless the user explicitly enables a
+debug capture mode for that run.
+
+### Evidence field decisions
+
+Required fields are stable enough for downstream implementation. Optional fields
+are allowed in bundles when a downstream story captures the artifact, but
+consumers must handle absence. Out-of-scope fields are research notes or future
+export concerns and must not be required by trace-correlation, failure-replay,
+student-simulation, or debug-runbooks.
+
+#### Required evidence
+
+| Field | Source/category | Contains | Stable identifiers / correlation IDs | Redaction policy | Retention policy | Downstream consumers |
+|---|---|---|---|---|---|---|
+| Bundle manifest | `manual_note` / stored manifest | `schemaVersion`, `runId`, `createdAt`, capture reason, local-only flag, artifact list, and failure summary. | `runId` is bundle-local and stable; artifact entries use relative paths within the bundle. | Safe metadata only; summary must avoid raw prompt/student content unless explicitly opted in. | Retain in bundle. | trace-correlation, failure-replay, student-simulation, debug-runbooks |
+| Session and turn metadata | `session_event` | Session id, mode id, engine id, turn id when available, final reason, first bad observation, and visible surface label. | `sessionId`, `turnId`, optional engine event sequence number. | Safe metadata; message content redacted by default and summarized when needed. | Retain in bundle as JSONL slice plus summary. | trace-correlation, failure-replay, debug-runbooks |
+| Engine event slice | `session_event` | Redacted `EngineEvent` stream around the failure, especially `tool_call`, `tool_result`, `error`, `final`, `interrupted`, and any leaked `model_message` classification. | `sessionId`, `turnId`, `callId` for `tool_call`/`tool_result`; optional `traceId`. | Args/results/content redacted by default; keep event `type`, tool name, ok/error shape, and error code/message after secret redaction. | Retain bounded JSONL window in bundle. | trace-correlation, failure-replay, debug-runbooks |
+| Tool dispatch record | `tool_dispatch` | Registry dispatch start/ok/error facts: tool name, validated/invalid args status, result ok/error, serialized error, duration, and handler tier. | `callId` from `ToolDispatchMeta` into `ToolContext.callId`, `sessionId`, `turnId`, optional `spanId`. | Tool args/results redacted by default; preserve schema-level shape, validation errors, error code/message, and duration. | Retain bounded JSONL plus manifest summary. | trace-correlation, failure-replay, debug-runbooks |
+| Sub-agent timeline | `subagent` | `SubAgentRegistry` snapshots/events for parent tool calls: started, step_started, step_settled, phase/status changes, finished/interrupted/failed. Absence is itself evidence when a parent tool fails before `start(...)`. | `sessionId`, `parentCallId`, sub-agent step `callId`, optional stream id from IPC fanout. | Step tool names/status are safe metadata; step messages redacted/summarized by default. | Retain bounded JSONL; include an explicit `observed: false` marker for expected-but-absent sub-agent starts. | trace-correlation, failure-replay, debug-runbooks |
+| IPC stream record | `ipc_stream` | Start/events/done/error/cancel envelope facts for relevant stream families, especially session stream and `praxis.subAgent.events.*`. | `streamId`, channel base, `sessionId` where arguments provide it, `parentCallId` for filtered sub-agent streams. | Payloads redacted by default; preserve envelope `kind`, channel, count, duration, and redacted error text. | Retain bounded JSONL. | trace-correlation, failure-replay, student-simulation, debug-runbooks |
+| Renderer failure record | `renderer` | Surface/component name, route/session tab, renderer error message, component stack/JS stack when available, and visible UI outcome. | `rendererEventId`, `sessionId`, `streamId` if tied to an IPC stream, optional `callId` if caused by a tool result. | Stack traces get path/secret redaction; visible text and rendered data redacted/summarized if student or prompt content appears. | Retain in bundle as JSON/markdown summary and pino renderer log slice. | trace-correlation, failure-replay, student-simulation, debug-runbooks |
+| Persistence scope snapshot | `db_snapshot` | Minimal local DB state needed to explain a failure: ids and relationship presence for sessions, documents, document scopes, drafts, assignments, courses, and relevant FK parent rows. | `sessionId`, `documentId`, `scopeKind`, `scopeId`, `draftId`, `courseId`, `assignmentId` where present. | Store ids, table names, FK presence, counts, and redacted row summaries; do not dump full student content or document text by default. | Retain as summary-only JSON or sqlite slice only when explicitly needed and redacted. | trace-correlation, failure-replay, debug-runbooks |
+| Log slice | `manual_note` / pino JSONL | Local pino records around the failure, including child bindings such as component, stream id, call id, session id, and serialized errors. | pino child bindings: `component`, `streamId`, `callId`, `sessionId`, optional `runId`. | Use existing pino secret redaction and prompt redaction; prompt-like fields stay `"[REDACTED]"` unless opt-in prompt logging is enabled. | Retain bounded JSONL window in bundle; do not require global log retention. | trace-correlation, failure-replay, debug-runbooks |
+
+#### Optional evidence
+
+| Field | Source/category | Contains | Stable identifiers / correlation IDs | Redaction policy | Retention policy | Downstream consumers |
+|---|---|---|---|---|---|---|
+| Browser trace artifact | `browser_trace` | Playwright or Vitest Browser Mode trace zip, console, network, errors, DOM snapshots, and screenshots when a downstream browser story captures them. | `runId`, optional `browserRunId`, `sessionId`, route, related `streamId`/`callId` when known. | Sensitive local artifact; DOM/screenshot/network content is not exported and may be redacted only by artifact-level policy. | Pointer in manifest; retain only on failure or explicit capture by default. | failure-replay, student-simulation, debug-runbooks |
+| Screenshot or DOM excerpt | `renderer` / `browser_trace` | Small visual/DOM proof of visible UI outcome, such as raw markup shown in chat or an error boundary state. | `runId`, `sessionId`, `rendererEventId`, optional browser trace timestamp. | Redact or crop student/prompt content by default; never store broad screenshots unless explicit capture is enabled. | Pointer or summary-only; local bundle only. | failure-replay, student-simulation, debug-runbooks |
+| Simulation step transcript | `simulation_step` | Scripted student action, expected outcome, observed outcome, and browser/test harness step status. | `runId`, `simulationId`, `stepId`, optional `streamId`, `callId`, and browser trace timestamp. | Student persona text and prompt content redacted/summarized unless explicit debug capture is enabled. | Retain in bundle when student-simulation creates it. | student-simulation, failure-replay, debug-runbooks |
+| Human annotation | `manual_note` | Reviewer note, suspected root cause, next debug step, and links to work items. | `runId`, optional item id, commit sha, artifact path. | Author controls content; default guidance is no raw prompt/student text. | Retain in bundle and item body when relevant. | debug-runbooks |
+| Vendor/export mapping | `manual_note` | Optional mapping to OpenTelemetry, Phoenix, Langfuse, Braintrust, or LangSmith concepts. | `runId`, optional `traceId`/`spanId`. | Export must be explicit opt-in and redacted. | Summary-only unless an export adapter writes its own artifact. | trace-correlation, debug-runbooks |
+
+#### Out-of-scope evidence
+
+| Field | Source/category | Contains | Stable identifiers / correlation IDs | Redaction policy | Retention policy | Downstream consumers |
+|---|---|---|---|---|---|---|
+| Default hosted trace export | External observability store | Prompt/tool/renderer evidence sent to Phoenix, Langfuse, Braintrust, LangSmith, OTLP, Sentry, Datadog, or similar by default. | Vendor-specific trace ids. | Out of scope because local-first telemetry is opt-in only. | Do not retain or emit. | None by default |
+| Full prompt/message/model transcript | `session_event` | Complete student messages, system prompts, model output, tool args, and tool results. | `sessionId`, `turnId`, `callId`. | Out of scope by default; can only appear in explicit prompt-logging debug mode. | Do not retain in normal bundles. | None by default |
+| Full database dump | `db_snapshot` | Entire local Praxis DB or document corpus. | All local ids. | Out of scope because it over-collects student data. | Do not retain in normal bundles. | None by default |
+| Always-on browser recording | `browser_trace` | Continuous DOM/screenshot/network traces outside targeted test or debug runs. | Browser-run-specific ids. | Out of scope because screenshots and DOM snapshots can expose student data. | Do not retain. | None by default |
+
+### TypeScript vocabulary sketch
+
+This sketch is a decision-record artifact, not production code. If downstream
+implementation promotes it, the likely home is shared `@praxis/core` types so
+trace-correlation, replay, simulation, and runbook reports consume one
+vocabulary. It follows Praxis discriminator conventions: `type` names streamed
+events and `kind` names stored object variants.
+
+```typescript
+type DebugEvidenceSource =
+  | "session_event"
+  | "tool_dispatch"
+  | "subagent"
+  | "ipc_stream"
+  | "renderer"
+  | "db_snapshot"
+  | "browser_trace"
+  | "simulation_step"
+  | "manual_note";
+
+type DebugEvidenceDecision = "required" | "optional" | "out_of_scope";
+type DebugEvidenceStability = "stable" | "research_only";
+
+type DebugEvidenceConsumer =
+  | "trace-correlation"
+  | "failure-replay"
+  | "student-simulation"
+  | "debug-runbooks";
+
+type DebugEvidenceRedaction =
+  | "safe_metadata"
+  | "redacted_by_default"
+  | "always_redacted"
+  | "explicit_opt_in_content";
+
+type DebugEvidenceRetention =
+  | "bundle"
+  | "bounded_jsonl_window"
+  | "pointer"
+  | "summary_only"
+  | "do_not_retain";
+
+interface DebugEvidenceFieldSketch {
+  kind: "evidence_field";
+  name: string;
+  source: DebugEvidenceSource;
+  decision: DebugEvidenceDecision;
+  stability: DebugEvidenceStability;
+  contains: string;
+  correlationIds: Array<
+    | "runId"
+    | "sessionId"
+    | "turnId"
+    | "callId"
+    | "parentCallId"
+    | "streamId"
+    | "rendererEventId"
+    | "documentId"
+    | "scopeId"
+    | "draftId"
+    | "traceId"
+    | "spanId"
+  >;
+  redaction: DebugEvidenceRedaction;
+  retention: DebugEvidenceRetention;
+  downstreamConsumers: DebugEvidenceConsumer[];
+}
+
+type DebugBundleArtifactSketch =
+  | {
+      kind: "jsonl";
+      path: string;
+      source: DebugEvidenceSource;
+      redaction: DebugEvidenceRedaction;
+    }
+  | {
+      kind: "sqlite-slice";
+      path: string;
+      source: "db_snapshot";
+      redaction: DebugEvidenceRedaction;
+    }
+  | {
+      kind: "trace-zip";
+      path: string;
+      source: "browser_trace";
+      redaction: "explicit_opt_in_content";
+    }
+  | {
+      kind: "screenshot";
+      path: string;
+      source: "renderer" | "browser_trace";
+      redaction: DebugEvidenceRedaction;
+    }
+  | {
+      kind: "markdown";
+      path: string;
+      source: "manual_note";
+      redaction: DebugEvidenceRedaction;
+    };
+
+type DebugBundleEventSketch =
+  | {
+      type: "evidence_captured";
+      runId: string;
+      fieldName: string;
+      artifactPath?: string;
+    }
+  | {
+      type: "evidence_missing";
+      runId: string;
+      fieldName: string;
+      expectedCorrelationId: string;
+      reason: "not_observed" | "not_enabled" | "redacted" | "capture_failed";
+    };
+
+interface DebugEvidenceBundleSketch {
+  kind: "debug_evidence_bundle";
+  schemaVersion: 1;
+  runId: string;
+  createdAt: string;
+  localOnly: boolean;
+  session?: {
+    sessionId: string;
+    modeId: string;
+    engineId: string;
+  };
+  correlation: {
+    traceId?: string;
+    turnId?: string;
+    callIds: string[];
+    parentCallIds: string[];
+    streamIds: string[];
+    rendererEventIds: string[];
+  };
+  fields: DebugEvidenceFieldSketch[];
+  artifacts: DebugBundleArtifactSketch[];
+  captureEvents: DebugBundleEventSketch[];
+  summary: {
+    title: string;
+    failureClass:
+      | "agent-behavior"
+      | "tool-dispatch"
+      | "subagent"
+      | "ipc"
+      | "ui-render"
+      | "persistence"
+      | "simulation";
+    firstBadObservation?: string;
+    visibleUiOutcome?: string;
+    nextDebugStep?: string;
+  };
+}
+```
+
+### Motivating failure coverage
+
+- Raw tool-call markup leaked into course-create chat: required evidence is the
+  redacted engine event slice (`model_message` classification plus nearby
+  `tool_call`/`tool_result` events), session/turn metadata, renderer surface
+  outcome, and optional screenshot/DOM excerpt if a browser trace captures the
+  exact visible `<invoke ...>` text. The stable fields are `sessionId`,
+  `turnId`, event `type`, `callId`, mode id, and renderer surface.
+- `course.start_drafting` hit `SQLITE_CONSTRAINT_FOREIGNKEY` before the drafter
+  could start: required evidence is the `course.start_drafting` tool dispatch
+  input shape/result/error, `callId`, session id, document-scope ids and FK
+  presence summary, pino log slice with serialized error, and sub-agent evidence
+  that records either the matching `parentCallId` timeline or an explicit
+  expected-but-absent sub-agent start. This makes "tool failed before
+  `SubAgentRegistry.start(...)`" distinguishable from "sub-agent started and
+  then failed."
+- React crashed with "Objects are not valid as a React child" when a structured
+  tool summary object was rendered: required evidence is the redacted tool result
+  shape, renderer error message and stack/component stack, component or surface
+  name, session/stream/call correlation, and visible UI outcome. Optional browser
+  trace or screenshot evidence can show whether an error boundary, blank tab, or
+  partially rendered chat was visible.
+
+### Stable vs research-only
+
+Stable for downstream implementation: bundle manifest, `runId`, `sessionId`,
+`turnId` where available, `callId`, `parentCallId`, `streamId`, renderer event id,
+artifact manifest paths, evidence decision/redaction/retention fields, pino log
+slices, redacted `EngineEvent` slices, tool dispatch records, sub-agent timeline
+or explicit absence marker, IPC envelope facts, renderer failure records, and
+minimal DB relationship snapshots.
+
+Optional/research-only for now: OpenTelemetry `traceId`/`spanId` export semantics,
+Playwright/Vitest Browser Mode trace zip artifacts, screenshot/DOM excerpt
+formats, simulation-step transcript schema, vendor export mappings, and any
+platform-specific dataset/evaluation vocabulary from Phoenix, Langfuse,
+Braintrust, or LangSmith.
+
 ### Unit 3: Final decision record and downstream handoff
 
 **File**: `.work/active/features/epic-agent-debugging-harness-tooling-research.md`

@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-tooling-research-evidence-standard
 kind: story
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agent-debugging-harness-tooling-research
 depends_on: [epic-agent-debugging-harness-tooling-research-current-source-survey]
@@ -27,12 +27,20 @@ Feature unit 2: evidence standard and bundle vocabulary.
 
 ## Acceptance Criteria
 
-- [ ] The feature item contains a `## Evidence standard` section with required/optional/out-of-scope evidence fields.
-- [ ] The standard maps each evidence field to a downstream consumer and a redaction/retention policy.
-- [ ] The standard explicitly covers the motivating failures: raw tool-call markup in chat, `course.start_drafting` FK failure before sub-agent launch, and React crash on structured tool summary object rendering.
-- [ ] The standard identifies which fields are stable enough for downstream implementation and which remain research notes.
-- [ ] Any TypeScript sketch follows Praxis discriminator conventions: `type` for streamed events and `kind` for stored object variants.
+- [x] The feature item contains a `## Evidence standard` section with required/optional/out-of-scope evidence fields.
+- [x] The standard maps each evidence field to a downstream consumer and a redaction/retention policy.
+- [x] The standard explicitly covers the motivating failures: raw tool-call markup in chat, `course.start_drafting` FK failure before sub-agent launch, and React crash on structured tool summary object rendering.
+- [x] The standard identifies which fields are stable enough for downstream implementation and which remain research notes.
+- [x] Any TypeScript sketch follows Praxis discriminator conventions: `type` for streamed events and `kind` for stored object variants.
 
 ## Notes
 
 Align the vocabulary with `EngineEvent`, `ToolContext.callId`, `SubAgentRegistry`, pino child bindings, IPC stream IDs, and existing session IDs. Default to redaction unless the user explicitly enables prompt logging.
+
+## Implementation notes
+
+- Files changed: `.work/active/features/epic-agent-debugging-harness-tooling-research.md`, `.work/active/stories/epic-agent-debugging-harness-tooling-research-evidence-standard.md`.
+- Tests added: none; substrate/docs-only story.
+- Verification: `git diff --check`.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
