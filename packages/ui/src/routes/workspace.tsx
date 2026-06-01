@@ -24,8 +24,8 @@ const TABS: Array<{ id: WorkspaceTab; label: string }> = [
   { id: "review", label: "Review" },
 ];
 
-interface WorkspaceSearch {
-  tab?: WorkspaceTab;
+function isWorkspaceTab(value: unknown): value is WorkspaceTab {
+  return TABS.some((tab) => tab.id === value);
 }
 
 /**
@@ -37,9 +37,8 @@ interface WorkspaceSearch {
  */
 export function WorkspaceRoute() {
   const navigate = useNavigate();
-  // biome-ignore lint/suspicious/noExplicitAny: TanStack Router search params — safe cast
-  const search = useSearch({ strict: false }) as any as WorkspaceSearch;
-  const activeTab: WorkspaceTab = search.tab ?? "notes";
+  const search = useSearch({ strict: false }) as { tab?: unknown };
+  const activeTab: WorkspaceTab = isWorkspaceTab(search.tab) ? search.tab : "notes";
   const meta = getRouteMeta("workspace");
 
   const switchTab = (tab: WorkspaceTab) => {
