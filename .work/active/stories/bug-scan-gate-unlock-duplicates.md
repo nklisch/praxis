@@ -1,14 +1,14 @@
 ---
 id: bug-scan-gate-unlock-duplicates
 kind: story
-stage: review
+stage: done
 tags: [bug, data-layer]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: medium
 bug_domain: data-layer
@@ -33,3 +33,13 @@ return this.deps.db.transaction((tx) => {
 
 - Changed `packages/core/src/services/gates-service.ts` so gate transitions re-check the stored gate state inside the write transaction before updating and only insert an unlock event when no event already exists for the same student/course/gate.
 - Added regression coverage in `packages/core/src/__tests__/artifacts-service-gates.test.ts` for the existing-event dedupe path.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
