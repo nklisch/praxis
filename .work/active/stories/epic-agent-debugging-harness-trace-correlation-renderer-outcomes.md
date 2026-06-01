@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-trace-correlation-renderer-outcomes
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-trace-correlation
 depends_on: [epic-agent-debugging-harness-trace-correlation-ipc-subagent]
@@ -70,3 +70,15 @@ Downstream browser replay and student simulation artifacts should carry:
 - `pnpm --filter @praxis/client typecheck`
 - `pnpm --filter @praxis/ui typecheck`
 - `pnpm biome check packages/core/src/types/log-client.ts packages/core/src/types/client.ts packages/core/src/types/index.ts packages/client/src/services/log-client.ts packages/client/src/client.ts packages/client/src/transport/types.ts packages/client/src/transport/ipc.ts packages/client/src/transport/websocket.ts packages/client/src/__tests__/ipc-transport.test.ts packages/client/src/__tests__/client.test.ts packages/client/src/__tests__/config-client.test.ts packages/client/src/__tests__/drafts-client.test.ts packages/client/src/__tests__/authoring-restore-client.test.ts packages/client/src/__tests__/assignments-client.test.ts packages/client/src/__tests__/packs-client.test.ts packages/ui/src/hooks/use-streamed-send.ts packages/ui/src/hooks/use-interstitial-lifecycle.ts packages/ui/src/__tests__/use-streamed-send.test.tsx packages/ui/src/__tests__/helpers/fake-client.ts`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation record includes green focused
+verification; host reran the client IPC and streamed-send tests plus
+`@praxis/client`, `@praxis/ui`, and `@praxis/core` typechecks.
