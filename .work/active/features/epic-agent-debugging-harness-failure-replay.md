@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-failure-replay
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-agent-debugging-harness
 depends_on: [epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]
@@ -472,3 +472,8 @@ export function generateDebugBundleReport(input: {
 - `epic-agent-debugging-harness-failure-replay-db-snapshot` - depends on `epic-agent-debugging-harness-failure-replay-capture-slices`.
 - `epic-agent-debugging-harness-failure-replay-runner` - depends on `epic-agent-debugging-harness-failure-replay-db-snapshot`.
 - `epic-agent-debugging-harness-failure-replay-report-commands` - depends on `epic-agent-debugging-harness-failure-replay-runner`.
+
+## Children Complete (2026-06-01)
+
+All five implementation stories are at `stage: done`; feature advanced to
+`stage: review`.

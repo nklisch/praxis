@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-failure-replay-report-commands
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-failure-replay
 depends_on: [epic-agent-debugging-harness-failure-replay-runner]
@@ -62,3 +62,15 @@ this feature; live browser trace production belongs to student simulation.
 - `pnpm debug:bundle --help`
 - `pnpm debug:replay --help`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green focused
+tests, full typecheck, focused Biome, script help smoke checks, and whitespace
+checks; item advanced to `stage: done`.
