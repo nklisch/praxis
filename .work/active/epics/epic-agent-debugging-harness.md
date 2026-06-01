@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness
 kind: epic
-stage: drafting
+stage: implementing
 tags: []
 parent: null
 depends_on: []
@@ -43,3 +43,25 @@ Recent failures motivate the scope: raw tool-call markup leaked into course-crea
 `epic-design` should decompose this into cohesive features rather than one monolithic harness. Likely arcs include research and tool selection, trace/log correlation conventions, reproducible failure bundle capture, replay of stored sessions, synthetic student simulation scenarios, and documentation/runbooks for agents debugging Praxis.
 
 No foundation-doc roll-forward at scope time: this item intentionally frames an internal capability and research campaign. The design pass should update `docs/SPEC.md` or `docs/ARCHITECTURE.md` only after it chooses durable contracts, services, or operational expectations.
+
+## UI alignment
+
+No mockups produced at epic-design time. The decomposition keeps v1 output as internal commands, reports, research notes, and test/simulation harnesses rather than a net-new in-app diagnostic screen. If a later feature-design pass chooses to add a visual diagnostic viewer, that feature should run the mockup workflow before implementation.
+
+## Decomposition
+
+Split by capability rather than by package layer: one feature chooses the evidence/tooling direction, one establishes shared trace correlation, two parallel consumers build replay and student simulation on top, and one final feature turns those capabilities into agent-usable reports and runbooks. This avoids a single oversized "debug harness" feature while keeping the common trace vocabulary as the shared dependency.
+
+### Child features
+
+- `epic-agent-debugging-harness-tooling-research` - current-source research and evidence/tool selection - depends on: `[]`
+- `epic-agent-debugging-harness-trace-correlation` - shared trace IDs and capture hooks across session, engine, tool, sub-agent, IPC, and UI outcomes - depends on: `[epic-agent-debugging-harness-tooling-research]`
+- `epic-agent-debugging-harness-failure-replay` - failure bundle export and deterministic replay/inspection primitives - depends on: `[epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]`
+- `epic-agent-debugging-harness-student-simulation` - synthetic student personas and scenario runner through public app/client surfaces - depends on: `[epic-agent-debugging-harness-tooling-research, epic-agent-debugging-harness-trace-correlation]`
+- `epic-agent-debugging-harness-debug-runbooks` - agent-facing reports, commands, and debugging runbooks - depends on: `[epic-agent-debugging-harness-failure-replay, epic-agent-debugging-harness-student-simulation]`
+
+### Decomposition risks
+
+The riskiest seam is trace correlation: if it becomes a broad observability rewrite, the downstream features will inherit churn. Keep it additive, local-first, redacted by default, and shaped around existing `EngineEvent`, logger, tool dispatch, sub-agent, and IPC contracts.
+
+Replay and synthetic student simulation can drift into flaky live-model tests if not bounded. Feature design should separate deterministic regression paths from optional live-engine probes and should record nondeterminism explicitly in each run's output.
