@@ -1,14 +1,14 @@
 ---
 id: bug-scan-post-turn-indexer-overlap
 kind: story
-stage: review
+stage: done
 tags: [bug, concurrency]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: medium
 bug_domain: concurrency
@@ -33,3 +33,13 @@ const timer = setTimeout(() => {
 - Changed `packages/core/src/services/indexers/orchestrator.ts` to serialize all indexer runs per session through a small promise queue, including debounced post-turn runs and synchronous session-end passes.
 - Post-turn floor advancement now uses `Math.max(currentFloor, lastTurn + 1)` so queued/overlapping completions cannot move floors backward.
 - Added `packages/core/src/services/indexers/__tests__/orchestrator.test.ts` coverage proving a second post-turn pass waits for the first and only sees events above the advanced floor.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
