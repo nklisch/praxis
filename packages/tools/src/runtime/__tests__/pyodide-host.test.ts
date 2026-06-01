@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PyodideHost, PyodideTimeoutError } from "../pyodide-host.js";
 
 // Mock pyodide for unit tests — real pyodide load is integration-tested separately
@@ -8,6 +8,7 @@ vi.mock("pyodide", () => {
     runPythonAsync: vi.fn().mockResolvedValue(undefined),
     setStdout: vi.fn(),
     setStderr: vi.fn(),
+    setInterruptBuffer: vi.fn(),
   };
   return {
     loadPyodide: vi.fn().mockResolvedValue(mockPy),
@@ -70,6 +71,7 @@ describe("PyodideHost.runPython (unit — mocked pyodide)", () => {
   let mockRunPythonAsync: ReturnType<typeof vi.fn>;
   let mockSetStdout: ReturnType<typeof vi.fn>;
   let mockSetStderr: ReturnType<typeof vi.fn>;
+  let mockSetInterruptBuffer: ReturnType<typeof vi.fn>;
   let host: PyodideHost;
 
   beforeEach(async () => {
@@ -78,14 +80,20 @@ describe("PyodideHost.runPython (unit — mocked pyodide)", () => {
     mockRunPythonAsync = vi.fn().mockResolvedValue(undefined);
     mockSetStdout = vi.fn();
     mockSetStderr = vi.fn();
+    mockSetInterruptBuffer = vi.fn();
     mockLoad.mockResolvedValue({
       loadPackage: vi.fn().mockResolvedValue(undefined),
       runPythonAsync: mockRunPythonAsync,
       setStdout: mockSetStdout,
       setStderr: mockSetStderr,
+      setInterruptBuffer: mockSetInterruptBuffer,
       // biome-ignore lint/suspicious/noExplicitAny: mock factory needs any
     } as any);
-    host = new PyodideHost();
+    host = new PyodideHost({ executionMode: "in-process" });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("resets stdout/stderr handlers after each call", async () => {
@@ -96,6 +104,35 @@ describe("PyodideHost.runPython (unit — mocked pyodide)", () => {
     // Last call should reset to empty object
     expect(mockSetStdout).toHaveBeenLastCalledWith({});
     expect(mockSetStderr).toHaveBeenLastCalledWith({});
+  });
+
+  it("signals interrupt on timeout and waits for the Python run to settle", async () => {
+    vi.useFakeTimers();
+    let resolveRun: (() => void) | undefined;
+    mockRunPythonAsync.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveRun = resolve;
+      }),
+    );
+
+    const resultPromise = host.runPython({ code: "while True: pass", timeoutMs: 10 });
+    await vi.advanceTimersByTimeAsync(10);
+
+    const interruptBuffer = mockSetInterruptBuffer.mock.calls[0]?.[0];
+    expect(interruptBuffer).toBeInstanceOf(Int32Array);
+    expect(Atomics.load(interruptBuffer as Int32Array, 0)).toBe(2);
+
+    let settled = false;
+    resultPromise.then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    resolveRun?.();
+    const result = await resultPromise;
+    expect(result.timedOut).toBe(true);
+    expect(mockSetInterruptBuffer).toHaveBeenLastCalledWith(undefined);
   });
 });
 
