@@ -1,14 +1,14 @@
 ---
 id: bug-scan-pyodide-timeout-keeps-running
 kind: story
-stage: review
+stage: done
 tags: [bug, async, critical]
 parent: epic-big-bug-squash
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 bug_origin: scan
 bug_severity: critical
 bug_domain: async
@@ -35,3 +35,13 @@ await Promise.race([
 - Changed `packages/tools/src/runtime/pyodide-host.ts` so `runPython` serializes calls through a reusable Node worker by default; timeout terminates the isolated worker, clears timeout/listeners, and recreates a fresh worker for later calls. Kept an in-process path using Pyodide's interrupt buffer for low-level unit coverage.
 - Added fast unit coverage in `packages/tools/src/runtime/__tests__/pyodide-host.test.ts` for timeout interrupt signaling and waiting for the stale run to settle in the in-process path.
 - Verification: `TMPDIR=/home/nathan/dev/praxis/.tmp pnpm vitest run packages/tools/src/runtime/__tests__/pyodide-host.test.ts` passed. Slow real-Pyodide tests remain gated behind `PRAXIS_RUN_SLOW_TESTS=1` and were skipped.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Story fast lane. Verdict: Approve - story verified by implement; fast-lane advance. Full integration verification also passed with `TMPDIR=$PWD/.tmp pnpm test` (489 files, 5439 tests) and targeted Biome on the touched-code set.
