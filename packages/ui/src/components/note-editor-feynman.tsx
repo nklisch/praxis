@@ -71,9 +71,16 @@ export function NoteEditorFeynman({
   useEffect(() => {
     if (!noteId) return;
     let cancelled = false;
-    client.notes.getAnnotations(noteId).then((ann) => {
-      if (!cancelled) setAnnotations(ann);
-    });
+    client.notes
+      .getAnnotations(noteId)
+      .then((ann) => {
+        if (!cancelled) setAnnotations(ann);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          console.warn("[NoteEditorFeynman] failed to load annotations", err);
+        }
+      });
     return () => {
       cancelled = true;
     };

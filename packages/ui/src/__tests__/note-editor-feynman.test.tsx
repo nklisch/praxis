@@ -160,6 +160,23 @@ describe("NoteEditorFeynman — review mode", () => {
     await waitFor(() => expect(getAnnotations).toHaveBeenCalledWith(FAKE_NOTE_ID));
   });
 
+  it("catches annotation load failures instead of leaking an unhandled rejection", async () => {
+    const loadError = new Error("annotations unavailable");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getAnnotations = vi.fn().mockRejectedValue(loadError);
+    const client = makeClient({ getAnnotations });
+
+    renderEditor({ noteId: FAKE_NOTE_ID }, client);
+
+    await waitFor(() =>
+      expect(warn).toHaveBeenCalledWith(
+        "[NoteEditorFeynman] failed to load annotations",
+        loadError,
+      ),
+    );
+    warn.mockRestore();
+  });
+
   it("renders existing annotations as margin notes after switching to review mode", async () => {
     const existingAnnotations: Annotation[] = [
       { rangeStart: 0, rangeEnd: 14, text: "gap here", severity: "soft" },
