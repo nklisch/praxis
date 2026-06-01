@@ -1,7 +1,7 @@
 ---
 id: epic-agent-debugging-harness-student-simulation-scenarios
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-agent-debugging-harness-student-simulation
 depends_on: [epic-agent-debugging-harness-student-simulation-client-runner]
@@ -50,3 +50,15 @@ quick-check, and mode-transition flows through the client runner.
 - `pnpm exec biome check tests/helpers/student-simulation/client-runner.ts tests/helpers/student-simulation/in-process-client.ts tests/helpers/student-simulation/scripted-engine.ts tests/helpers/student-simulation/personas.ts tests/helpers/student-simulation/scenarios/index.ts tests/helpers/student-simulation/scenarios/course-create-structured-question.ts tests/helpers/student-simulation/scenarios/teach-quick-check-wrong-then-right.ts tests/helpers/student-simulation/scenarios/mode-transition-assignment.ts tests/student-simulation-client.test.ts tests/student-simulation-scenarios.test.ts`
 - `pnpm typecheck`
 - `git diff --check`
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation verification is green, and
+the catalog provides the three deterministic fixtures required by the feature
+design.
