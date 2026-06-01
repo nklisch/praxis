@@ -6,10 +6,11 @@ import { courses, lessons } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
 import { CourseCreateServiceImpl } from "@praxis/core/services";
 import { brandId } from "@praxis/core/types";
-import { concepts } from "@praxis/curriculum/schema";
+import { concepts, packImports } from "@praxis/curriculum/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import type { ConceptEmbeddingsStore } from "../concept-embeddings.js";
 import { SqliteConceptEmbeddingsStore } from "../concept-embeddings.js";
 import { PackImportServiceImpl } from "../import-service.js";
 import type { PackManifest } from "../types.js";
@@ -175,6 +176,48 @@ describe("PackImportServiceImpl", () => {
 
       expect(second.conceptGraphId).toBe(first.conceptGraphId);
       expect(second.importedAt).toBe(first.importedAt);
+    });
+
+    it("repairs embeddings when the first vector write fails after relational import", async () => {
+      const manifest = makeAlgebra1Manifest();
+      writePackFile(manifest);
+
+      const { db } = openDb({ path: ctx.dbPath });
+      let upsertCalls = 0;
+      let repairedCount = 0;
+      const embeddingStore: ConceptEmbeddingsStore = {
+        async upsert() {
+          throw new Error("single upsert not used in pack import");
+        },
+        async upsertBatch(inputs) {
+          upsertCalls += 1;
+          if (upsertCalls === 1) {
+            throw new Error("simulated vector write failure");
+          }
+          repairedCount = inputs.length;
+        },
+        async findSimilar() {
+          return [];
+        },
+        async deleteByGraphId() {},
+      };
+      const svc = new PackImportServiceImpl({
+        db,
+        log: noopLog,
+        embeddings: makeEmbeddings(),
+        conceptEmbeddings: embeddingStore,
+        packsDir,
+      });
+
+      await expect(svc.importPack("test-pack")).rejects.toThrow("simulated vector write failure");
+      expect(db.select().from(packImports).all()).toHaveLength(1);
+
+      const repaired = await svc.importPack("test-pack");
+
+      expect(repaired.packId).toBe("test-pack");
+      expect(upsertCalls).toBe(2);
+      expect(repairedCount).toBe(manifest.concepts.length);
+      expect(db.select().from(packImports).all()).toHaveLength(1);
     });
 
     it("creates a NEW conceptGraphId for a new version", async () => {

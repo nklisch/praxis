@@ -91,6 +91,7 @@ export class PackImportServiceImpl {
     // Check for existing import of this exact version.
     const existing = await this.findImportRecord(manifest.id, manifest.version);
     if (existing) {
+      await this.writeConceptEmbeddings(manifest, existing.conceptGraphId);
       this.deps.log.debug("pack.already_imported", {
         packId,
         version: manifest.version,
@@ -98,10 +99,6 @@ export class PackImportServiceImpl {
       });
       return existing;
     }
-
-    // Generate embeddings for all concepts (passage encoding).
-    const embeddingTexts = manifest.concepts.map((c) => `${c.name}: ${c.description}`);
-    const embeddings = await this.deps.embeddings.embedBatch(embeddingTexts);
 
     const conceptGraphId = uuidv7();
     const now = new Date();
@@ -162,17 +159,10 @@ export class PackImportServiceImpl {
         .run();
     });
 
-    // Embedding writes outside the transaction (separate store).
-    // Use prefixed ids to match the concept rows.
-    await this.deps.conceptEmbeddings.upsertBatch(
-      manifest.concepts.map((c, i) => ({
-        conceptId: prefixedId(c.id),
-        graphId: conceptGraphId,
-        conceptName: c.name,
-        // biome-ignore lint/style/noNonNullAssertion: embedBatch returns one vector per input text — index is always valid
-        embedding: embeddings[i]!,
-      })),
-    );
+    // Embedding writes outside the transaction (separate store). Re-importing
+    // the same pack version also takes this path to repair any partial vector
+    // write that failed after the relational import record committed.
+    await this.writeConceptEmbeddings(manifest, conceptGraphId);
 
     this.deps.log.info("pack.imported", {
       packId,
@@ -236,6 +226,25 @@ export class PackImportServiceImpl {
       .all();
     const match = rows.find((r) => r.version === version);
     return match ? rowToImportedPack(match) : null;
+  }
+
+  private async writeConceptEmbeddings(
+    manifest: PackManifest,
+    conceptGraphId: string,
+  ): Promise<void> {
+    const embeddingTexts = manifest.concepts.map((c) => `${c.name}: ${c.description}`);
+    const embeddings = await this.deps.embeddings.embedBatch(embeddingTexts);
+    const prefixedId = (manifestId: string): string => `${conceptGraphId}:${manifestId}`;
+
+    await this.deps.conceptEmbeddings.upsertBatch(
+      manifest.concepts.map((c, i) => ({
+        conceptId: prefixedId(c.id),
+        graphId: conceptGraphId,
+        conceptName: c.name,
+        // biome-ignore lint/style/noNonNullAssertion: embedBatch returns one vector per input text — index is always valid
+        embedding: embeddings[i]!,
+      })),
+    );
   }
 
   /**
