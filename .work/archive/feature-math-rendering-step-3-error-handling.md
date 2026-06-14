@@ -8,61 +8,9 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-06-13
+archived_atop: v0.1.4
+git_ref: 1ca3665f
 ---
 
 # Step 3: `.math-error` styling for KaTeX parse failures
-
-## Scope
-Add CSS for `.math-error` (and the `.katex-error` alias KaTeX emits when `throwOnError: false`) so malformed LaTeX renders inline as a quiet red badge showing the parse error + raw source. The actual `throwOnError: false` wiring happens in step-5.
-
-## Implementation
-- Edit `packages/ui/src/components/markdown-content.module.css`:
-  - Add `.mathError` (CSS Modules version) with design-token values:
-    - Inline-flex container with baseline alignment
-    - Background: `color-mix(in srgb, var(--color-danger) 8%, transparent)`
-    - Color: `var(--color-danger)`
-    - Border: `1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)`
-    - Border-radius, padding, font-family: mono, size 0.85em
-  - Nested rule for `.mathError code`: transparent bg, secondary text color
-- Add a `:global(.katex-error)` selector composing the same `.mathError` rules (or directly applying them) — KaTeX's error output uses the unhashed class name
-- Add a small render test in `packages/ui/src/__tests__/markdown-content.test.tsx`:
-  - Render `$\widebar{x}$` (an undefined macro)
-  - With `throwOnError: false` (wired in step-5; here we just verify the CSS rule exists), assert a `.katex-error` element appears with the styling
-  - (If step-5 is not landed yet, skip the assertion but commit the CSS)
-
-## Acceptance Criteria
-- [ ] `.mathError` class in `markdown-content.module.css` with token-only values
-- [ ] `:global(.katex-error)` alias applies the same styling (for KaTeX's emitted class)
-- [ ] No hardcoded color / dimension literals
-- [ ] No regression on existing markdown-content tests
-- [ ] Build / lint pass
-
-## Implementation notes (2026-05-24)
-
-Implemented as scoped. Token names confirmed against `packages/ui/src/styles/global.css` — `--color-danger`, `--radius-sm`, `--font-mono`, `--color-text-secondary` all exist and are used elsewhere with `color-mix(in srgb, ...)`.
-
-- Added `.mathError` CSS Modules class to `markdown-content.module.css` with all token-only values (no hardcoded color/dimension literals).
-- Added nested `.mathError :global(code)` rule for transparent bg + secondary text color.
-- Added `:global(.katex-error)` with identical rule block (cannot use `composes:` from a local class into a `:global()` selector in CSS Modules; duplicate is the correct approach).
-- Added `it.skip` test in `markdown-content.test.tsx` naming step-5 as the activator. The skip count shows as 1 in the test run, no false positives.
-- All 1758 existing tests pass; typecheck and lint clean on changed files.
-
-## Acceptance Criteria
-- [x] `.mathError` class in `markdown-content.module.css` with token-only values
-- [x] `:global(.katex-error)` alias applies the same styling (for KaTeX's emitted class)
-- [x] No hardcoded color / dimension literals
-- [x] No regression on existing markdown-content tests
-- [x] Build / lint pass
-
-## References
-- Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 3
-- File: `packages/ui/src/components/markdown-content.module.css`
-
-## Review (2026-05-24)
-
-**Verdict**: Approve
-
-**Blockers**: none / **Important**: none / **Nits**: none
-
-**Notes**: 36 LoC CSS addition (`.mathError` + `:global(.katex-error)` alias) + 10 LoC test scaffold (skip-test pointing at step-5 as activator). All values reference design tokens (`--color-danger`, `--radius-sm`, `--font-mono`, `--color-text-secondary`). `color-mix(in srgb, X 8%, transparent)` syntax already in production use (`error-message.module.css`). Duplicated rule block in `:global(.katex-error)` is the correct approach — CSS Modules `composes:` can't cross `:global()` boundary. Skip-test with TODO is the right scope-respecting choice (full render verification needs step-5's `throwOnError: false` wiring).

@@ -122,3 +122,110 @@ coverage, and a handful of standalone bug fixes / cleanups.
   - gate-patterns: 2 patterns extracted + 3 inconsistencies flagged
 - **Pre-existing fix during ship**: cleared a missed `release_binding: v0.1.1` on the `gate-security-open-external-url-parse` backlog item (the file contains a null byte in an exploit example, which masked it from earlier grep-based scans)
 - **Publish**: run `git push origin main v0.1.1` to publish the tag
+
+## Collapsed items
+
+All 99 bound items collapsed here under `delete-refs`; full bodies live in git history (`git show <git_ref>:<path>`).
+
+| id | title | kind | archived_atop | git_ref |
+| --- | --- | --- | --- | --- |
+| epic-bootstrap-readiness-durable-drafts | Durable bootstrap drafts | feature | — | 3c11dc38 |
+| epic-bootstrap-readiness-expressive-draft-api | Expressive draft-editing API | feature | — | 3c11dc38 |
+| epic-bootstrap-readiness-in-flight-affordances | In-flight chat affordances — thinking indicator + turn cancel | feature | — | 3c11dc38 |
+| epic-bootstrap-readiness-structured-questions | Tutor-initiated structured questions | feature | — | 3c11dc38 |
+| epic-bootstrap-readiness | Bootstrap readiness — make the course-creator actually shippable to students | epic | — | 3c11dc38 |
+| epic-v1-security-hardening-encrypt-api-key | Encrypt API key at rest using Electron safeStorage | feature | — | 3c11dc38 |
+| epic-v1-security-hardening-sign-update-feed | Sign the update feed with Ed25519 and verify before offering updates | feature | — | 3c11dc38 |
+| epic-v1-security-hardening | V1 security hardening | epic | — | 3c11dc38 |
+| feature-agent-transparency-ux-rename-course-design | Rename "bootstrap" / "explore" to "course design" / "reading your materials" | story | — | 3c11dc38 |
+| feature-agent-transparency-ux-stream-pacing | Stream pacing — min-visible tool interstitials + thinking reasoning block + near-bottom scroll | story | — | 3c11dc38 |
+| feature-agent-transparency-ux-subagent-channel | SubAgentRegistry + IPC channel + explorer emission | story | — | 3c11dc38 |
+| feature-agent-transparency-ux-subagent-ui | Inline sub-agent block + bootstrap side-panel transcript | story | — | 3c11dc38 |
+| feature-agent-transparency-ux | Agent transparency UX | feature | — | 3c11dc38 |
+| feature-docx-ingestor-cleanup | DocxIngestor cleanup and embedded-image extraction | feature | — | 3c11dc38 |
+| feature-editorial-polish-pass-concepts-navigation | Concepts list: scrollable + filter + sticky section headers | story | — | 3c11dc38 |
+| feature-editorial-polish-pass-notes-markdown | Notes table cells render via `<MarkdownContent>` | story | — | 3c11dc38 |
+| feature-editorial-polish-pass-styling-sweep | Editorial primitives audit + styling sweep | story | — | 3c11dc38 |
+| feature-editorial-polish-pass-theme-tokens | Light-mode CSS tokens via `prefers-color-scheme` | story | — | 3c11dc38 |
+| feature-editorial-polish-pass | Editorial polish pass | feature | — | 3c11dc38 |
+| feature-onboarding-completion-claude-code-signin | Inline Claude Code sign-in in EngineStep | story | — | 3c11dc38 |
+| feature-onboarding-completion-course-card-preseed | Pre-seed bootstrap message on canonical-pack course-card click | story | — | 3c11dc38 |
+| feature-onboarding-completion | Onboarding flow completion | feature | — | 3c11dc38 |
+| feature-powerpoint-ingestion-embedded-images | PPTX embedded image extraction | story | — | 3c11dc38 |
+| feature-powerpoint-ingestion-text-extraction | PPTX text extraction — skeleton ingestor | story | — | 3c11dc38 |
+| feature-powerpoint-ingestion | PowerPoint ingestion support | feature | — | 3c11dc38 |
+| feature-prompt-customization-layers-compose-wiring | Composition infrastructure: types, table, service, session-service reads | story | — | 3c11dc38 |
+| feature-prompt-customization-layers-configure-mode-append | Configure prompt-tab per-mode append editor | story | — | 3c11dc38 |
+| feature-prompt-customization-layers-settings-global | Settings global-prompt editor | story | — | 3c11dc38 |
+| feature-prompt-customization-layers | Prompt customization layers | feature | — | 3c11dc38 |
+| feature-root-tsconfig-typecheck-coverage-enable-gate | Enable root-tsconfig typecheck gate | story | — | 3c11dc38 |
+| feature-root-tsconfig-typecheck-coverage-scripts-cleanup | Root-tsconfig cleanup: `scripts/` | story | — | 3c11dc38 |
+| feature-root-tsconfig-typecheck-coverage-tests-cleanup | Root-tsconfig cleanup: `tests/` | story | — | 3c11dc38 |
+| feature-root-tsconfig-typecheck-coverage | Root-tsconfig typecheck coverage | feature | — | 3c11dc38 |
+| gate-cruft-authoring-client-phase-narrative-jsdoc | "Phase 3 methods kept for backward compatibility" in `AuthoringClient` JSDoc — stale on a v0.1.1 release | story | — | 3c11dc38 |
+| gate-cruft-compose-brief-unused-export | `composeBrief` and its types are exported but consumed only by their own tests | story | — | 3c11dc38 |
+| gate-cruft-docx-ingestor-prior-pipeline-comment | Stale "prior `convertToHtml` + regex-stripping pipeline" reference in DOCX ingestor doc | story | — | 3c11dc38 |
+| gate-cruft-engine-config-orphan-comment | Orphan comment block in `readEngineConfig` describes code that doesn't exist | story | — | 3c11dc38 |
+| gate-cruft-episodic-to-messages-alias | Unused `episodicToMessages` alias kept "for the transition" with zero callers | story | — | 3c11dc38 |
+| gate-cruft-misplaced-biome-ignore-suppressions | Misplaced `biome-ignore noExplicitAny` suppressions — Biome reports `suppressions/unused` and the underlying `any` warnings stay unmuted | story | — | 3c11dc38 |
+| gate-cruft-skipped-claude-code-conformance-test | Skipped Claude Code adapter test in cross-engine conformance suite duplicates passing coverage elsewhere | story | — | 3c11dc38 |
+| gate-cruft-stale-biome-ignore-no-any | `biome-ignore noExplicitAny` suppressions where no `any` is used (cast goes through `unknown`) | story | — | 3c11dc38 |
+| gate-cruft-subagent-registry-unused-cleartimer | Unused private member `clearTimer` in `SubAgentRegistryImpl` | story | — | 3c11dc38 |
+| gate-cruft-unused-mastery-signal-import | Unused type import `MasterySignal` in `tests/mastery-end-to-end.test.ts` | story | — | 3c11dc38 |
+| gate-cruft-unused-type-imports-exam-test | Unused type imports in `tests/exam-end-to-end.test.ts` | story | — | 3c11dc38 |
+| gate-docs-architecture-core-services-additions | ARCHITECTURE.md "Where the big pieces live" doesn't name `SqliteDraftStore`, `PromptCustomizationServiceImpl`, `SubAgentRegistry`, `UpdateServiceImpl + verifier`, `SecretStorage`/`ElectronSafeStorageAdapter` | story | — | 3c11dc38 |
+| gate-docs-architecture-pptx-ingestor-image-stores | ARCHITECTURE.md ingestor list omits `PptxIngestor` and the embedded-image / page-image stores | story | — | 3c11dc38 |
+| gate-docs-changelog-v0-1-1-entry | CHANGELOG.md has no v0.1.1 entry yet | story | — | 3c11dc38 |
+| gate-docs-contract-assignment-item-fold-in | CONTRACT.md `AssignmentItem` still shows pre-Phase-17 shape as primary; Phase 17 expansion lives only in a "(planned)" callout | story | — | 3c11dc38 |
+| gate-docs-contract-engine-event-interrupted-variant | CONTRACT.md `EngineEvent` union missing the `interrupted` variant + `final.finalReason`/`final.errorMessage` fields | story | — | 3c11dc38 |
+| gate-docs-contract-engine-session-send-signal | CONTRACT.md `EngineSession.send` signature omits the `signal?: AbortSignal` parameter | story | — | 3c11dc38 |
+| gate-docs-contract-prompt-fragment-positions | CONTRACT.md `PromptFragment.position` union missing `"user-global"` and `"user-append"` values | story | — | 3c11dc38 |
+| gate-docs-contract-tool-context-call-id | CONTRACT.md `ToolContext` interface omits `callId?: string` field | story | — | 3c11dc38 |
+| gate-docs-contract-tool-registry-dispatch-meta | CONTRACT.md `ToolRegistry.dispatch` signature omits the `meta?: { callId?: string }` parameter | story | — | 3c11dc38 |
+| gate-docs-design-doc-policy-clarification | No `docs/designs/` doc exists for the four substrate-driven features that landed in v0.1.1 | story | — | 3c11dc38 |
+| gate-docs-onboarding-api-key-encryption | ONBOARDING.md still says API key is stored unencrypted; v0.1.1 ships `safeStorage` encryption | story | — | 3c11dc38 |
+| gate-docs-onboarding-claude-code-inline-signin | ONBOARDING.md says Claude Code auth happens "in first session"; v0.1.1 added inline sign-in during the onboarding Engine step | story | — | 3c11dc38 |
+| gate-docs-pattern-engine-session-lifecycle-signal | Pattern skill `engine-session-lifecycle.md` Example 2 omits the `signal?: AbortSignal` parameter | story | — | 3c11dc38 |
+| gate-docs-pattern-mode-prompt-fragment-fileline | Pattern skill `mode-prompt-fragment-composition.md` Example 3 file:line anchor has drifted | story | — | 3c11dc38 |
+| gate-docs-pattern-service-deps-new-fields | Pattern skill `service-deps-injection.md` `ServiceDeps` interface listing is out of date — missing `subAgent`, `promptCustomization`, `secretStorage` | story | — | 3c11dc38 |
+| gate-docs-pattern-tool-dispatch-meta | Pattern skill `tool-dispatch-pipeline.md` Example 1 omits the `meta?: DispatchMeta` parameter and callId-on-context behavior | story | — | 3c11dc38 |
+| gate-docs-prompt-customization-layers-section | CONTRACT.md + ARCHITECTURE.md missing prompt-customization layers entry (AuthoringClient extensions, `PromptCustomizationService`, `mode_prompt_appends` table) | story | — | 3c11dc38 |
+| gate-docs-roadmap-phases-17-19-mark-shipped | ROADMAP.md does not mark Phases 17–19 as ✓ SHIPPED even though they all landed pre-v0.1.0 | story | — | 3c11dc38 |
+| gate-docs-roadmap-pptx-no-longer-deferred | ROADMAP.md "Future enhancements" still lists PPTX as deferred, but PPTX shipped in v0.1.1 | story | — | 3c11dc38 |
+| gate-docs-spec-ux-ask-student-question | SPEC.md and UX.md don't mention the `ask_student_question` structured-choice tool or `<StructuredQuestionCard>` UI | story | — | 3c11dc38 |
+| gate-docs-sub-agent-registry-section | CONTRACT.md + ARCHITECTURE.md don't document `SubAgentRegistry`, sub-agent events, or the `praxis.subAgent.*` IPC channels | story | — | 3c11dc38 |
+| gate-patterns-inconsistency-load-or-throw-readside-scope | `load-or-throw` boundary unclear — three new read-side `if (!row) throw` inline forms appeared | story | — | 3c11dc38 |
+| gate-patterns-inconsistency-service-deps-required-ports | `service-deps-injection` pattern doc silent on the now-required `secretStorage` port (and `lockService`) | story | — | 3c11dc38 |
+| gate-patterns-inconsistency-subscriber-fanout-filter | `subscriber-fanout-stream` pattern doc silent on filtered-subscribe variant | story | — | 3c11dc38 |
+| gate-patterns-v0-1-1 | Patterns extracted for v0.1.1 | story | — | 3c11dc38 |
+| gate-security-document-id-path-traversal | Renderer-supplied `documentId` flows into filesystem paths without validation | story | — | 3c11dc38 |
+| gate-tests-ask-student-question-mode-toolnames | `ask_student_question` membership in `configureMode.toolNames` / `bootstrapMode.toolNames` not asserted | story | — | 3c11dc38 |
+| gate-tests-attach-document-configure-mode-includes | `course.attach_document` symmetry: present in `configureMode.toolNames` is not asserted | story | — | 3c11dc38 |
+| gate-tests-authoring-audit-log-no-prompt-content | `ConfiguratorAction` audit-log does not assert text content is NOT stored for prompt sets | story | — | 3c11dc38 |
+| gate-tests-engine-config-decryption-failure-idempotent | Decryption-failure on `apiKey` is not asserted idempotent across multiple reads | story | — | 3c11dc38 |
+| gate-tests-ingestion-service-rename-embedded-image-dir | `IngestionService` synthetic→real `documentId` rename for embedded images not exercised e2e | story | — | 3c11dc38 |
+| gate-tests-interrupted-engine-abort-reason | `interrupted` event with `reason: "engine_abort"` is not exercised anywhere | story | — | 3c11dc38 |
+| gate-tests-ipc-cancel-propagation-e2e | IPC cancel propagation end-to-end (`session.send.cancel → controller.abort → engine conv.abort`) lacks an integration test | story | — | 3c11dc38 |
+| gate-tests-list-dangling-refs-contract-divergence | `course.list_dangling_refs` (and siblings) "draft-not-found" contract — design preferred empty+warning, impl picked throw | story | — | 3c11dc38 |
+| gate-tests-prompt-customization-lock-gating | Lock-gating on `setGlobalPrompt` / `setModeAppend` is unverified | story | — | 3c11dc38 |
+| gate-tests-secret-storage-unavailable-encrypt | `ElectronSafeStorageAdapter.encrypt` does not test the "unavailable" failure mode contract | story | — | 3c11dc38 |
+| gate-tests-start-exploration-no-call-id | `course.start_exploration` without `ctx.callId` not exercised — sub-agent registration must be skipped | story | — | 3c11dc38 |
+| gate-tests-update-feed-public-key-length-guard | `importUpdateFeedPublicKey` length-rejection branch is not exercised — current test is tautological | story | — | 3c11dc38 |
+| gate-tests-write-engine-config-empty-api-key | Empty-apiKey write path is not tested | story | — | 3c11dc38 |
+| story-bootstrap-attach-document-fix | Resolve `course.attach_document` advertised-but-throws trap in bootstrap mode | story | — | 3c11dc38 |
+| story-bootstrap-prompt-no-inline-outline | Bootstrap prompts — point at the outline panel, don't narrate it | story | — | 3c11dc38 |
+| story-cleanup-stale-singular-draft-tool-refs | Cleanup: stale references to removed singular draft tools | story | — | 3c11dc38 |
+| story-embedded-image-store-delete-cascade | Fix: cascade-delete embedded images | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-durable-drafts-integration | Swap `BootstrapServiceImpl` from in-memory Map to `DraftStore` | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-durable-drafts-store | Drafts table + `DraftStore` port and SQLite adapter | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-expressive-draft-api-edit-ops | Extend `DraftEditOp` with relink/add-edge/cascade-removes/validate + warning-shape | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-expressive-draft-api-query-tools | Chunked-query tools for the draft (list_units, list_lessons_in_unit, get_lesson_detail, list_dangling_refs) | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-in-flight-affordances-signal | Thread `AbortSignal` end-to-end + add `interrupted` EngineEvent | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-in-flight-affordances-ui | Thinking indicator + cancel button/Esc binding in chat UI | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-structured-questions-tool | `ask_student_question` tool + type union extensions | story | — | 3c11dc38 |
+| story-epic-bootstrap-readiness-structured-questions-ui | `<StructuredQuestionCard />` component + chat-tab-body integration | story | — | 3c11dc38 |
+| story-fix-block-claude-code-builtins-from-tutor | Block Claude Code built-in tools from the tutor — fix "Couldn't finish askuserquestion" interstitial | story | — | 3c11dc38 |
+| story-fix-quickcheck-toolcontext-wiring | Fix: ask_student_question and quick_check.* tools auto-abandon (card never appears) | story | — | 3c11dc38 |
+| story-image-store-dirfor-abstraction | Refactor: add `dirFor()` to image stores | story | — | 3c11dc38 |
+| story-pptx-slide-image-map-dead-fallback | Fix: dead-code fallback in PPTX slide-image map | story | — | 3c11dc38 |
+

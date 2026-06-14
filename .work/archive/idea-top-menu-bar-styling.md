@@ -2,6 +2,9 @@
 id: idea-top-menu-bar-styling
 created: 2026-05-13
 tags: [ui]
+updated: 2026-06-13
+archived_atop: v0.1.1
+git_ref: dd2016c9
 ---
 
-The top menu bar has three issues: (1) the label currently reading "Chat" should say "Tutor" — this is the tutor surface, not a generic chat; (2) the Praxis wordmark is rendered in default text styling rather than the stylised brand treatment used elsewhere; (3) the bar overall doesn't match the editorial design system that the rest of the app follows (likely diverges in spacing, typography, border, or background tokens). Should be brought in line with the editorial-ui-primitives — RouteHeader-style typography, consistent border/background, and the proper brand mark.
+# Top menu bar styling

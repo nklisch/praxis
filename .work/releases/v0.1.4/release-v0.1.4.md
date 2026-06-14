@@ -182,3 +182,52 @@ Headline themes:
   cruft (3H/2M/2L); 8 docs (6H/2M); 12 new patterns codified across
   bind + rerun; 1 systemic test-fakes inconsistency resolved in-cycle;
   3 new pattern inconsistencies filed unbound (deferred).
+
+## Collapsed items
+
+All 41 bound items collapsed here under `delete-refs`; full bodies live in git history (`git show <git_ref>:<path>`).
+
+| id | title | kind | archived_atop | git_ref |
+| --- | --- | --- | --- | --- |
+| bug-picker-close-aborts-ingestion | Bug: closing the picker modal mid-ingestion aborts the in-flight batch | story | — | ab62e445 |
+| feature-configure-mode-session-hygiene | Configure-mode session hygiene | feature | — | ab62e445 |
+| feature-streamline-document-attachment-ux | Streamline document attachment UX | feature | — | ab62e445 |
+| gate-cruft-library-handle-use-pack-pack-name-unused | `_packName` parameter in `handleUsePack` is unused — interface forces a value the consumer doesn't want | story | — | ab62e445 |
+| gate-cruft-session-service-assignmentid-undefined-defensive | Defensive `assignmentId !== null && !== undefined` checks on non-nullable-undefined columns | story | — | ab62e445 |
+| gate-cruft-spawn-from-passage-studentid-phantom-arg | `studentId` parameter on `SessionClient.spawnFromPassage` is silently dropped | story | — | ab62e445 |
+| gate-cruft-use-ingestion-activity-rail-stale-comment | Stale comment references `ActivityRail` (unused) instead of `StatusStrip` | story | — | ab62e445 |
+| gate-cruft-use-ingestion-startpick-dead | Dead single-file ingestion path: `startPick` + `runIngestion` have no production callers | story | — | ab62e445 |
+| gate-docs-contract-session-active-modeid | `docs/CONTRACT.md` `SessionService.active` signature drops the new `modeId` filter | story | — | ab62e445 |
+| gate-docs-contract-session-list-excludemodeids | `docs/CONTRACT.md` Phase-14 `SessionService.list` signature missing `excludeModeIds` | story | — | ab62e445 |
+| gate-docs-pattern-async-generator-event-stream-line | Pattern skill `async-generator-event-stream` cites stale `session-service.ts:125` for `send` | story | — | ab62e445 |
+| gate-docs-pattern-editorial-ui-primitives-library-routeheader | Pattern skill `editorial-ui-primitives` `<RouteHeader>` example for `library.tsx:97` no longer exists | story | — | ab62e445 |
+| gate-docs-pattern-episodic-append-ordering-line-followup | Pattern skill `episodic-append-ordering` cites stale `session-service.ts:166` | story | — | ab62e445 |
+| gate-docs-pattern-episodic-append-ordering-line | Pattern skill `episodic-append-ordering` cites stale `session-service.ts:125` | story | — | ab62e445 |
+| gate-docs-pattern-ipc-channel-convention-session-active | Pattern skill `ipc-channel-convention` shows stale `wrapEnvelope` shape for `praxis.session.active` | story | — | ab62e445 |
+| gate-docs-pattern-session-tab-open-flow-library-handleopenintab | Pattern skill `session-tab-open-flow` cites stale `library.tsx:48-55` / `:67-74` for `handleOpenInTab` | story | — | ab62e445 |
+| gate-docs-pattern-streaming-ipc-channel-helpers-line | Pattern skill `streaming-ipc-channel-helpers` cites stale `session-channel.ts:143` for `praxis.session.send` | story | — | ab62e445 |
+| gate-patterns-inconsistency-shared-test-fakes-logger | Channel-envelope tests inline `makeFakeLogger()` instead of using shared `makeSpyLogger` | story | — | ab62e445 |
+| gate-patterns-v0.1.4 | Patterns extracted for v0.1.4 | story | — | ab62e445 |
+| gate-tests-configure-cleanup-migration-idempotency | Migration 0025 idempotency on re-run has no automated test | story | — | ab62e445 |
+| gate-tests-configure-route-race-on-simultaneous-mount | Two-tab configure-route mount race regression test missing | story | — | ab62e445 |
+| gate-tests-configure-route-unmount-cleanup-no-warning | Unmount-during-pending-`active()` cleanup is implicit — no console-warning assertion | story | — | ab62e445 |
+| gate-tests-configure-route-unmount-vs-reuse | Configure route's `session.end` in unmount cleanup may contradict the reuse contract | story | — | ab62e445 |
+| gate-tests-multi-document-upload-positive-path | Multi-file selection (N > 1) positive path not exercised through the library route | story | — | ab62e445 |
+| gate-tests-picker-close-midingestion-no-abort | Closing the picker modal mid-ingestion not asserted to leave the batch running | story | — | ab62e445 |
+| gate-tests-rework-cancelbatch-weak-oracle | `cancelBatch` test has a race-tolerant assertion that hides bugs | story | — | ab62e445 |
+| gate-tests-session-active-studentid-isolation | `session.active({ modeId })` cross-student isolation not regression-guarded | story | — | ab62e445 |
+| gate-tests-session-list-excludemodeids-studentid-isolation | `session.list({ excludeModeIds })` student-scoping not regression-guarded | story | — | ab62e445 |
+| gate-tests-session-list-includeended-and-excludemodeids | `includeEnded: false` combined with `excludeModeIds` not tested | story | — | ab62e445 |
+| gate-tests-sessions-fk-cascade-contract | `sessions` FK-cascade contract for `episodic_events` / `tabs` is comment-only — no test | story | — | ab62e445 |
+| review-async-generator-event-stream-line-restale | Pattern skill `async-generator-event-stream` cites stale `session-service.ts:166` for `send` | story | — | ab62e445 |
+| story-citation-schema-inverted-range-refine | `recordCitation` schema has the same inverted-range validation gap as `spawnFromPassage` did | story | — | ab62e445 |
+| story-configure-cleanup-migration | Drizzle migration — delete legacy configure sessions | story | — | ab62e445 |
+| story-configure-route-reuse-and-reset | Configure route reuse on mount + "Clear / restart" control | story | — | ab62e445 |
+| story-fix-desktop-vitest-filter-tests-dir | Fix `pnpm --filter @praxis/desktop test` — vitest looks for a non-existing `tests/` dir | story | — | ab62e445 |
+| story-fix-session-service-exactoptional-baseline | Fix the 4th `exactOptionalPropertyTypes` baseline error in `session-service.ts` | story | — | ab62e445 |
+| story-inline-upload-in-attach-from-library | Inline upload inside the "Attach from Library" picker — drop-zone overlay + "+ Upload" button | story | — | ab62e445 |
+| story-multi-document-upload | Multi-file document upload — Library route Upload button | story | — | ab62e445 |
+| story-session-active-mode-filter | Extend `SessionService.active` with optional `modeId` filter | story | — | ab62e445 |
+| story-session-list-exclude-modes | Extend `SessionService.list` with `excludeModeIds` + wire library to hide configure sessions | story | — | ab62e445 |
+| story-workspace-edge-padding | Workspace content hugs panel edges | story | — | ab62e445 |
+

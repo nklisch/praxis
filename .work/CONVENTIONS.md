@@ -52,6 +52,10 @@ All five gates run on every `/release-deploy` in this order. Each gate
 produces items rather than blocking the release; the release ships when all
 items at the current `release_binding` reach `stage: done`.
 
+## Terminal-tier retention
+
+delete-refs
+
 ## Design-system exceptions
 
 CSS modules in `packages/ui/src/` must adhere to the design-system

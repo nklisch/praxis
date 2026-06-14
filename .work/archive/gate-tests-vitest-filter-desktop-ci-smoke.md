@@ -8,45 +8,9 @@ depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-25
+updated: 2026-06-13
+archived_atop: v0.1.4
+git_ref: 1ca3665f
 ---
 
 # `pnpm --filter @praxis/desktop test` exit-0 not guarded by a CI step
-
-## Priority
-Low — from gate-tests on release v0.1.4.
-
-## Spec reference
-Item: `story-fix-desktop-vitest-filter-tests-dir`
-Acceptance criterion:
-> `pnpm --filter @praxis/desktop test` exits 0 (or with real test
-> failures only, not a missing-dir error).
-
-## Gap type
-e2e-seam / adversarial-spec-silent — infrastructure-config fix; a
-future workspace-config tweak that re-breaks the per-package filter
-would not be caught by the workspace-wide `pnpm test`.
-
-## Suggested test
-CI step that runs `pnpm --filter @praxis/desktop test` separately
-from `pnpm test`. No unit test is a clean fit.
-
-```bash
-# CI step (.github/workflows/*) or tests/desktop-filter.smoke.test.ts
-pnpm --filter @praxis/desktop test --run --reporter=basic
-```
-
-## Test location (suggested)
-CI workflow or `tests/desktop-filter.smoke.test.ts`
-
-## Implementation notes (2026-05-25)
-
-Created `tests/desktop-filter.smoke.test.ts` — a root-level integration test that runs `pnpm --filter @praxis/desktop test --run` as a child process via `execFileSync` and asserts exit code 0.
-
-Design decisions:
-- Located in `tests/` (root workspace tests, not per-package) so it runs as part of `pnpm test` automatically.
-- Uses `execFileSync` (synchronous) to keep the test body simple; throws on non-zero exit with both stdout+stderr included in the error message.
-- 60 s child timeout + 90 s vitest timeout — generous for cold desktop test run.
-- The test also asserts that some output was produced (runner actually ran, didn't silently no-op).
-
-All tests pass (`pnpm test`). No production code changes.

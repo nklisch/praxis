@@ -182,3 +182,138 @@ electron multi-arch rebuild, engine CLI integration smoke test).
 - All bound items reached `stage: done` before tag-cut. The IPC envelope
   refactor (`feature-mutating-ipc-channels-envelope-migration`, 12 steps)
   closed every High-severity finding from gate-security in-release.
+
+## Collapsed items
+
+All 127 bound items collapsed here under `delete-refs`; full bodies live in git history (`git show <git_ref>:<path>`).
+
+| id | title | kind | archived_atop | git_ref |
+| --- | --- | --- | --- | --- |
+| course-aware-mode-prompts-missing-tests | Add missing tests for course-aware mode prompts foundation | story | — | 9faa47bd |
+| epic-course-structured-tutor-buildout-progress | Buildout progress claims — stop the bootstrap explorer from promising bad ETAs | feature | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation | Foundation — extend facts fragment + add per-mode behavior composer + wire SessionServiceImpl | story | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts-story-exam-addendum | Exam-mode course-aware addendum | story | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts-story-homework-addendum | Homework-mode course-aware addendum | story | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts-story-quiz-addendum | Quiz-mode course-aware addendum | story | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts-story-study-skills-addendum | Study-skills-mode course-aware addendum | story | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts-story-teach-addendum | Teach-mode course-aware addendum | story | — | 9faa47bd |
+| epic-course-structured-tutor-course-aware-mode-prompts | Course-aware mode prompts — anchor the tutor on the active course | feature | — | 9faa47bd |
+| epic-course-structured-tutor-draft-resumption-mode-wiring | Wire `course.list_drafts` into bootstrap mode (mode-tool-scoping + prompt fragment) | story | — | 9faa47bd |
+| epic-course-structured-tutor-draft-resumption-tool | `course.list_drafts` tool + projection | story | — | 9faa47bd |
+| epic-course-structured-tutor-draft-resumption-ui-picker | Resume-draft picker on the courses route | story | — | 9faa47bd |
+| epic-course-structured-tutor-draft-resumption | Draft resumption — list-drafts tool + resume picker | feature | — | 9faa47bd |
+| epic-course-structured-tutor | Course-structured tutor — let the curriculum drive the tutor, not the other way around | epic | — | 9faa47bd |
+| epic-document-library-bootstrap-session-scoped-attachment | Bootstrap-session-scoped document attachment | feature | — | 9faa47bd |
+| epic-document-library-library-view-tabs-filters | Library route with scope tabs and filters | feature | — | 9faa47bd |
+| epic-document-library-multi-file-folder-picker | Multi-file and folder document picker | feature | — | 9faa47bd |
+| epic-document-library-rename-retrieve-from-documents | Rename `retrieve_from_textbook` → `retrieve_from_documents` | feature | — | 9faa47bd |
+| epic-document-library-scopes-primitive-callsite-sweep | Call-site sweep: every consumer of the old service | story | — | 9faa47bd |
+| epic-document-library-scopes-primitive-schema-and-migration | Schema + migration: `document_scopes` table | story | — | 9faa47bd |
+| epic-document-library-scopes-primitive-service-and-types | Service + types: `DocumentScopesServiceImpl` | story | — | 9faa47bd |
+| epic-document-library-scopes-primitive | `document_scopes` polymorphic scoping primitive | feature | — | 9faa47bd |
+| epic-document-library-viewer-tab-scoped-sidebar-sidebar | Scope-aware sidebar | story | — | 9faa47bd |
+| epic-document-library-viewer-tab-scoped-sidebar-tab-kind | Tab-kind foundation: `'document'` tabs | story | — | 9faa47bd |
+| epic-document-library-viewer-tab-scoped-sidebar-viewer | Document viewer body | story | — | 9faa47bd |
+| epic-document-library-viewer-tab-scoped-sidebar | Document viewer tab + scope-aware sidebar | feature | — | 9faa47bd |
+| epic-document-library | Document library overhaul — multi-scope attachment, viewer, navigable library | epic | — | 9faa47bd |
+| epic-editorial-polish-pass-app-chrome | App chrome refresh — top nav rename, wordmark, editorial alignment | feature | — | 9faa47bd |
+| epic-editorial-polish-pass-concept-name-surfacing-concept-node | ConceptNode swap — name primary, id secondary | story | — | 9faa47bd |
+| epic-editorial-polish-pass-concept-name-surfacing-gates-reading-view | Gates reading view + inline expand + inspector prereq names | story | — | 9faa47bd |
+| epic-editorial-polish-pass-concept-name-surfacing-hook | useConceptNames hook — course-scoped batched concept lookup | story | — | 9faa47bd |
+| epic-editorial-polish-pass-concept-name-surfacing-picker | LessonEditor multi-select concept picker | story | — | 9faa47bd |
+| epic-editorial-polish-pass-concept-name-surfacing | Concept name surfacing — show names everywhere a concept appears in editing UIs | feature | — | 9faa47bd |
+| epic-editorial-polish-pass-prompt-config-redesign-block-primitive | PromptBlock — editorial primitive for one slot in the composed prompt | story | — | 9faa47bd |
+| epic-editorial-polish-pass-prompt-config-redesign-stack-and-preview | PromptBlockStack — unified preview replacement with Blocks/Composed toggle | story | — | 9faa47bd |
+| epic-editorial-polish-pass-prompt-config-redesign-tab-integration | PromptTab integration — section reorder + retirement of legacy editors | story | — | 9faa47bd |
+| epic-editorial-polish-pass-prompt-config-redesign | Prompt config redesign — section reorder + unified block-oriented preview | feature | — | 9faa47bd |
+| epic-editorial-polish-pass-resizable-panels | Resizable side panels — drag handles + persisted widths | feature | — | 9faa47bd |
+| epic-editorial-polish-pass | Editorial polish pass — bring the chrome and the editors in line with the design system | epic | — | 9faa47bd |
+| epic-prompt-editing-surface-v2-compose-attribution | Compose returns source attribution | feature | — | 9faa47bd |
+| epic-prompt-editing-surface-v2-diff-aware-preview | Diff-aware prompt preview | feature | — | 9faa47bd |
+| epic-prompt-editing-surface-v2-full-fragment-view | Full fragment view with locks, badges, and configurator lock fix | feature | — | 9faa47bd |
+| epic-prompt-editing-surface-v2-unified-configure-surface | Unified prompt-customization surface in Configure | feature | — | 9faa47bd |
+| epic-prompt-editing-surface-v2 | Prompt editing surface v2 — unify, reveal, diff | epic | — | 9faa47bd |
+| epic-security-hardening-round-2-image-store-path-guard | Image-store path-traversal guard — defensive `dirFor` validation | feature | — | 9faa47bd |
+| epic-security-hardening-round-2-ipc-boundary-engine-config-shape | engineConfig response shape: hasApiKey + reveal channel | story | — | 9faa47bd |
+| epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor | IPC envelope helper + pattern-based secret redactor | story | — | 9faa47bd |
+| epic-security-hardening-round-2-ipc-boundary-url-and-redactor-rollout | Shared URL allowlist + per-channel envelope migration + redactor wiring | story | — | 9faa47bd |
+| epic-security-hardening-round-2-ipc-boundary | IPC trust-boundary hardening | feature | — | 9faa47bd |
+| epic-security-hardening-round-2-tool-bridge-socket-auth | Tool-bridge socket auth — permissions and per-session token | feature | — | 9faa47bd |
+| epic-security-hardening-round-2 | Security hardening round 2 — close the gate findings from v0.1.1 | epic | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-ingestion-edges-docx-image-boundary | Story: DOCX image-paragraph chunk-boundary pinning | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-ingestion-edges-pptx-fallback-fixture | Story: PPTX `tryChunkBySlide` fallback — real-fixture pinning | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-ingestion-edges | Ingestion adversarial test coverage — image boundaries and slide fallback | feature | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-state-and-config-edges-cancel-adversarial | cancel() adversarial states — use-streamed-send.test.tsx | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-state-and-config-edges-draft-rapid-save | SqliteDraftStore rapid back-to-back save — draft-store.test.ts | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-state-and-config-edges-engineid-rename-unavailable-storage | engineId rename round-trip — no apiKey + unavailable safeStorage | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-state-and-config-edges | State-machine and config persistence adversarial coverage | feature | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-ui-assertion-gaps-subagent-collision | Sub-agent registry collision: pin silent-no-op contract | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-ui-assertion-gaps-update-banner-hash | Update banner SHA-256 hash display: pin render contract | story | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass-ui-assertion-gaps | UI assertion gaps — banner hash display and sub-agent collision | feature | — | 9faa47bd |
+| epic-test-coverage-adversarial-pass | Adversarial test-coverage pass — close the gate-tests findings from v0.1.1 | epic | — | 9faa47bd |
+| epic-tutor-session-feel-cancellation-propagation-core-plumbing | Story 1: Core signal plumbing | story | — | 9faa47bd |
+| epic-tutor-session-feel-cancellation-propagation-engine-and-subagent | Story 2: Engine + sub-agent propagation | story | — | 9faa47bd |
+| epic-tutor-session-feel-cancellation-propagation | Cancellation propagation — stop actually stops everything | feature | — | 9faa47bd |
+| epic-tutor-session-feel-composer-queue | Composer queue while streaming — keep typing, send when it's your turn | feature | — | 9faa47bd |
+| epic-tutor-session-feel-tool-call-thread-persistence | Tool-call thread persistence — keep tool artifacts readable | feature | — | 9faa47bd |
+| epic-tutor-session-feel-tutor-tab-rename | Tutor tab rename — teaching-shaped term for the session surface | feature | — | 9faa47bd |
+| epic-tutor-session-feel | Tutor session feel — the chat tab is a tutoring session, not a chatbot | epic | — | 9faa47bd |
+| epic-ui-rendering-stability-loop-flickers-audit | Stabilize `useConfiguratorActions` deps to stop the audit-log loop | story | — | 9faa47bd |
+| epic-ui-rendering-stability-loop-flickers-sidebar | Stabilize `useDerivedScope` return identity to stop sidebar flicker | story | — | 9faa47bd |
+| epic-ui-rendering-stability-loop-flickers | Loop flickers — kill the re-render storms in the documents sidebar and audit log | feature | — | 9faa47bd |
+| epic-ui-rendering-stability-state-transitions-question-card-collapse | Question card collapses to compact summary after submit | story | — | 9faa47bd |
+| epic-ui-rendering-stability-state-transitions-sub-agent-panel-unmount | Sub-agents panel unmounts chrome when hidden | story | — | 9faa47bd |
+| epic-ui-rendering-stability-state-transitions | State transitions — question-card retirement and sub-agents panel collapse | feature | — | 9faa47bd |
+| epic-ui-rendering-stability | UI rendering stability — kill the flickers, ghosts, and broken layouts | epic | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-1-session | Migrate `praxis.session.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-10-tabs | Migrate `praxis.tabs.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-11-sketches-concept-maps | Migrate `praxis.sketches.*` and `praxis.conceptMaps.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules | Migrate `praxis.auth.claude.status` and per-domain channel modules to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-2-documents | Migrate `praxis.documents.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-3-artifacts | Migrate `praxis.artifacts.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-4-memory | Migrate `praxis.memory.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-5-assignments | Migrate `praxis.assignments.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-6-packs | Migrate `praxis.packs.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-7-lock-and-config | Migrate `praxis.lock.*` and `praxis.config.*` remaining invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-8-author | Migrate `praxis.author.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration-step-9-notes-flashcards | Migrate `praxis.notes.*` and `praxis.flashcards.*` invoke channels to envelope pattern | story | — | 9faa47bd |
+| feature-mutating-ipc-channels-envelope-migration | Migrate mutating IPC channels in `ipc-server.ts` to the `ipc-envelope-handler` pattern | feature | — | 9faa47bd |
+| fix-wrapenvelope-withschema-arg-routing-and-client-unwrap | Fix `wrapEnvelope + withSchema` arg routing and missing `unwrapEnvelope` on client | story | — | 9faa47bd |
+| gate-cruft-claude-code-vision-empty-maxtokens-spread | Empty conditional-spread of comment-only object in `ClaudeCodeVision.describe` | story | — | 9faa47bd |
+| gate-cruft-query-unused-cleanupfn | Unused local variable `cleanupFn` in claude-cli-sdk `query()` | story | — | 9faa47bd |
+| gate-cruft-quick-check-channel-dead-optional-guard | Dead `if (!services.quickCheck) return;` guard in quick-check-channel | story | — | 9faa47bd |
+| gate-cruft-session-service-stale-phase-11-12-null-shims | Stale Phase 11/12 "wired by Agent 2; null is safe until then" defensive shims in SessionService.openActive | story | — | 9faa47bd |
+| gate-cruft-stream-prefer-number-isfinite | Global `isFinite` instead of type-safe `Number.isFinite` in stream timeout check | story | — | 9faa47bd |
+| gate-cruft-theme-tokens-test-unused-join | Unused `join` import in theme-tokens test | story | — | 9faa47bd |
+| gate-docs-claude-md-document-scopes-primitive | CLAUDE.md still names `course_documents` join + `CourseDocumentsServiceImpl` as the document scoping primitive | story | — | 9faa47bd |
+| gate-docs-context-hook-pair-tabs-now-shared | `context-hook-pair` pattern actively forbids putting tabs state in context, but tabs state was lifted to `TabsContext` | story | — | 9faa47bd |
+| gate-docs-curriculum-bootstrap-tools-list-drafts | CURRICULUM.md bootstrap-mode tools list omits `course.list_drafts` even though it's now registered for the bootstrap mode | story | — | 9faa47bd |
+| gate-docs-mode-prompt-fragment-in-course-behavior | `mode-prompt-fragment-composition` pattern's `teachMode` example is missing `behaviorInCourseFragmentDefault.teach` and the pattern body doesn't acknowledge course-aware fragments | story | — | 9faa47bd |
+| gate-docs-mode-tool-scoping-retrieve-tool-rename | `mode-tool-scoping` pattern still uses the old `retrieve_from_textbook` tool name in three places | story | — | 9faa47bd |
+| gate-docs-roadmap-phase16-document-scopes | ROADMAP Phase 16 build list still names `course_documents` table + `CourseDocumentsServiceImpl` | story | — | 9faa47bd |
+| gate-docs-shared-test-fakes-rename-document-scopes | `shared-test-fake-factories` pattern (and patterns index) name `noopCourseDocuments` but the factory is `noopDocumentScopes` | story | — | 9faa47bd |
+| gate-docs-tab-body-isolation-chat-line-anchor | `tab-body-isolation` pattern's "mounting pattern" example cites `chat.tsx:106-110`; the block is now at `chat.tsx:175-182` | story | — | 9faa47bd |
+| gate-docs-ux-prompt-customization-v2-surface | UX.md "Prompt customization" surface still shows the v0.1.1 mode-fragment-list sketch — the v2 block-stack with attribution + diff preview shipped | story | — | 9faa47bd |
+| gate-docs-ux-tutor-workspace-nav-label | UX.md menu tree calls the chat-workspace nav entry "Chat workspace"; the app-chrome label is now "Tutor" | story | — | 9faa47bd |
+| gate-patterns-share-vitest-spy-logger-factory | Factor the per-test Vitest spy `Logger` fake into `tests/helpers/mocks.ts` | story | — | 9faa47bd |
+| gate-patterns-v0-1-2 | Patterns extracted for v0.1.2 | story | — | 9faa47bd |
+| gate-security-audit-cves-mcp-sdk-transitive | `pnpm audit` reports 2 high + 3 moderate + 1 low transitive vulnerabilities via `@modelcontextprotocol/sdk` | story | — | 9faa47bd |
+| gate-security-ipc-helpers-rethrow-redactor-gap | `ipc-helpers.handle` re-throws raw errors, bypassing envelope redactor on ~117 channels | story | — | 9faa47bd |
+| gate-security-streaming-channel-error-push-redactor-gap | Streaming IPC channels push unredacted error messages to renderer | story | — | 9faa47bd |
+| gate-tests-composer-queue-exam-lockdown-regression | Composer-queue exam-lockdown regression case is missing | story | — | 9faa47bd |
+| gate-tests-sdk-wall-clock-timeout-disable | Test coverage for SDK wall-clock timeout escape hatch (`timeout: 0` / `Infinity`) | story | — | 9faa47bd |
+| gate-tests-streaming-channel-error-redaction | Pin test for the streaming-channel raw `err.message` leak (paired with the security fix) | story | — | 9faa47bd |
+| gate-tests-tool-server-auth-frame-boundaries | Tool-server auth frame split / coalesced cases are missing | story | — | 9faa47bd |
+| gate-tests-tool-server-auth-timeout-window | Tool-server auth 5-second timeout case is missing from `tool-server-auth.test.ts` | story | — | 9faa47bd |
+| lift-tabs-state-to-context | Lift tabs state into a React context | story | — | 9faa47bd |
+| list-scopes-for-document-client-api | Wire `listScopesForDocument` through the client API | story | — | 9faa47bd |
+| resizable-panels-tests-and-sidekick-adoption | Resizable-panels — add tests + adopt on sidekick panel (Unit 3) | feature | — | 9faa47bd |
+| resume-draft-picker-test-and-keyboard-nav | ResumeDraftPicker — add test file and arrow-key navigation | story | — | 9faa47bd |
+| story-biology-pack-bootstrap-smoke-test | Extend biology-pack smoke test to cover bootstrap flow | story | — | 9faa47bd |
+| story-electron-multi-arch-rebuild | Multi-arch native-module rebuild for macOS dist | story | — | 9faa47bd |
+| story-engine-cli-integration-smoke-test | Engine CLI integration smoke test (gated) | story | — | 9faa47bd |
+| story-fix-disable-sdk-wall-clock-timeout | Disable Claude CLI SDK per-turn wall-clock timeout in adapter + vision | story | — | 9faa47bd |
+| story-fix-rate-limit-error-message-format | Format the rate-limit error message so the user can read it | story | — | 9faa47bd |
+| test-gap-engine-config-shape-service-and-ui | Service-layer + settings-route test coverage for engine-config shape | story | — | 9faa47bd |
+| test-gap-ipc-envelope-migration-integration | IPC envelope migration integration test + per-channel `withSchema` boundary coverage | story | — | 9faa47bd |
+

@@ -8,64 +8,9 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-23
+updated: 2026-06-13
+archived_atop: v0.1.3
+git_ref: 286c0453
 ---
 
 # Configure end-to-end test missing conceptMaps dep
-
-## Brief
-
-`tests/configure-end-to-end.test.ts:197` fails typecheck with:
-
-```
-TS2741: Property 'conceptMaps' is missing in type
-'{ db, log, artifacts, memory, configuratorId, studentId, promptCustomization }'
-but required in type 'AuthoringServiceDeps'.
-```
-
-This was hidden behind the now-fixed session-service.ts baseline error
-(`story-fix-session-service-exactoptional-baseline`, done) — typecheck
-used to short-circuit before reaching this integration test. The failure
-surfaced after that fix landed.
-
-## Fix path
-
-1. Open `tests/configure-end-to-end.test.ts:197` and inspect the
-   `AuthoringServiceDeps` shape (likely in
-   `packages/core/src/services/`).
-2. Thread a `conceptMaps` service into the deps bag at line 197. Use the
-   real service if the test exercises concept-map paths; use a stub fake
-   if not (and prefer adding to `tests/helpers/mocks.ts` per the
-   `shared-test-fake-factories` pattern if 3+ tests would benefit).
-3. Confirm `pnpm typecheck` is clean and the test still passes.
-
-If the test predates the `conceptMaps` field being added to
-`AuthoringServiceDeps`, the setup just needs the missing key — no behavior
-change required.
-
-## Implementation notes
-
-Stub added **inline** in `tests/configure-end-to-end.test.ts` inside `buildServices()`, immediately before the `AuthoringServiceImpl` constructor call. The stub mirrors the `makeStubConceptMaps()` factory in `packages/core/src/__tests__/authoring-service.test.ts` — all methods `vi.fn()` with appropriate resolved defaults.
-
-Threshold check: only the `authoring-service.test.ts` in-tree file and now `configure-end-to-end.test.ts` use a concept-map stub — two usages, below the 3+ threshold for promoting to `tests/helpers/mocks.ts`. Inline is correct.
-
-Verification:
-- `pnpm typecheck`: clean (all packages pass)
-- `pnpm vitest run tests/configure-end-to-end.test.ts`: 4/4 passed
-- `pnpm test`: 430 test files passed, 4609 tests passed
-- Lint errors (610) are pre-existing; none introduced by this change
-
-## Review (2026-05-23)
-
-**Verdict**: Approve
-
-Surgical typecheck fix; stub mirrors the canonical `makeStubConceptMaps()`
-shape from `authoring-service.test.ts`. Threshold check (3+ tests) was
-performed correctly — inline is appropriate.
-
-**Blockers**: none
-**Important**: none
-**Nits**: inline `import("...").ConceptMapService` could be a top-level
-`import type` for readability — truly minor.
-
-**Notes**: Archived: no parent feature/epic and no release_binding.

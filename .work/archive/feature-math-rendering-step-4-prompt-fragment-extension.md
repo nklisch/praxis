@@ -8,63 +8,9 @@ depends_on: [feature-math-rendering-step-1-katex-macros, feature-mode-aware-ques
 release_binding: null
 gate_origin: null
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-06-13
+archived_atop: v0.1.4
+git_ref: 1ca3665f
 ---
 
 # Step 4: Extend `questionToolFragment` with macros table
-
-## Scope
-Edit the existing `questionToolFragment` factory (created in `feature-mode-aware-question-constraints-step-4`) to append the available LaTeX macros table to the Math section. Agent reads the table as a quick reference and uses the shortcuts in LaTeX expressions.
-
-## Implementation
-- Edit `packages/curriculum/src/modes/fragments/question-tool.ts`:
-  - Import `KATEX_MACRO_DOCS` from `@praxis/ui` (or wherever the path resolves — likely re-exported via `@praxis/ui/lib`)
-  - Append to the Math section template:
-    ```
-    Available LaTeX macros (shortcuts you can use in $...$ and $$...$$):
-
-    | Shortcut | Expansion | Meaning |
-    |---|---|---|
-    | `\R` | `\mathbb{R}` | real numbers ℝ |
-    ... (generated from KATEX_MACRO_DOCS)
-    ```
-  - Generation: a small helper inside the factory iterates `KATEX_MACRO_DOCS` and formats each as a markdown table row
-- Edit `packages/curriculum/src/modes/fragments/__tests__/question-tool.test.ts`:
-  - Assert the template now includes "Available LaTeX macros"
-  - Assert each macro's shortcut appears in the table
-
-## Acceptance Criteria
-- [ ] `questionToolFragment` template includes the macros table from `KATEX_MACRO_DOCS`
-- [ ] Table has all 11 macros with shortcut + expansion + meaning
-- [ ] All other sections of the template are preserved (length constraints, citations, definitions, etc.)
-- [ ] Tests assert macros table presence + each macro's shortcut
-- [ ] `pnpm test` passes for the test file
-
-## Acceptance Criteria
-- [x] `questionToolFragment` template includes the macros table from `KATEX_MACRO_DOCS`
-- [x] Table has all 11 macros with shortcut + expansion + meaning
-- [x] All other sections of the template are preserved (length constraints, citations, definitions, etc.)
-- [x] Tests assert macros table presence + each macro's shortcut
-- [x] `pnpm test` passes for the test file
-
-## Implementation notes (2026-05-24)
-
-Chose **inline duplication** (option 3) to respect the dep boundary: `@praxis/curriculum` must not import `@praxis/ui` at runtime. The 11-entry `KATEX_MACRO_DOCS_INLINE` const in `question-tool.ts` is an explicit mirror with a source comment pointing at `packages/ui/src/lib/katex-macros.ts`. A `buildMacrosTable()` helper generates the markdown table and interpolates it after the Math section's three bullet points.
-
-Tests added (7 total, 4 new):
-- `includes the LaTeX macros table header` — checks section header + table header row + separator row
-- `includes all 11 macro shortcuts in the table` — iterates all 11 shortcuts, asserts each appears quoted in the template
-- `macros table is present regardless of mode caps` — verifies exam caps also produce the table
-
-## References
-- Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 4
-- File: `packages/curriculum/src/modes/fragments/question-tool.ts` (created in dependent story)
-- Depends on step-1 (macros) and the sibling-feature's prompt-fragment story
-
-## Review (2026-05-24)
-
-**Verdict**: Approve
-
-**Blockers**: none / **Important**: none / **Nits**: none
-
-**Notes**: Inline duplication of `KATEX_MACRO_DOCS_INLINE` in `question-tool.ts` mirrors the `INLINE_FALLBACK_CONSTRAINTS` pattern used by step-5/step-6 of mode-aware-question-constraints — same dep-boundary respect (`@praxis/curriculum` ↛ `@praxis/ui` runtime imports). Source comment points at `katex-macros.ts` for drift detection. `buildMacrosTable()` helper formats markdown table rows from the 11 entries; interpolated into Math section. 3 new tests assert table header/separator + all 11 shortcuts + presence regardless of mode caps. Clean addition; Math feature now 4/5 done (step-5 still blocked on content-renderer step-8).
