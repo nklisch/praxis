@@ -23,6 +23,25 @@ Tags are a closed set. Multi-tag is fine; empty tag list is fine for items
 that don't fit (e.g. early foundational work). Add new tags only by amending
 this list — don't introduce ad-hoc tags.
 
+### deep-code-scan reserved tags
+
+`/agile-workflow:deep-code-scan` owns a reserved tag set, separate from the
+project routing tags above (registered as a rollout prerequisite even though no
+scan campaign has run yet). Every scan-scaffold item carries the umbrella `scan`
+tag; lane features add a lane tag; altitude stories add a band tag:
+
+- scan          umbrella tag on all scan-campaign scaffold. `[scan]` items are
+                engagement-owned by deep-code-scan and excluded from
+                `work-view --ready`/`--blocked`, so autopilot never drains them.
+                Fix items produced by a scan never carry `scan`.
+- lanes         correctness, tests, performance, security, quality, structure,
+                architecture, custom (one per scan lane)
+- bands         leaf, module, subsystem, system (altitude on scan stories)
+
+Scan items also set the `scan_origin: <scan-slug>` frontmatter field linking them
+to the campaign that produced them (`work-view --scan-origin <slug>`). These tags
+and the field stay inert until a deep-code-scan campaign runs.
+
 ## Slug conventions
 
 - kebab-case
